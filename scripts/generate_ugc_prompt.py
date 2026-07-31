@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V2 - Conversational UGC Copywriting)
-Tự động tinh lọc Tên sản phẩm Shopee dài thành tên ngắn gọn, loại bỏ từ khóa rác trong lời thoại
-và tạo Master Prompt mượt mà 100% theo quy chuẩn omni-ugc-creator.md.
+Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V3 - Strict Visual-Audio Alignment)
+Đảm bảo đồng nhất tuyệt đối 100% giữa Hình ảnh Visual (Anh) và Lời thoại Voiceover (Việt).
+Đổi "giày" thành "dép" chuẩn xác khi visual xuất hiện sandals/slides/slippers.
 """
 
 import sys
@@ -219,11 +219,15 @@ def generate_prompt_for_item(item_id, item_dir):
 Look closely at the attached main product image AND analyze the full Shopee title: "{raw_product_name}".
 
 CRITICAL UGC COPYWRITING & PROMPT RULES:
-1. CORE PRODUCT CONCEPT: First, simplify the long Shopee title into a natural 2-4 word product category (e.g. "Dép sục siêu nhẹ", "Gôm tẩy da lộn", "Xịt bọt vệ sinh giày").
-2. CONVERSATIONAL VIETNAMESE VOICEOVER (STRICT):
+1. CORE PRODUCT CONCEPT: First, identify the exact product category (e.g., sandals/slides -> "dép", shoes/sneakers -> "giày", cleaner -> "gôm/xịt vệ sinh").
+2. STRICT VISUAL-AUDIO TERMINOLOGY ALIGNMENT (CRITICAL):
+   - The Vietnamese Voiceover MUST 100% MATCH the exact object shown in the English Visual description.
+   - IF the English Visual shows "sandals", "slides", "clogs", or "slippers" -> The Vietnamese Subtitle/Voiceover MUST use "dép" (e.g. "đi đôi dép này", "chân mỏi vì đôi dép cũ"). NEVER use "giày" when the visual shows sandals!
+   - IF the English Visual shows "sneakers", "boots", or "running shoes" -> The Vietnamese Subtitle/Voiceover MUST use "giày".
+3. CONVERSATIONAL VIETNAMESE VOICEOVER:
    - DO NOT EVER repeat long Shopee listing keywords, technical specs, or model numbers (like KO1, EVA, 5cm, extraParams, etc.) in the Vietnamese subtitles/voiceovers.
-   - Write natural, emotional, everyday spoken Vietnamese used by real viral TikTok/Reels reviewers (e.g., "Đi mưa mà mang đôi sục này thì êm dã man!", "Chân mỏi nhức cả ngày, phải thử ngay đôi này!").
-3. ANCHOR PRODUCT TO ATTACHED IMAGE:
+   - Write natural, emotional, everyday spoken Vietnamese used by real viral TikTok/Reels reviewers.
+4. ANCHOR PRODUCT TO ATTACHED IMAGE:
    - In [ATTACHED ASSETS], reference the main product as "Attached product image ({main_product_img_name})" so Omni visually maintains 100% appearance from the image file.
 
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
@@ -249,11 +253,11 @@ CREATIVE FREEDOM FOR OMNI:
 SCENE BREAKDOWN (10 SECONDS):
 0-3s (Hook & Problem):
 - Visual: [Write a vivid cinematic visual description in English showing character struggling with the problem]
-- Subtitle/Voiceover (Vietnamese): "[Write a short, catchy, natural 0-3s opening hook in conversational Vietnamese - NO long Shopee titles or model codes!]"
+- Subtitle/Voiceover (Vietnamese): "[Write a short, catchy 0-3s opening hook in conversational Vietnamese - Ensure exact object matching: 'dép' for sandals/slides, 'giày' for shoes!]"
 
 3-10s (Solution & Product Demo):
 - Visual: [Write a vivid cinematic visual description in English showing character applying/using main product with instant transformation result]
-- Subtitle/Voiceover (Vietnamese): "[Write a high-impact, emotional benefit statement in conversational Vietnamese for 3-10s - NO long Shopee titles or model codes!]"
+- Subtitle/Voiceover (Vietnamese): "[Write a high-impact, emotional benefit statement in conversational Vietnamese for 3-10s - Ensure exact object matching: 'dép' for sandals/slides, 'giày' for shoes!]"
 
 STYLE GUIDELINES:
 - Photorealistic UGC review style, natural handheld camera feel, fluid motion, 60fps, realistic audio lip-sync.
