@@ -27,7 +27,6 @@ def upload_csv_to_gsheet(csv_filepath):
         "csvText": csv_content
     }
 
-    # Bỏ qua xác thực SSL certificate trên macOS nếu thiếu certs
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
@@ -51,8 +50,8 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         target_csv = sys.argv[1]
     else:
-        # Tìm file csv mới nhất trong thư mục hiện tại
-        csv_files = glob.glob("*.csv")
+        # Tìm file csv mới nhất trong thư mục data/ hoặc gốc dự án
+        csv_files = glob.glob("data/*.csv") + glob.glob("*.csv")
         if csv_files:
             csv_files.sort(key=os.path.getmtime, reverse=True)
             target_csv = csv_files[0]
@@ -60,4 +59,4 @@ if __name__ == "__main__":
     if target_csv:
         upload_csv_to_gsheet(target_csv)
     else:
-        print("Vui lòng chỉ định file CSV. Ví dụ: python3 import_csv_to_gsheet.py my_data.csv")
+        print("Vui lòng chỉ định file CSV. Ví dụ: python3 scripts/import_csv_to_gsheet.py data/my_data.csv")

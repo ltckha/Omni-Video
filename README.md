@@ -32,11 +32,16 @@ Hệ thống tự động hóa toàn diện quy trình thu thập nguyên liệu
 Omni-Video/
 ├── omni-ugc-creator.md          # Quy chuẩn Master Prompt UGC 10s cho Gemini Omni
 ├── README.md                    # Tài liệu hướng dẫn hệ thống
-├── google_apps_script.js        # Mã nguồn Google Apps Script (Webhook & Google Sheets API)
-├── import_csv_to_gsheet.py      # Script Python import file CSV & lọc trùng sâu
-├── omni_native_host.py          # Native Messaging Host Python (Di chuyển ảnh 0.1s)
-├── run_native_host.sh           # Shell script wrapper khởi chạy Native Host trên macOS
 ├── Chay_Import_CSV.command     # File 1-Click nhấp đúp chuột để Import CSV & phân loại ảnh
+├── characters/                  # Thư mục chứa hình ảnh nhân vật/KOLs mẫu (Nam, Nữ)
+├── sample_media/                # Thư mục chứa các video & hình ảnh mẫu thử nghiệm
+├── data/                        # Thư mục chứa các file dữ liệu CSV xuất từ Shopee Affiliate
+├── scripts/                     # Thư mục chứa toàn bộ mã nguồn xử lý & backend
+│   ├── google_apps_script.js    # Mã nguồn Google Apps Script (Webhook & Google Sheets API)
+│   ├── import_csv_to_gsheet.py  # Script Python import file CSV & lọc trùng sâu
+│   ├── auto_organize_downloads.py # Script tự động di chuyển ảnh vào Product_Assets/<Mã_SP>/
+│   ├── omni_native_host.py      # Native Messaging Host Python (Di chuyển ảnh 0.1s)
+│   └── run_native_host.sh       # Shell script wrapper khởi chạy Native Host trên macOS
 ├── chrome-extension/            # Tiện ích mở rộng Chrome
 │   ├── manifest.json            # Manifest V3 (Bao gồm quyền nativeMessaging & permissions)
 │   ├── background.js            # Service worker điều phối tải ảnh & gọi Webhook
@@ -54,7 +59,7 @@ Omni-Video/
 ### 1. Cài Đặt Google Apps Script (Backend)
 1. Mở file Google Sheet (đã import CSV hoặc bảng tính mới).
 2. Chọn **Extensions (Tiện ích mở rộng)** -> **Apps Script**.
-3. Sao chép nội dung file [`google_apps_script.js`](file:///Users/khan/Developer/Omni-Video/google_apps_script.js) dán đè vào `Code.gs`.
+3. Sao chép nội dung file [`scripts/google_apps_script.js`](file:///Users/khan/Developer/Omni-Video/scripts/google_apps_script.js) dán đè vào `Code.gs`.
 4. Bấm **Deploy (Triển khai)** -> **New deployment (Triển khai mới)**:
    - Type: `Web app`
    - Execute as: `Me`

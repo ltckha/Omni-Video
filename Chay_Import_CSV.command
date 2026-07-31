@@ -8,12 +8,12 @@ echo "🚀 OMNI VIDEO - ĐỒNG BỘ CSV & PHÂN LOẠI ẢNH VỀ DỰ ÁN"
 echo "============================================================"
 echo ""
 
-# 1. Di chuyển toàn bộ ảnh từ Downloads về đúng /Developer/Omni-Video/Download/<Mã_SP>/
-python3 auto_organize_downloads.py
+# 1. Di chuyển toàn bộ ảnh từ Downloads về đúng /Developer/Omni-Video/Product_Assets/<Mã_SP>/
+python3 scripts/auto_organize_downloads.py
 
 echo ""
 # 2. Chạy Import CSV & Lọc trùng sản phẩm trên Google Sheet
-python3 import_csv_to_gsheet.py
+python3 scripts/import_csv_to_gsheet.py
 
 echo ""
 echo "============================================================"
