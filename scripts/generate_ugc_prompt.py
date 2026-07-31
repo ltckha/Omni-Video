@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V4 - Voiceover-Anchored Storytelling)
-Lấy Lời thoại Tiếng Việt làm nòng cốt cảm xúc (Voiceover-First), buộc Phân cảnh Visual (Anh)
-phải minh họa diễn xuất khớp 100% từng chi tiết câu thoại và nỗi đau thực tế.
+Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V5 - Gemini 3.5 Priority & Smart Fallback)
+Ưu tiên sử dụng mô hình Gemini 3.5 Flash / 2.5 Pro tiên tiến nhất để sinh Master Prompt mượt mà,
+vừa đọc Tên sản phẩm vừa soi ảnh Multimodal theo đúng quy chuẩn omni-ugc-creator.md.
 """
 
 import sys
@@ -39,6 +39,14 @@ ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec"
+
+# Danh sách mô hình ưu tiên từ Gemini 3.5 Flash down xuống Gemini 2.5 Flash
+PREFERRED_MODELS = [
+    "gemini-3.5-flash",
+    "gemini-3.5-pro",
+    "gemini-2.5-pro",
+    "gemini-2.5-flash"
+]
 
 PRODUCTS_CACHE = None
 
@@ -127,10 +135,11 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
         print("❌ Lỗi: Không tìm thấy GEMINI_API_KEY trong biến môi trường!")
         return None
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-    
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
     parts = []
-    
     if image_filepath and os.path.exists(image_filepath):
         try:
             with open(image_filepath, "rb") as img_file:
@@ -147,7 +156,6 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
             print("⚠️ Không thể đọc file ảnh:", e)
 
     parts.append({"text": prompt_text})
-
     payload = {
         "contents": [{"parts": parts}],
         "generationConfig": {
@@ -156,23 +164,25 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
         }
     }
 
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    # Thử lần lượt các mô hình từ Gemini 3.5 Flash đến Gemini 2.5 Flash
+    for model_name in PREFERRED_MODELS:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        try:
+            with urllib.request.urlopen(req, context=ctx) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                text = data["candidates"][0]["content"]["parts"][0]["text"]
+                print(f"🤖 Đã sinh Master Prompt thành công bằng Mô hình: {model_name}")
+                return text
+        except Exception as e:
+            print(f"🔄 Mô hình {model_name} không phản hồi ({e}), tự động chuyển sang mô hình tiếp theo...")
 
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"}
-    )
-
-    try:
-        with urllib.request.urlopen(req, context=ctx) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            return data["candidates"][0]["content"]["parts"][0]["text"]
-    except Exception as e:
-        print("❌ Lỗi gọi Gemini API:", e)
-        return None
+    print("❌ Lỗi: Tất cả mô hình Gemini API đều không phản hồi.")
+    return None
 
 def update_google_sheet_status(item_id):
     ctx = ssl.create_default_context()
@@ -273,7 +283,7 @@ Generate ONLY the final Master Prompt text inside a clean markdown block. Keep V
             f.write(clean_text)
             
         print(f"✅ Đã lưu Master Prompt tinh lọc thành công tại: {output_file}")
-        print("\n--- NỘI DUNG MASTER PROMPT NÂNG CẤP ---")
+        print("\n--- NỘI DUNG MASTER PROMPT TINH LỌC ---")
         print(clean_text[:550] + "...\n---------------------------------------")
         
         update_google_sheet_status(item_id)
