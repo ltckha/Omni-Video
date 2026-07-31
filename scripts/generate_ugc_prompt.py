@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Omni Video - Gemini Multimodal AI UGC Master Prompt Generator
-Đọc Tên sản phẩm trực tiếp từ Google Sheet + Soi ảnh sản phẩm Multimodal
-để sinh Master Prompt chính xác 100% theo quy chuẩn omni-ugc-creator.md.
+Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V2 - Conversational UGC Copywriting)
+Tự động tinh lọc Tên sản phẩm Shopee dài thành tên ngắn gọn, loại bỏ từ khóa rác trong lời thoại
+và tạo Master Prompt mượt mà 100% theo quy chuẩn omni-ugc-creator.md.
 """
 
 import sys
@@ -15,16 +15,19 @@ import base64
 import mimetypes
 
 def load_env_if_needed():
-    if "GEMINI_API_KEY" not in os.environ:
+    if "GEMINI_API_KEY" not in os.environ or not os.environ["GEMINI_API_KEY"]:
         for env_file in [os.path.expanduser("~/.zshrc"), os.path.expanduser("~/.zshenv"), os.path.expanduser("~/.bash_profile")]:
             if os.path.exists(env_file):
                 try:
                     with open(env_file, "r", encoding="utf-8", errors="ignore") as f:
                         for line in f:
                             if "GEMINI_API_KEY" in line and "=" in line and not line.strip().startswith("#"):
-                                key_val = line.split("=", 1)[1].strip().strip('"').strip("'")
-                                os.environ["GEMINI_API_KEY"] = key_val
-                                break
+                                val = line.split("=", 1)[1].strip()
+                                val = val.replace("export", "").strip()
+                                val = val.strip('"').strip("'")
+                                if val:
+                                    os.environ["GEMINI_API_KEY"] = val
+                                    break
                 except Exception:
                     pass
 
@@ -63,20 +66,18 @@ def fetch_products_from_google_sheet():
                 print(f"📊 Đã tải thành công dữ liệu {len(PRODUCTS_CACHE)} sản phẩm từ Google Sheet!")
                 return PRODUCTS_CACHE
     except Exception as e:
-        print("⚠️ Không thể tải dữ liệu từ Google Sheet Webhook:", e)
+        print("⚠️ Không thể kết nối Google Sheet Webhook:", e)
 
     PRODUCTS_CACHE = {}
     return PRODUCTS_CACHE
 
 def lookup_product_name(item_id, item_dir):
-    # 1. Đọc từ Google Sheet Webhook
     products_map = fetch_products_from_google_sheet()
     if item_id in products_map:
         title = products_map[item_id].get("productName", "")
         if title and title != "Sản phẩm mới":
             return title
 
-    # 2. Đọc từ file info.json nếu có
     info_path = os.path.join(item_dir, "info.json")
     if os.path.exists(info_path):
         try:
@@ -87,7 +88,6 @@ def lookup_product_name(item_id, item_dir):
         except Exception:
             pass
 
-    # 3. Đọc từ file CSV local trong data/ hoặc gốc dự án
     csv_files = glob.glob(os.path.join(DATA_DIR, "*.csv")) + glob.glob(os.path.join(PROJECT_DIR, "*.csv"))
     for csv_file in csv_files:
         try:
@@ -124,7 +124,7 @@ def get_image_mime_type(filepath):
 
 def call_gemini_multimodal_api(prompt_text, image_filepath=None):
     if not GEMINI_API_KEY:
-        print("❌ Lỗi: Không tìm thấy GEMINI_API_KEY!")
+        print("❌ Lỗi: Không tìm thấy GEMINI_API_KEY trong biến môi trường!")
         return None
 
     url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
@@ -208,27 +208,32 @@ def generate_prompt_for_item(item_id, item_dir):
     image_path = images[0] if images else None
     main_product_img_name = os.path.basename(image_path) if image_path else "Product Image"
     
-    # Lấy Tên sản phẩm chính xác từ Google Sheet
-    product_name = lookup_product_name(item_id, item_dir)
-    print(f"📦 Tên sản phẩm đọc từ Google Sheet: \"{product_name}\"")
+    raw_product_name = lookup_product_name(item_id, item_dir)
+    print(f"📦 Tên sản phẩm Shopee: \"{raw_product_name}\"")
 
     characters = get_available_characters()
     selected_char = characters[0] if characters else "Friendly Reviewer"
 
     system_directive = f"""You are an expert AI Video Director and Marketing Copywriter specializing in 10-second UGC (User-Generated Content) Review videos for Gemini Omni.
 
-Look closely at the attached product image AND analyze the exact Product Name: "{product_name}".
+Look closely at the attached main product image AND analyze the full Shopee title: "{raw_product_name}".
 
-Your task is to generate a high-converting 10-second UGC Master Prompt specifically tailored to this EXACT product ("{product_name}").
+CRITICAL UGC COPYWRITING & PROMPT RULES:
+1. CORE PRODUCT CONCEPT: First, simplify the long Shopee title into a natural 2-4 word product category (e.g. "Dép sục siêu nhẹ", "Gôm tẩy da lộn", "Xịt bọt vệ sinh giày").
+2. CONVERSATIONAL VIETNAMESE VOICEOVER (STRICT):
+   - DO NOT EVER repeat long Shopee listing keywords, technical specs, or model numbers (like KO1, EVA, 5cm, extraParams, etc.) in the Vietnamese subtitles/voiceovers.
+   - Write natural, emotional, everyday spoken Vietnamese used by real viral TikTok/Reels reviewers (e.g., "Đi mưa mà mang đôi sục này thì êm dã man!", "Chân mỏi nhức cả ngày, phải thử ngay đôi này!").
+3. ANCHOR PRODUCT TO ATTACHED IMAGE:
+   - In [ATTACHED ASSETS], reference the main product as "Attached product image ({main_product_img_name})" so Omni visually maintains 100% appearance from the image file.
 
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 
 ---
 [ATTACHED ASSETS & CREATIVE DIRECTIVES]:
 - Main Product: Attached product image ({main_product_img_name})
-- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point or item interacting with "{product_name}"]
+- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point or dirty/damaged item interacting with this product]
 - Character: Attached image characters/{selected_char} (Friendly reviewer matching target audience)
-- Environment: AI Creative Freedom: [Contextually appropriate environment matching "{product_name}"]
+- Environment: AI Creative Freedom: [Contextually appropriate realistic environment]
 
 Task: Generate a 10-second high-converting UGC review video seamlessly combining the main product, secondary prop, character, and environment.
 
@@ -243,12 +248,12 @@ CREATIVE FREEDOM FOR OMNI:
 
 SCENE BREAKDOWN (10 SECONDS):
 0-3s (Hook & Problem):
-- Visual: [Write a vivid cinematic visual description in English showing the character interacting with the specific pain point of "{product_name}"]
-- Subtitle/Voiceover (Vietnamese): "[Write a catchy, curiosity-inducing opening hook in Vietnamese specifically about the problem solved by {product_name}]"
+- Visual: [Write a vivid cinematic visual description in English showing character struggling with the problem]
+- Subtitle/Voiceover (Vietnamese): "[Write a short, catchy, natural 0-3s opening hook in conversational Vietnamese - NO long Shopee titles or model codes!]"
 
 3-10s (Solution & Product Demo):
-- Visual: [Write a vivid cinematic visual description in English showing the character applying/using "{product_name}" with clear instant result/transformation]
-- Subtitle/Voiceover (Vietnamese): "[Write a high-impact core benefit and value statement in Vietnamese for {product_name}]"
+- Visual: [Write a vivid cinematic visual description in English showing character applying/using main product with instant transformation result]
+- Subtitle/Voiceover (Vietnamese): "[Write a high-impact, emotional benefit statement in conversational Vietnamese for 3-10s - NO long Shopee titles or model codes!]"
 
 STYLE GUIDELINES:
 - Photorealistic UGC review style, natural handheld camera feel, fluid motion, 60fps, realistic audio lip-sync.
@@ -264,9 +269,9 @@ Generate ONLY the final Master Prompt text inside a clean markdown block. Keep V
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(clean_text)
             
-        print(f"✅ Đã lưu Master Prompt chuẩn thành công tại: {output_file}")
-        print("\n--- NỘI DUNG MASTER PROMPT NÂNG CẤP ---")
-        print(clean_text[:500] + "...\n---------------------------------------")
+        print(f"✅ Đã lưu Master Prompt tinh lọc thành công tại: {output_file}")
+        print("\n--- NỘI DUNG MASTER PROMPT TINH LỌC ---")
+        print(clean_text[:550] + "...\n---------------------------------------")
         
         update_google_sheet_status(item_id)
         return True
