@@ -3,12 +3,21 @@
 .AppleDouble
 .LSOverride
 
-# Local / Temporary Files
+# Temporary / OS Files
 *.tmp
 *.crdownload
 *.log
 
-# Python cache
+# Heavy Media / Binary Assets (Exclude from Git)
+*.mp4
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.gif
+Product_Assets/
+
+# Python Cache
 __pycache__/
 *.py[cod]
 
