@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Omni Video - Gemini Multimodal AI UGC Master Prompt Generator
-Đọc Tên sản phẩm + Nhìn trực tiếp ảnh sản phẩm (Multimodal Image) để sinh Master Prompt
-chính xác 100% theo quy chuẩn omni-ugc-creator.md.
+Đọc Tên sản phẩm trực tiếp từ Google Sheet + Soi ảnh sản phẩm Multimodal
+để sinh Master Prompt chính xác 100% theo quy chuẩn omni-ugc-creator.md.
 """
 
 import sys
@@ -37,16 +37,57 @@ CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec"
 
-def get_available_characters():
-    chars = []
-    if os.path.exists(CHARACTERS_DIR):
-        for ext in ["*.png", "*.jpg", "*.webp", "*.jpeg"]:
-            for filepath in glob.glob(os.path.join(CHARACTERS_DIR, ext)):
-                chars.append(os.path.basename(filepath))
-    return chars
+PRODUCTS_CACHE = None
 
-# Tra cứu Tên sản phẩm từ các file CSV trong data/ hoặc gốc dự án
-def lookup_product_name(item_id):
+def fetch_products_from_google_sheet():
+    global PRODUCTS_CACHE
+    if PRODUCTS_CACHE is not None:
+        return PRODUCTS_CACHE
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    payload = {"action": "get_all_products"}
+    req = urllib.request.Request(
+        WEBHOOK_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "application/json"}
+    )
+
+    try:
+        with urllib.request.urlopen(req, context=ctx) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            if data.get("status") == "success":
+                PRODUCTS_CACHE = data.get("products", {})
+                print(f"📊 Đã tải thành công dữ liệu {len(PRODUCTS_CACHE)} sản phẩm từ Google Sheet!")
+                return PRODUCTS_CACHE
+    except Exception as e:
+        print("⚠️ Không thể tải dữ liệu từ Google Sheet Webhook:", e)
+
+    PRODUCTS_CACHE = {}
+    return PRODUCTS_CACHE
+
+def lookup_product_name(item_id, item_dir):
+    # 1. Đọc từ Google Sheet Webhook
+    products_map = fetch_products_from_google_sheet()
+    if item_id in products_map:
+        title = products_map[item_id].get("productName", "")
+        if title and title != "Sản phẩm mới":
+            return title
+
+    # 2. Đọc từ file info.json nếu có
+    info_path = os.path.join(item_dir, "info.json")
+    if os.path.exists(info_path):
+        try:
+            with open(info_path, "r", encoding="utf-8") as f:
+                info = json.load(f)
+                if info.get("productName"):
+                    return info["productName"]
+        except Exception:
+            pass
+
+    # 3. Đọc từ file CSV local trong data/ hoặc gốc dự án
     csv_files = glob.glob(os.path.join(DATA_DIR, "*.csv")) + glob.glob(os.path.join(PROJECT_DIR, "*.csv"))
     for csv_file in csv_files:
         try:
@@ -55,12 +96,21 @@ def lookup_product_name(item_id):
                     if item_id in line:
                         parts = line.split(",")
                         if len(parts) > 1:
-                            title = parts[1].strip().strip('"')
-                            if title and not title.startswith("Mã"):
-                                return title
+                            t = parts[1].strip().strip('"')
+                            if t and not t.startswith("Mã"):
+                                return t
         except Exception:
             pass
+
     return "Sản phẩm Shopee"
+
+def get_available_characters():
+    chars = []
+    if os.path.exists(CHARACTERS_DIR):
+        for ext in ["*.png", "*.jpg", "*.webp", "*.jpeg"]:
+            for filepath in glob.glob(os.path.join(CHARACTERS_DIR, ext)):
+                chars.append(os.path.basename(filepath))
+    return chars
 
 def get_image_mime_type(filepath):
     ext = os.path.splitext(filepath)[1].lower()
@@ -81,7 +131,6 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
     
     parts = []
     
-    # Đính kèm ảnh Base64
     if image_filepath and os.path.exists(image_filepath):
         try:
             with open(image_filepath, "rb") as img_file:
@@ -131,6 +180,7 @@ def update_google_sheet_status(item_id):
     ctx.verify_mode = ssl.CERT_NONE
 
     payload = {
+        "action": "update_status",
         "itemId": item_id,
         "status": "Đã tạo Prompt"
     }
@@ -158,15 +208,16 @@ def generate_prompt_for_item(item_id, item_dir):
     image_path = images[0] if images else None
     main_product_img_name = os.path.basename(image_path) if image_path else "Product Image"
     
-    product_name = lookup_product_name(item_id)
-    print(f"📦 Tên sản phẩm nhận diện: \"{product_name}\"")
+    # Lấy Tên sản phẩm chính xác từ Google Sheet
+    product_name = lookup_product_name(item_id, item_dir)
+    print(f"📦 Tên sản phẩm đọc từ Google Sheet: \"{product_name}\"")
 
     characters = get_available_characters()
     selected_char = characters[0] if characters else "Friendly Reviewer"
 
     system_directive = f"""You are an expert AI Video Director and Marketing Copywriter specializing in 10-second UGC (User-Generated Content) Review videos for Gemini Omni.
 
-Look at the attached product image and analyze the Product Name: "{product_name}".
+Look closely at the attached product image AND analyze the exact Product Name: "{product_name}".
 
 Your task is to generate a high-converting 10-second UGC Master Prompt specifically tailored to this EXACT product ("{product_name}").
 

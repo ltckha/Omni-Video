@@ -1,4 +1,4 @@
-// Omni Video - Background Service Worker (Error-Resilient & Instant Toast Feedback)
+// Omni Video - Background Service Worker (Truyền đầy đủ Metadata cho Native Host)
 
 const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec";
 const NATIVE_HOST_NAME = "com.omni.video.curator";
@@ -68,10 +68,10 @@ async function processSaveWorkflow(payloadData, tabId) {
 
     console.log("✅ Đã tải ảnh ID:", downloadId, "Tên file:", filename);
 
-    // 2. Kích hoạt Native Host để chuyển ảnh vào /Product_Assets/<itemId>/
+    // 2. Kích hoạt Native Host chuyển ảnh + lưu thông tin info.json
     chrome.runtime.sendNativeMessage(
       NATIVE_HOST_NAME,
-      { itemId: itemId, filename: filename },
+      { itemId: itemId, filename: filename, info: payloadData },
       (nativeResp) => {
         if (chrome.runtime.lastError) {
           let hostErr = chrome.runtime.lastError.message;
@@ -88,7 +88,7 @@ async function processSaveWorkflow(payloadData, tabId) {
     );
   });
 
-  // 3. Gửi Webhook POST lên Google Apps Script (Trong khối try-catch an toàn)
+  // 3. Gửi Webhook POST lên Google Apps Script
   try {
     chrome.storage.sync.get(["gasWebhookUrl"], (stored) => {
       let webhookUrl = stored.gasWebhookUrl || DEFAULT_WEBHOOK_URL;

@@ -1,5 +1,5 @@
 /**
- * Google Apps Script for Omni Video Shopee Image Curator & CSV Importer
+ * Google Apps Script for Omni Video Shopee Image Curator & CSV Importer & Master Prompt Generator
  */
 
 function doPost(e) {
@@ -7,13 +7,50 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     
-    // 1. Xử lý File CSV gửi từ Chay_Import_CSV.command
+    // 1. Lấy danh sách toàn bộ sản phẩm trên Sheet để Python đọc Tên SP chuẩn 100%
+    if (data.action === "get_all_products") {
+      var rows = sheet.getDataRange().getValues();
+      var productsMap = {};
+      for (var i = 1; i < rows.length; i++) {
+        var itemId = String(rows[i][0]).trim();
+        if (itemId) {
+          productsMap[itemId] = {
+            itemId: itemId,
+            productName: String(rows[i][1] || "").trim(),
+            price: String(rows[i][2] || "").trim(),
+            salesCount: String(rows[i][3] || "").trim(),
+            shopName: String(rows[i][4] || "").trim(),
+            productUrl: String(rows[i][7] || "").trim(),
+            cdnUrl: String(rows[i][9] || "").trim(),
+            localPath: String(rows[i][10] || "").trim(),
+            status: String(rows[i][11] || "").trim()
+          };
+        }
+      }
+      return responseJSON({ status: "success", products: productsMap });
+    }
+    
+    // 2. Cập nhật trạng thái Master Prompt (Ví dụ: "Đã tạo Prompt")
+    if (data.action === "update_status" && data.itemId) {
+      var targetItemId = String(data.itemId).trim();
+      var newStatus = data.status || "Đã tạo Prompt";
+      var rows = sheet.getDataRange().getValues();
+      for (var j = 1; j < rows.length; j++) {
+        if (String(rows[j][0]).trim() === targetItemId) {
+          sheet.getRange(j + 1, 12).setValue(newStatus);
+          return responseJSON({ status: "success", message: "Đã cập nhật trạng thái dòng " + (j + 1) });
+        }
+      }
+      return responseJSON({ status: "error", message: "Không tìm thấy mã SP " + targetItemId });
+    }
+    
+    // 3. Xử lý Import File CSV gửi từ Chay_Import_CSV.command
     if (data.action === "import_csv_text" && data.csvText) {
       var resultMsg = processCSVTextImport(sheet, data.csvText);
       return responseJSON({ status: "success", message: resultMsg });
     }
     
-    // 2. Xử lý khi nhấn Alt + S từ Chrome Extension
+    // 4. Xử lý khi nhấn Alt + S từ Chrome Extension
     var itemId = String(data.itemId || "").trim();
     var cdnUrl = data.cdnUrl || "";
     var localPath = data.localPath || "";
@@ -22,7 +59,6 @@ function doPost(e) {
       return responseJSON({ status: "error", message: "Missing itemId" });
     }
     
-    // Đảm bảo đường dẫn local dẫn tới Product_Assets
     if (!localPath || !localPath.includes("Product_Assets")) {
       localPath = "/Users/khan/Developer/Omni-Video/Product_Assets/" + itemId + "/";
     } else if (!localPath.endsWith("/")) {
@@ -42,12 +78,11 @@ function doPost(e) {
     }
     
     if (rowIndex > 0) {
-      // NẾU SẢN PHẨM ĐÃ CÓ TRÊN SHEET: Giữ nguyên thông tin CSV, chỉ cập nhật link ảnh & local folder
+      // Giữ nguyên thông tin CSV cũ, cập nhật link ảnh & local folder
       var currentCdnUrl = sheet.getRange(rowIndex, 10).getValue();
       if (!currentCdnUrl || String(currentCdnUrl).trim() === "") {
         sheet.getRange(rowIndex, 10).setValue(cdnUrl);
       }
-      
       sheet.getRange(rowIndex, 11).setValue(localPath);
       sheet.getRange(rowIndex, 12).setValue("Đã chọn ảnh");
       
@@ -57,20 +92,20 @@ function doPost(e) {
         itemId: itemId
       });
     } else {
-      // NẾU LÀ SẢN PHẨM MỚI CHƯA CÓ TRÊN SHEET: Tự động điền đầy đủ thông tin cào được từ trang Shopee
+      // Sản phẩm mới chưa có trên Sheet
       var newRow = [
-        itemId,                             // Col 1 (A): Mã sản phẩm
-        data.productName || "Sản phẩm mới", // Col 2 (B): Tên sản phẩm
-        data.price || "",                   // Col 3 (C): Giá cào được
-        data.salesCount || "",              // Col 4 (D): Doanh thu / Đã bán cào được
-        data.shopName || "",                // Col 5 (E): Tên cửa hàng cào được
-        "",                                 // Col 6 (F): Tỉ lệ hoa hồng
-        "",                                 // Col 7 (G): Hoa hồng
-        data.productUrl || "",              // Col 8 (H): Link sản phẩm
-        data.productUrl || "",              // Col 9 (I): Link ưu đãi
-        cdnUrl,                             // Col 10 (J): Link ảnh CDN
-        localPath,                          // Col 11 (K): File ảnh lưu local
-        "Đã chọn ảnh"                       // Col 12 (L): Trạng thái Master Prompt
+        itemId,
+        data.productName || "Sản phẩm mới",
+        data.price || "",
+        data.salesCount || "",
+        data.shopName || "",
+        "",
+        "",
+        data.productUrl || "",
+        data.productUrl || "",
+        cdnUrl,
+        localPath,
+        "Đã chọn ảnh"
       ];
       sheet.appendRow(newRow);
       
