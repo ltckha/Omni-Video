@@ -17,12 +17,11 @@ Hệ thống tự động hóa toàn diện quy trình thu thập nguyên liệu
 
 3. **Google Sheets Sync & Lọc Trùng Sâu (Deep Deduplication):**
    - Mã nguồn `google_apps_script.js` bảo toàn nguyên vẹn 100% dữ liệu 9 cột gốc từ CSV (bao gồm *Tỉ lệ hoa hồng* & *Hoa hồng*).
-   - Tự động cập nhật 3 cột mới: `Link ảnh CDN chọn lọc`, `File ảnh lưu local`, `Trạng thái Master Prompt`.
-   - Tự động lọc bỏ các sản phẩm trùng lặp dựa trên Mã SP và URL link sản phẩm.
+   - Tự động cập nhật 2 cột mới: `Link ảnh CDN chọn lọc`, `File ảnh lưu local` và cập nhật `Trạng thái Master Prompt`.
 
-4. **Master Prompt UGC 10s Generator (`omni-ugc-creator.md`):**
-   - Công thức chuẩn khóa cứng thời lượng 10s, tỉ lệ 9:16 vertical, phân cảnh 0–3s Hook & Problem và 3–10s Solution & Demo.
-   - Linh hoạt kích hoạt **AI Creative Freedom** khi thiếu nhân vật, bối cảnh hoặc đạo cụ.
+4. **Gemini AI UGC Master Prompt Generator (`scripts/generate_ugc_prompt.py`):**
+   - Tự động nhìn ảnh Multimodal + Tên sản phẩm để sinh Master Prompt 10s chuẩn theo `omni-ugc-creator.md`.
+   - Khóa cứng cấu trúc 2 bước (0–3s Hook & 3–10s Demo) với lời thoại Tiếng Việt tự nhiên chuẩn UGC TikTok/Reels.
 
 ---
 
@@ -32,52 +31,26 @@ Hệ thống tự động hóa toàn diện quy trình thu thập nguyên liệu
 Omni-Video/
 ├── omni-ugc-creator.md          # Quy chuẩn Master Prompt UGC 10s cho Gemini Omni
 ├── README.md                    # Tài liệu hướng dẫn hệ thống
-├── Chay_Import_CSV.command     # File 1-Click nhấp đúp chuột để Import CSV & phân loại ảnh
-├── characters/                  # Thư mục chứa hình ảnh nhân vật/KOLs mẫu (Nam, Nữ)
-├── sample_media/                # Thư mục chứa các video & hình ảnh mẫu thử nghiệm
-├── data/                        # Thư mục chứa các file dữ liệu CSV xuất từ Shopee Affiliate
-├── scripts/                     # Thư mục chứa toàn bộ mã nguồn xử lý & backend
+├── Import.command              # 🚀 File 1-Click Import CSV & đồng bộ dữ liệu
+├── Prompt.command              # 🎬 File 1-Click sinh Master Prompt hàng loạt bằng Gemini AI
+├── characters/                  # 👤 Thư mục chứa hình ảnh nhân vật/KOLs mẫu (Nam, Nữ)
+├── sample_media/                # 🎥 Thư mục chứa các video & hình ảnh mẫu thử nghiệm
+├── data/                        # 📊 Thư mục chứa các file dữ liệu CSV xuất từ Shopee Affiliate
+├── scripts/                     # ⚙️ Thư mục chứa toàn bộ mã nguồn xử lý & backend
 │   ├── google_apps_script.js    # Mã nguồn Google Apps Script (Webhook & Google Sheets API)
 │   ├── import_csv_to_gsheet.py  # Script Python import file CSV & lọc trùng sâu
+│   ├── generate_ugc_prompt.py   # Script Gemini AI Multimodal sinh Master Prompt 10s
 │   ├── auto_organize_downloads.py # Script tự động di chuyển ảnh vào Product_Assets/<Mã_SP>/
 │   ├── omni_native_host.py      # Native Messaging Host Python (Di chuyển ảnh 0.1s)
 │   └── run_native_host.sh       # Shell script wrapper khởi chạy Native Host trên macOS
-├── chrome-extension/            # Tiện ích mở rộng Chrome
-│   ├── manifest.json            # Manifest V3 (Bao gồm quyền nativeMessaging & permissions)
-│   ├── background.js            # Service worker điều phối tải ảnh & gọi Webhook
-│   ├── content.js               # Content script bắt phím Alt+S & cào dữ liệu Shopee
-│   ├── popup.html               # Giao diện popup cài đặt Webhook URL
-│   └── popup.js                 # Xử lý lưu cấu hình Webhook URL
-└── Product_Assets/              # Thư mục lưu trữ ảnh/video nguyên liệu sản phẩm
-    └── <Mã_SP>/                 # Thư mục riêng của từng sản phẩm chứa ảnh HD
+├── chrome-extension/            # 🧩 Tiện ích mở rộng Chrome
+└── Product_Assets/              # 📦 Thư mục lưu trữ ảnh/video nguyên liệu sản phẩm
+    └── <Mã_SP>/                 # Thư mục riêng của từng sản phẩm chứa ảnh HD & master_prompt.txt
 ```
 
 ---
 
-## 🚀 Hướng Dẫn Cài Đặt (Quick Setup)
+## 🚀 Quy Trình Sử Dụng 2 Bước Nhanh Gọn
 
-### 1. Cài Đặt Google Apps Script (Backend)
-1. Mở file Google Sheet (đã import CSV hoặc bảng tính mới).
-2. Chọn **Extensions (Tiện ích mở rộng)** -> **Apps Script**.
-3. Sao chép nội dung file [`scripts/google_apps_script.js`](file:///Users/khan/Developer/Omni-Video/scripts/google_apps_script.js) dán đè vào `Code.gs`.
-4. Bấm **Deploy (Triển khai)** -> **New deployment (Triển khai mới)**:
-   - Type: `Web app`
-   - Execute as: `Me`
-   - Who has access: `Anyone`
-5. Sao chép **Web App URL** thu được.
-
-### 2. Cài Đặt Chrome Extension
-1. Mở trình duyệt Chrome, truy cập `chrome://extensions/`.
-2. Bật **Developer mode (Chế độ dành cho nhà phát triển)**.
-3. Bấm **Load unpacked (Tải tiện ích đã giải nén)** -> Trỏ tới thư mục [`chrome-extension`](file:///Users/khan/Developer/Omni-Video/chrome-extension).
-4. Bấm vào icon tiện ích trên thanh công cụ -> Dán **Web App URL** từ Bước 1 -> Bấm **Lưu Cấu Hình**.
-
----
-
-## 📸 Quy Trình Sử Dụng Hàng Ngày
-
-1. Mở bất kỳ trang sản phẩm Shopee nào.
-2. Di chuột lên bức ảnh sản phẩm HD ưng ý và bấm **`Alt + S`**.
-3. **Kết quả:**
-   - Ảnh sẽ tự động lưu vào thư mục dự án: `Product_Assets/<Mã_SP>/`.
-   - Dòng sản phẩm tương ứng trên Google Sheet sẽ tự động nhảy trạng thái sang **"Đã chọn ảnh"** kèm link ảnh CDN và thông tin sản phẩm!
+1. **Nhấp đúp `Import.command`:** Đồng bộ file CSV và chuyển toàn bộ ảnh từ Downloads về `Product_Assets/<Mã_SP>/`.
+2. **Nhấp đúp `Prompt.command`:** Gemini AI tự động soi ảnh + thông tin SP để tạo Master Prompt 10s tại `Product_Assets/<Mã_SP>/master_prompt.txt`.
