@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V3 - Strict Visual-Audio Alignment)
-Đảm bảo đồng nhất tuyệt đối 100% giữa Hình ảnh Visual (Anh) và Lời thoại Voiceover (Việt).
-Đổi "giày" thành "dép" chuẩn xác khi visual xuất hiện sandals/slides/slippers.
+Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V4 - Voiceover-Anchored Storytelling)
+Lấy Lời thoại Tiếng Việt làm nòng cốt cảm xúc (Voiceover-First), buộc Phân cảnh Visual (Anh)
+phải minh họa diễn xuất khớp 100% từng chi tiết câu thoại và nỗi đau thực tế.
 """
 
 import sys
@@ -218,24 +218,23 @@ def generate_prompt_for_item(item_id, item_dir):
 
 Look closely at the attached main product image AND analyze the full Shopee title: "{raw_product_name}".
 
-CRITICAL UGC COPYWRITING & PROMPT RULES:
-1. CORE PRODUCT CONCEPT: First, identify the exact product category (e.g., sandals/slides -> "dép", shoes/sneakers -> "giày", cleaner -> "gôm/xịt vệ sinh").
-2. STRICT VISUAL-AUDIO TERMINOLOGY ALIGNMENT (CRITICAL):
-   - The Vietnamese Voiceover MUST 100% MATCH the exact object shown in the English Visual description.
-   - IF the English Visual shows "sandals", "slides", "clogs", or "slippers" -> The Vietnamese Subtitle/Voiceover MUST use "dép" (e.g. "đi đôi dép này", "chân mỏi vì đôi dép cũ"). NEVER use "giày" when the visual shows sandals!
-   - IF the English Visual shows "sneakers", "boots", or "running shoes" -> The Vietnamese Subtitle/Voiceover MUST use "giày".
-3. CONVERSATIONAL VIETNAMESE VOICEOVER:
-   - DO NOT EVER repeat long Shopee listing keywords, technical specs, or model numbers (like KO1, EVA, 5cm, extraParams, etc.) in the Vietnamese subtitles/voiceovers.
-   - Write natural, emotional, everyday spoken Vietnamese used by real viral TikTok/Reels reviewers.
-4. ANCHOR PRODUCT TO ATTACHED IMAGE:
-   - In [ATTACHED ASSETS], reference the main product as "Attached product image ({main_product_img_name})" so Omni visually maintains 100% appearance from the image file.
+CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
+1. VOICEOVER IS THE MASTER ANCHOR:
+   - First, create an extremely relatable, emotional, natural 0-3s Vietnamese hook (e.g., "Chân mỏi nhừ sau ngày dài đi giày nặng nề?").
+2. ENGLISH VISUAL MUST 100% DRAMATIZE THE VOICEOVER:
+   - The English Visual description MUST EXACTLY match every detail in the Vietnamese voiceover!
+   - Example: If the Voiceover says "đi giày nặng nề" (wearing heavy shoes), the 0-3s Visual MUST show the character wearing and taking off heavy, stiff work shoes/sneakers (NOT sandals!). Then at 3-10s, slipping into the comfortable main product slides!
+3. PERFECT OBJECT CONSISTENCY:
+   - Whatever item/pain point is mentioned in Vietnamese MUST be the EXACT item depicted in the English Visual scene.
+4. NO SHOPEE SPAM KEYWORDS:
+   - DO NOT repeat long Shopee model codes or SEO keywords in Vietnamese voiceovers. Keep it conversational, viral, and natural.
 
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 
 ---
 [ATTACHED ASSETS & CREATIVE DIRECTIVES]:
 - Main Product: Attached product image ({main_product_img_name})
-- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point or dirty/damaged item interacting with this product]
+- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point item that matches the Vietnamese hook, e.g., heavy tight work shoes]
 - Character: Attached image characters/{selected_char} (Friendly reviewer matching target audience)
 - Environment: AI Creative Freedom: [Contextually appropriate realistic environment]
 
@@ -252,12 +251,12 @@ CREATIVE FREEDOM FOR OMNI:
 
 SCENE BREAKDOWN (10 SECONDS):
 0-3s (Hook & Problem):
-- Visual: [Write a vivid cinematic visual description in English showing character struggling with the problem]
-- Subtitle/Voiceover (Vietnamese): "[Write a short, catchy 0-3s opening hook in conversational Vietnamese - Ensure exact object matching: 'dép' for sandals/slides, 'giày' for shoes!]"
+- Visual: [Write a vivid cinematic visual description in English showing character acting out the exact problem stated in the Vietnamese voiceover]
+- Subtitle/Voiceover (Vietnamese): "[Write a short, catchy 0-3s opening hook in conversational Vietnamese - e.g., 'Chân mỏi nhừ sau ngày dài đi giày nặng nề?']"
 
 3-10s (Solution & Product Demo):
-- Visual: [Write a vivid cinematic visual description in English showing character applying/using main product with instant transformation result]
-- Subtitle/Voiceover (Vietnamese): "[Write a high-impact, emotional benefit statement in conversational Vietnamese for 3-10s - Ensure exact object matching: 'dép' for sandals/slides, 'giày' for shoes!]"
+- Visual: [Write a vivid cinematic visual description in English showing character taking off the problem item and stepping/using main product with instant relief transformation]
+- Subtitle/Voiceover (Vietnamese): "[Write a high-impact, emotional benefit statement in conversational Vietnamese for 3-10s - e.g., 'Đổi sang đôi dép đúc siêu nhẹ này đi, êm như bước trên mây!']"
 
 STYLE GUIDELINES:
 - Photorealistic UGC review style, natural handheld camera feel, fluid motion, 60fps, realistic audio lip-sync.
@@ -274,7 +273,7 @@ Generate ONLY the final Master Prompt text inside a clean markdown block. Keep V
             f.write(clean_text)
             
         print(f"✅ Đã lưu Master Prompt tinh lọc thành công tại: {output_file}")
-        print("\n--- NỘI DUNG MASTER PROMPT TINH LỌC ---")
+        print("\n--- NỘI DUNG MASTER PROMPT NÂNG CẤP ---")
         print(clean_text[:550] + "...\n---------------------------------------")
         
         update_google_sheet_status(item_id)
