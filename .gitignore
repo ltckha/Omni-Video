@@ -1,0 +1,17 @@
+# macOS System Files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Local / Temporary Files
+*.tmp
+*.crdownload
+*.log
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# IDE Settings
+.vscode/
+.idea/
