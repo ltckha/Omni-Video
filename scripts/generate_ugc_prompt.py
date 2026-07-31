@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V5 - Gemini 3.5 Priority & Smart Fallback)
-Ưu tiên sử dụng mô hình Gemini 3.5 Flash / 2.5 Pro tiên tiến nhất để sinh Master Prompt mượt mà,
-vừa đọc Tên sản phẩm vừa soi ảnh Multimodal theo đúng quy chuẩn omni-ugc-creator.md.
+Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V6 - Flash Models Only)
+Chuyên dùng các mô hình Flash tốc độ cao (Gemini 3.5 Flash & 2.5 Flash), loại bỏ hoàn toàn mô hình Pro.
 """
 
 import sys
@@ -40,11 +39,9 @@ CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec"
 
-# Danh sách mô hình ưu tiên từ Gemini 3.5 Flash down xuống Gemini 2.5 Flash
+# Danh sách mô hình THUẦN FLASH (Chỉ dùng Flash, không dùng Pro)
 PREFERRED_MODELS = [
     "gemini-3.5-flash",
-    "gemini-3.5-pro",
-    "gemini-2.5-pro",
     "gemini-2.5-flash"
 ]
 
@@ -164,7 +161,7 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
         }
     }
 
-    # Thử lần lượt các mô hình từ Gemini 3.5 Flash đến Gemini 2.5 Flash
+    # Thử các mô hình Flash (Gemini 3.5 Flash -> Gemini 2.5 Flash)
     for model_name in PREFERRED_MODELS:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
         req = urllib.request.Request(
@@ -176,12 +173,12 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
             with urllib.request.urlopen(req, context=ctx) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
                 text = data["candidates"][0]["content"]["parts"][0]["text"]
-                print(f"🤖 Đã sinh Master Prompt thành công bằng Mô hình: {model_name}")
+                print(f"⚡ Đã sinh Master Prompt thành công bằng Mô hình Flash: {model_name}")
                 return text
         except Exception as e:
-            print(f"🔄 Mô hình {model_name} không phản hồi ({e}), tự động chuyển sang mô hình tiếp theo...")
+            print(f"🔄 Mô hình {model_name} chưa hỗ trợ hoặc bận ({e}), tự động chuyển sang Flash tiếp theo...")
 
-    print("❌ Lỗi: Tất cả mô hình Gemini API đều không phản hồi.")
+    print("❌ Lỗi: Tất cả mô hình Gemini Flash API đều không phản hồi.")
     return None
 
 def update_google_sheet_status(item_id):
