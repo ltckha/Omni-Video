@@ -1,4 +1,4 @@
-// Omni Video - Background Service Worker (Truyền đầy đủ Metadata cho Native Host)
+// Omni Video - Background Service Worker (Tự động hiển thị chính xác Extension ID nếu bị lỗi Native Host)
 
 const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec";
 const NATIVE_HOST_NAME = "com.omni.video.curator";
@@ -75,8 +75,9 @@ async function processSaveWorkflow(payloadData, tabId) {
       (nativeResp) => {
         if (chrome.runtime.lastError) {
           let hostErr = chrome.runtime.lastError.message;
-          console.error("Lỗi Native Host:", hostErr);
-          sendToastToTab(tabId, `⚠️ Lỗi Native Host: ${hostErr}`, true);
+          let currentExtId = chrome.runtime.id;
+          console.error("Lỗi Native Host:", hostErr, "ID hiện tại:", currentExtId);
+          sendToastToTab(tabId, `⚠️ Lỗi Native Host: ${hostErr} (ID Chrome của bạn: ${currentExtId})`, true);
         } else if (nativeResp && nativeResp.status === "success") {
           console.log("✅ Native Host di chuyển thành công:", nativeResp);
           sendToastToTab(tabId, `✅ Đã lưu ảnh vào /Product_Assets/${itemId}/`);
