@@ -243,6 +243,13 @@ CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
 6. AVOID COMPLEX FINE-MOTOR HAND ACTIONS:
    - AI video generation struggles with intricate hand-object interactions (unlacing, tying, buttoning, zipping).
    - Describe simple, robust actions instead: "kicks off her shoes", "slips her feet out", "steps out of them" — NOT "struggling to unlace" or multi-step manual actions.
+7. DIVERSE & CONTEXTUALLY FITTING ENVIRONMENT SELECTION:
+   - DO NOT default to an indoor living room unless the product is strictly for indoor home use.
+   - Dynamically choose vibrant, photorealistic indoor or outdoor environments matching the product's natural lifestyle context:
+     * Outdoor/Casual sandals/footwear & fashion: Sunny beach boardwalk, resort poolside, outdoor garden cafe, bustling city street sidewalk, sunlit park pathway.
+     * Sports/Activewear: Green park running trail, urban outdoor plaza, modern gym, athletic field.
+     * Work/Office fashion: Modern office hallway, stylish urban coffee shop, city street backdrop.
+     * Home/Indoor items: Sunlit apartment balcony, modern kitchen, cozy entryway/living room.
 
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 
@@ -251,7 +258,7 @@ STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 - Main Product: Attached product image ({main_product_img_name})
 - Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point item that matches the Vietnamese hook AND matches the character's gender/style, e.g., for a female character: "tight high-heeled ankle boots" — NOT generic "work shoes"]
 - Character: Attached image characters/{selected_char} (Friendly reviewer matching target audience)
-- Environment: AI Creative Freedom: [Contextually appropriate realistic environment]
+- Environment: AI Creative Freedom: [Select a vibrant, highly fitting indoor or outdoor environment based on product usage scenario — e.g., sunny beach resort boardwalk, outdoor garden cafe, bustling city sidewalk, green park trail, or modern sunlit space]
 
 Task: Generate a 10-second high-converting UGC review video seamlessly combining the main product, secondary prop, character, and environment.
 
