@@ -1,25 +1,39 @@
 // Omni Video - Popup Script
 
-const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec";
+const DEFAULT_WEBHOOK_URL = "";
 
 document.addEventListener("DOMContentLoaded", () => {
   const webhookInput = document.getElementById("webhookUrl");
   const saveBtn = document.getElementById("saveBtn");
-  const statusDiv = document.getElementById("status");
+  const statusMsg = document.getElementById("statusMsg");
 
-  // Đọc cấu hình URL đã lưu (hoặc dùng mặc định đã cài đặt sẵn)
-  chrome.storage.sync.get(["gasWebhookUrl"], (result) => {
-    webhookInput.value = result.gasWebhookUrl || DEFAULT_WEBHOOK_URL;
+  // Đọc cấu hình từ chrome.storage.sync
+  chrome.storage.sync.get(["gasWebhookUrl"], (stored) => {
+    if (stored.gasWebhookUrl) {
+      webhookInput.value = stored.gasWebhookUrl;
+    } else {
+      webhookInput.value = DEFAULT_WEBHOOK_URL;
+    }
   });
 
-  // Lưu URL khi bấm nút
+  // Lưu cấu hình Webhook URL
   saveBtn.addEventListener("click", () => {
-    const url = webhookInput.value.trim() || DEFAULT_WEBHOOK_URL;
-    chrome.storage.sync.set({ gasWebhookUrl: url }, () => {
-      statusDiv.style.display = "block";
-      setTimeout(() => {
-        statusDiv.style.display = "none";
-      }, 2000);
+    const urlValue = webhookInput.value.trim();
+    if (!urlValue) {
+      showStatus("⚠️ Vui lòng dán Webhook URL Google Apps Script!", true);
+      return;
+    }
+
+    chrome.storage.sync.set({ gasWebhookUrl: urlValue }, () => {
+      showStatus("✅ Đã lưu cấu hình Webhook URL thành công!");
     });
   });
+
+  function showStatus(msg, isError = false) {
+    statusMsg.innerText = msg;
+    statusMsg.style.color = isError ? "#d32f2f" : "#2e7d32";
+    setTimeout(() => {
+      statusMsg.innerText = "";
+    }, 3000);
+  }
 });

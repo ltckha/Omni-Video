@@ -1,6 +1,6 @@
-// Omni Video - Background Service Worker (Tự động hiển thị chính xác Extension ID nếu bị lỗi Native Host)
+// Omni Video - Background Service Worker (Bảo mật Webhook URL qua storage.sync)
 
-const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec";
+const DEFAULT_WEBHOOK_URL = "";
 const NATIVE_HOST_NAME = "com.omni.video.curator";
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -9,7 +9,6 @@ chrome.runtime.onInstalled.addListener(() => {
     title: "📸 Lưu ảnh SP cho Omni UGC (Alt+S)",
     contexts: ["image", "page", "link"]
   });
-  chrome.storage.sync.set({ gasWebhookUrl: DEFAULT_WEBHOOK_URL });
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
@@ -77,7 +76,7 @@ async function processSaveWorkflow(payloadData, tabId) {
           let hostErr = chrome.runtime.lastError.message;
           let currentExtId = chrome.runtime.id;
           console.error("Lỗi Native Host:", hostErr, "ID hiện tại:", currentExtId);
-          sendToastToTab(tabId, `⚠️ Lỗi Native Host: ${hostErr} (ID Chrome của bạn: ${currentExtId})`, true);
+          sendToastToTab(tabId, `⚠️ Lỗi Native Host: ${hostErr}`, true);
         } else if (nativeResp && nativeResp.status === "success") {
           console.log("✅ Native Host di chuyển thành công:", nativeResp);
           sendToastToTab(tabId, `✅ Đã lưu ảnh vào /Product_Assets/${itemId}/`);
@@ -93,6 +92,10 @@ async function processSaveWorkflow(payloadData, tabId) {
   try {
     chrome.storage.sync.get(["gasWebhookUrl"], (stored) => {
       let webhookUrl = stored.gasWebhookUrl || DEFAULT_WEBHOOK_URL;
+      if (!webhookUrl) {
+        sendToastToTab(tabId, "⚠️ Chưa cấu hình Webhook URL. Mở popup tiện ích để dán Webhook URL.", true);
+        return;
+      }
       fetch(webhookUrl, {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
@@ -104,7 +107,7 @@ async function processSaveWorkflow(payloadData, tabId) {
           shopName: payloadData.shopName,
           productUrl: payloadData.productUrl,
           cdnUrl: cdnUrl,
-          localPath: `/Users/khan/Developer/Omni-Video/Product_Assets/${itemId}/`
+          localPath: `Product_Assets/${itemId}/`
         })
       }).then(res => res.json())
         .then(resData => console.log("GAS Result:", resData))

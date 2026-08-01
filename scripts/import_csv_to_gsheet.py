@@ -11,9 +11,34 @@ import urllib.request
 import json
 import ssl
 
-WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec"
+def _load_env_file():
+    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    env_file = os.path.join(project_dir, ".env")
+    if not os.path.exists(env_file):
+        return
+    try:
+        with open(env_file, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, val = line.partition("=")
+                key = key.replace("export", "").strip()
+                val = val.strip().strip('"').strip("'")
+                if val and (key not in os.environ or not os.environ[key]):
+                    os.environ[key] = val
+    except Exception:
+        pass
+
+_load_env_file()
+
+WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "")
 
 def upload_csv_to_gsheet(csv_filepath):
+    if not WEBHOOK_URL:
+        print("❌ Chưa cấu hình OMNI_GAS_WEBHOOK_URL trong file .env. Xem README.md để thiết lập.")
+        return
+
     if not os.path.exists(csv_filepath):
         print(f"❌ File không tồn tại: {csv_filepath}")
         return
@@ -50,8 +75,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         target_csv = sys.argv[1]
     else:
-        # Tìm file csv mới nhất trong thư mục data/ hoặc gốc dự án
-        csv_files = glob.glob("data/*.csv") + glob.glob("*.csv")
+        csv_files = glob.glob(os.path.join(os.path.dirname(__file__), "..", "data", "*.csv")) + glob.glob("*.csv")
         if csv_files:
             csv_files.sort(key=os.path.getmtime, reverse=True)
             target_csv = csv_files[0]

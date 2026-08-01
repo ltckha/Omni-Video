@@ -8,7 +8,16 @@ echo "🚀 OMNI VIDEO - ĐỒNG BỘ CSV & PHÂN LOẠI ẢNH VỀ DỰ ÁN"
 echo "============================================================"
 echo ""
 
-# 1. Di chuyển toàn bộ ảnh từ Downloads về đúng /Developer/Omni-Video/Product_Assets/<Mã_SP>/
+# Sourcing biến môi trường từ .env của project (ưu tiên) hoặc ~/.zshrc / ~/.zshenv
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
+source ~/.zshrc 2>/dev/null
+source ~/.zshenv 2>/dev/null
+
+# 1. Di chuyển toàn bộ ảnh từ Downloads về đúng Product_Assets/<Mã_SP>/
 python3 scripts/auto_organize_downloads.py
 
 echo ""

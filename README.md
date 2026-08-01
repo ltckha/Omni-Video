@@ -25,12 +25,26 @@ Hệ thống tự động hóa toàn diện quy trình thu thập nguyên liệu
 
 ---
 
+## 🔐 Cấu Hình Bảo Mật Môi Trường (.env)
+
+Dự án **không** hardcode API key hay Webhook URL trong mã nguồn public. Bạn cần cấu hình:
+
+1. Copy `.env.example` thành `.env` ở thư mục gốc dự án.
+2. Điền `GEMINI_API_KEY` (lấy tại [Google AI Studio](https://aistudio.google.com/apikey)).
+3. Deploy `scripts/google_apps_script.js` thành Google Apps Script Web App của riêng bạn (Deploy → New deployment → Web app), copy URL `.../exec` dán vào `OMNI_GAS_WEBHOOK_URL` trong `.env`.
+4. Mở popup của Chrome Extension (bấm icon tiện ích) và dán cùng URL Webhook đó vào ô cấu hình, bấm "Lưu Cấu Hình".
+
+> File `.env` đã nằm trong `.gitignore` nên sẽ **KHÔNG BAO GIỜ** bị commit lên Git.
+
+---
+
 ## 📁 Cấu Trúc Dự Án (Project Structure)
 
 ```text
 Omni-Video/
 ├── omni-ugc-creator.md          # Quy chuẩn Master Prompt UGC 10s cho Gemini Omni
 ├── README.md                    # Tài liệu hướng dẫn hệ thống
+├── .env.example                 # File mẫu cấu hình biến môi trường
 ├── Import.command              # 🚀 File 1-Click Import CSV & đồng bộ dữ liệu
 ├── Prompt.command              # 🎬 File 1-Click sinh Master Prompt hàng loạt bằng Gemini AI
 ├── characters/                  # 👤 Thư mục chứa hình ảnh nhân vật/KOLs mẫu (Nam, Nữ)

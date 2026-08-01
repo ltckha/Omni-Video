@@ -8,7 +8,12 @@ echo "🎬 OMNI VIDEO - TỰ ĐỘNG TẠO MASTER PROMPT UGC 10S BẰNG GEMINI A
 echo "============================================================"
 echo ""
 
-# Sourcing biến môi trường từ ~/.zshrc hoặc ~/.zshenv
+# Sourcing biến môi trường từ .env của project (ưu tiên) hoặc ~/.zshrc / ~/.zshenv
+if [ -f .env ]; then
+  set -a
+  source .env
+  set +a
+fi
 source ~/.zshrc 2>/dev/null
 source ~/.zshenv 2>/dev/null
 

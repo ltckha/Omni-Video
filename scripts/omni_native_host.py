@@ -2,7 +2,7 @@
 """
 Omni Video - Chrome Native Messaging Host (Super Robust File Sorter & Info Saver)
 Tự động tìm mọi file ảnh bắt đầu bằng <itemId> trong ~/Downloads,
-di chuyển vào /Users/khan/Developer/Omni-Video/Product_Assets/<itemId>/, lưu file info.json rồi TẮT HOÀN TOÀN.
+di chuyển vào <project_dir>/Product_Assets/<itemId>/, lưu file info.json rồi TẮT HOÀN TOÀN.
 """
 
 import sys
@@ -14,7 +14,8 @@ import glob
 import time
 
 DOWNLOADS_DIR = os.path.expanduser("~/Downloads")
-PROJECT_ASSETS_DIR = "/Users/khan/Developer/Omni-Video/Product_Assets"
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+PROJECT_ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 
 def read_message():
     try:
@@ -49,7 +50,6 @@ def main():
         target_dir = os.path.join(PROJECT_ASSETS_DIR, item_id)
         os.makedirs(target_dir, exist_ok=True)
         
-        # Ghi file info.json nếu có dữ liệu thông tin sản phẩm
         if info_data:
             info_file = os.path.join(target_dir, "info.json")
             try:
@@ -58,7 +58,6 @@ def main():
             except Exception:
                 pass
 
-        # Quét tìm tất cả file ảnh khớp với mã item_id trong ~/Downloads
         for attempt in range(40):
             matching_files = [
                 f for f in glob.glob(os.path.join(DOWNLOADS_DIR, f"{item_id}*"))

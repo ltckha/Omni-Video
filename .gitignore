@@ -17,6 +17,11 @@
 *.gif
 Product_Assets/
 
+# Secrets & Local Data — KHÔNG commit lên Git
+.env
+.env.local
+data/*.csv
+
 # Python Cache
 __pycache__/
 *.py[cod]
