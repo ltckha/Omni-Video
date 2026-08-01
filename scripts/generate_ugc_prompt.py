@@ -235,13 +235,21 @@ CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
    - Whatever item/pain point is mentioned in Vietnamese MUST be the EXACT item depicted in the English Visual scene.
 4. NO SHOPEE SPAM KEYWORDS:
    - DO NOT repeat long Shopee model codes or SEO keywords in Vietnamese voiceovers. Keep it conversational, viral, and natural.
+5. SECONDARY PROP MUST MATCH THE CHARACTER'S IDENTITY:
+   - Look at the attached character reference image carefully (gender, age, style, body type).
+   - The secondary prop / pain-point item MUST be visually and contextually consistent with that character.
+   - If the character is female, describe the prop using realistic FEMALE-coded items (e.g., "tight high-heeled ankle boots", "narrow pointed flats", "worn-out fashion sneakers") — NEVER generic unisex/male-coded terms like "work boots", "chunky leather sneakers", or "formal boots" unless the character is clearly male.
+   - If the character is male, use male-coded items instead. Mismatched gender/style between character and prop is a critical failure.
+6. AVOID COMPLEX FINE-MOTOR HAND ACTIONS:
+   - AI video generation struggles with intricate hand-object interactions (unlacing, tying, buttoning, zipping).
+   - Describe simple, robust actions instead: "kicks off her shoes", "slips her feet out", "steps out of them" — NOT "struggling to unlace" or multi-step manual actions.
 
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 
 ---
 [ATTACHED ASSETS & CREATIVE DIRECTIVES]:
 - Main Product: Attached product image ({main_product_img_name})
-- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point item that matches the Vietnamese hook, e.g., heavy tight work shoes]
+- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point item that matches the Vietnamese hook AND matches the character's gender/style, e.g., for a female character: "tight high-heeled ankle boots" — NOT generic "work shoes"]
 - Character: Attached image characters/{selected_char} (Friendly reviewer matching target audience)
 - Environment: AI Creative Freedom: [Contextually appropriate realistic environment]
 
