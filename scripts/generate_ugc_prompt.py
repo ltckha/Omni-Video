@@ -182,6 +182,16 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
     return None
 
 def update_google_sheet_status(item_id):
+    if not WEBHOOK_URL:
+        return
+
+    products_map = fetch_products_from_google_sheet()
+    if item_id in products_map:
+        current_status = products_map[item_id].get("status", "")
+        if current_status == "Đã tạo Video":
+            print(f"ℹ️ Mã {item_id} đang ở trạng thái 'Đã tạo Video', giữ nguyên trên Google Sheet.")
+            return
+
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE

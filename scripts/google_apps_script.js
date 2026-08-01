@@ -1,5 +1,6 @@
 /**
  * Google Apps Script for Omni Video Shopee Image Curator & CSV Importer & Master Prompt Generator
+ * Đã bảo vệ trạng thái "Đã tạo Video" cao nhất không bị đè ngược lại.
  */
 
 function doPost(e) {
@@ -7,7 +8,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     
-    // 1. Lấy danh sách toàn bộ sản phẩm trên Sheet để Python đọc Tên SP chuẩn 100%
+    // 1. Lấy danh sách toàn bộ sản phẩm trên Sheet để Python đọc Tên SP & Trạng thái
     if (data.action === "get_all_products") {
       var rows = sheet.getDataRange().getValues();
       var productsMap = {};
@@ -37,6 +38,11 @@ function doPost(e) {
       var rows = sheet.getDataRange().getValues();
       for (var j = 1; j < rows.length; j++) {
         if (String(rows[j][0]).trim() === targetItemId) {
+          var currentStatus = String(rows[j][11] || "").trim();
+          // BẢO VỆ: Nếu trạng thái hiện tại đã là "Đã tạo Video", KHÔNG cho phép đè ngược lại
+          if (currentStatus === "Đã tạo Video") {
+            return responseJSON({ status: "success", message: "Giữ nguyên trạng thái 'Đã tạo Video' cho mã " + targetItemId });
+          }
           sheet.getRange(j + 1, 12).setValue(newStatus);
           return responseJSON({ status: "success", message: "Đã cập nhật trạng thái dòng " + (j + 1) });
         }
@@ -58,7 +64,6 @@ function doPost(e) {
       return responseJSON({ status: "error", message: "Missing itemId" });
     }
     
-    // Định dạng thư mục local chuẩn 100% theo mã sản phẩm
     var localPath = "Product_Assets/" + itemId + "/";
     
     var rows = sheet.getDataRange().getValues();
@@ -74,13 +79,17 @@ function doPost(e) {
     }
     
     if (rowIndex > 0) {
-      // Cập nhật Cột 10 (Link CDN), Cột 11 (File ảnh lưu local), Cột 12 (Trạng thái)
       var currentCdnUrl = sheet.getRange(rowIndex, 10).getValue();
       if (!currentCdnUrl || String(currentCdnUrl).trim() === "") {
         sheet.getRange(rowIndex, 10).setValue(cdnUrl);
       }
       sheet.getRange(rowIndex, 11).setValue(localPath);
-      sheet.getRange(rowIndex, 12).setValue("Đã chọn ảnh");
+      
+      // BẢO VỆ: Chỉ cập nhật "Đã chọn ảnh" nếu trạng thái hiện tại chưa phải "Đã tạo Video" hoặc "Đã tạo Prompt"
+      var currentStatus = String(sheet.getRange(rowIndex, 12).getValue() || "").trim();
+      if (currentStatus !== "Đã tạo Video" && currentStatus !== "Đã tạo Prompt") {
+        sheet.getRange(rowIndex, 12).setValue("Đã chọn ảnh");
+      }
       
       return responseJSON({
         status: "success",
@@ -88,7 +97,7 @@ function doPost(e) {
         itemId: itemId
       });
     } else {
-      // Sản phẩm mới chưa có trên Sheet -> Thêm dòng mới đầy đủ
+      // Sản phẩm mới chưa có trên Sheet -> Thêm dòng mới
       var newRow = [
         itemId,
         data.productName || "Sản phẩm mới",
