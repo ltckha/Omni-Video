@@ -260,6 +260,15 @@ CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
      * Sports/Activewear: Green park running trail, urban outdoor plaza, modern gym, athletic field.
      * Work/Office fashion: Modern office hallway, stylish urban coffee shop, city street backdrop.
      * Home/Indoor items: Sunlit apartment balcony, modern kitchen, cozy entryway/living room.
+8. AI VIDEO MOTION SAFETY TIERS & CINEMATIC CUT STRATEGY:
+   - GOLDEN RULE: The more AI morphs an object's geometry during motion, the higher the artifact/distortion risk. NEVER force AI to render multi-step continuous physical transformations in a single shot.
+   - PRIORITIZE SAFE ACTIONS (🟢):
+     * 🟢 SAFE (PRIORITY): Standing/sitting still, gentle smile, looking at product, touching product lightly, slow natural walking, slow body turn, extending foot forward, standing up slowly, camera pan/tilt/tracking, or close-up of feet ALREADY wearing the product.
+     * 🟡 MEDIUM RISK (Keep simple): Gently slipping feet into slides, picking up slipper, taking off shoes, sitting down/standing up slowly, holding product and turning.
+     * 🔴 HIGH FAILURE RISK (STRICTLY AVOID): Kicking off shoes violently, running, jumping, fast spinning, throwing/catching objects, taking off AND putting on shoes in a single continuous motion, complex multi-hand interactions, aggressive 360 camera spins.
+   - CINEMATIC CUT TECHNIQUE (DÙNG CUT ĐỂ CHE KHÓ):
+     * Instead of describing 4-5 continuous physical actions ("taking off heels, bending down, putting on slides, standing up"), use clean cinematic cuts or focus on clean state transitions.
+     * Example: "0-3s: Character sitting with a tired expression looking down at stiff shoes. 3-10s: Cut to a close-up of her feet ALREADY wearing the soft NESTY clogs. She takes two slow, natural, comfortable steps forward."
 
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 
