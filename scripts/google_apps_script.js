@@ -44,7 +44,7 @@ function doPost(e) {
       return responseJSON({ status: "error", message: "Không tìm thấy mã SP " + targetItemId });
     }
     
-    // 3. Xử lý Import File CSV gửi từ Chay_Import_CSV.command
+    // 3. Xử lý Import File CSV gửi từ Import.command
     if (data.action === "import_csv_text" && data.csvText) {
       var resultMsg = processCSVTextImport(sheet, data.csvText);
       return responseJSON({ status: "success", message: resultMsg });
@@ -53,17 +53,13 @@ function doPost(e) {
     // 4. Xử lý khi nhấn Alt + S từ Chrome Extension
     var itemId = String(data.itemId || "").trim();
     var cdnUrl = data.cdnUrl || "";
-    var localPath = data.localPath || "";
     
     if (!itemId) {
       return responseJSON({ status: "error", message: "Missing itemId" });
     }
     
-    if (!localPath || !localPath.includes("Product_Assets")) {
-      localPath = "/Users/khan/Developer/Omni-Video/Product_Assets/" + itemId + "/";
-    } else if (!localPath.endsWith("/")) {
-      localPath = localPath.substring(0, localPath.lastIndexOf("/") + 1);
-    }
+    // Định dạng thư mục local chuẩn 100% theo mã sản phẩm
+    var localPath = "Product_Assets/" + itemId + "/";
     
     var rows = sheet.getDataRange().getValues();
     var rowIndex = -1;
@@ -78,7 +74,7 @@ function doPost(e) {
     }
     
     if (rowIndex > 0) {
-      // Giữ nguyên thông tin CSV cũ, cập nhật link ảnh & local folder
+      // Cập nhật Cột 10 (Link CDN), Cột 11 (File ảnh lưu local), Cột 12 (Trạng thái)
       var currentCdnUrl = sheet.getRange(rowIndex, 10).getValue();
       if (!currentCdnUrl || String(currentCdnUrl).trim() === "") {
         sheet.getRange(rowIndex, 10).setValue(cdnUrl);
@@ -92,7 +88,7 @@ function doPost(e) {
         itemId: itemId
       });
     } else {
-      // Sản phẩm mới chưa có trên Sheet
+      // Sản phẩm mới chưa có trên Sheet -> Thêm dòng mới đầy đủ
       var newRow = [
         itemId,
         data.productName || "Sản phẩm mới",
@@ -157,7 +153,7 @@ function processCSVTextImport(sheet, csvText) {
     if (isDuplicate) {
       skippedCount++;
     } else {
-      var folderPath = rawItemId ? ("/Users/khan/Developer/Omni-Video/Product_Assets/" + rawItemId + "/") : "";
+      var folderPath = rawItemId ? ("Product_Assets/" + rawItemId + "/") : "";
       
       var newRow = [
         rawItemId,
