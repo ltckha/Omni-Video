@@ -1,0 +1,17 @@
+{
+  "total_score": 92,
+  "verdict": "EXCELLENT",
+  "scores": {
+    "product_fidelity": 19,
+    "character_consistency": 18,
+    "artifact_free": 18,
+    "motion_naturalness": 19,
+    "narrative_flow": 18
+  },
+  "detected_flaws": [
+    "Slight foot and sandal morphing/blurring detected when the character lifts her foot around the 0:05-0:06 mark."
+  ],
+  "recommendations_for_prompt": [
+    "Add 'No foot distortion or blurring during movement' to Negative Constraints."
+  ]
+}

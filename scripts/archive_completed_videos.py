@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-Omni Video - Archive & Clean Completed Product Videos
+Omni Video - Archive & Clean Completed Product Videos with QA & Prompt Evolution
 Tự động quét các thư mục sản phẩm trong Product_Assets/:
-1. Nếu đã có file video .mp4 -> Xóa ảnh character và file info.json.
-2. Di chuyển toàn bộ thư mục sản phẩm hoàn thành về /Volumes/Media/Omni-Video/Product_Assets/
-3. Cập nhật trạng thái Master Prompt trên Google Sheet thành "Đã tạo Video".
+1. Nếu đã có file video .mp4 -> Phân tích chất lượng QA bằng Gemini Video Understanding API.
+2. Tự động Sao Lưu (Backup) & Tinh chỉnh Nâng Cấp Master Prompt theo bài học QA.
+3. Xóa ảnh character và file info.json.
+4. Di chuyển toàn bộ thư mục sản phẩm hoàn thành về /Volumes/Media/Omni-Video/Product_Assets/
+5. Cập nhật trạng thái Master Prompt trên Google Sheet thành "Đã tạo Video".
 """
 
 import os
@@ -13,6 +15,9 @@ import glob
 import json
 import urllib.request
 import ssl
+
+from video_qa_analyzer import analyze_video_quality
+from prompt_evolution_engine import backup_current_prompt, evolve_prompt_from_qa
 
 def _load_env_file():
     project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -101,8 +106,18 @@ def archive_completed_folders():
             continue
 
         print(f"\n🎬 Phát hiện video MP4 hoàn thành tại mã SP: {item_id}")
+        video_file = mp4_files[0]
 
-        # 1. Xóa file info.json nếu có
+        # 1. Chạy phân tích QA video bằng Gemini Video Understanding API
+        qa_report = analyze_video_quality(video_file, item_path)
+
+        # 2. Tự động Sao Lưu (Backup) & Tự Học Nâng Cấp Master Prompt
+        if qa_report:
+            evolve_prompt_from_qa(item_path, qa_report)
+        else:
+            backup_current_prompt(item_path)
+
+        # 3. Xóa file info.json nếu có
         info_file = os.path.join(item_path, "info.json")
         if os.path.exists(info_file):
             try:
@@ -111,7 +126,7 @@ def archive_completed_folders():
             except Exception as e:
                 print(f"  ⚠️ Lỗi xóa info.json: {e}")
 
-        # 2. Xóa ảnh character trong thư mục sản phẩm
+        # 4. Xóa ảnh character trong thư mục sản phẩm
         for f in os.listdir(item_path):
             f_lower = f.lower()
             if f_lower in known_chars or ("nu-" in f_lower) or ("nam-" in f_lower) or ("character" in f_lower):
@@ -122,7 +137,7 @@ def archive_completed_folders():
                 except Exception as e:
                     print(f"  ⚠️ Lỗi xóa ảnh character {f}: {e}")
 
-        # 3. Kiểm tra và di chuyển thư mục sang /Volumes/Media/Omni-Video/Product_Assets/
+        # 5. Kiểm tra và di chuyển thư mục sang /Volumes/Media/Omni-Video/Product_Assets/
         try:
             os.makedirs(TARGET_MEDIA_DIR, exist_ok=True)
             dest_item_path = os.path.join(TARGET_MEDIA_DIR, item_id)
@@ -133,13 +148,18 @@ def archive_completed_folders():
                     dst_f = os.path.join(dest_item_path, f)
                     if os.path.isfile(src_f):
                         shutil.move(src_f, dst_f)
+                    elif os.path.isdir(src_f):
+                        dst_dir = os.path.join(dest_item_path, f)
+                        os.makedirs(dst_dir, exist_ok=True)
+                        for sub_f in os.listdir(src_f):
+                            shutil.move(os.path.join(src_f, sub_f), os.path.join(dst_dir, sub_f))
                 shutil.rmtree(item_path)
             else:
                 shutil.move(item_path, dest_item_path)
 
             print(f"  🚚 Đã di chuyển thành công: Product_Assets/{item_id} -> {dest_item_path}")
             
-            # 4. Tự động cập nhật Google Sheet thành "Đã tạo Video"
+            # 6. Tự động cập nhật Google Sheet thành "Đã tạo Video"
             update_google_sheet_video_status(item_id)
             archived_count += 1
 
@@ -151,14 +171,14 @@ def archive_completed_folders():
 
 if __name__ == "__main__":
     print("============================================================")
-    print("🚀 OMNI VIDEO - TỰ ĐỘNG DỌN DẸP & LƯU LẠI THƯ MỤC VIDEO HOÀN THÀNH")
+    print("🚀 OMNI VIDEO - TỰ ĐỘNG QA, NÂNG CẤP PROMPT & LƯU VỀ Ổ MEDIA")
     print("============================================================")
     print(f"📁 Thư mục đích: {TARGET_MEDIA_DIR}\n")
     
     count = archive_completed_folders()
     print("\n============================================================")
     if count > 0:
-        print(f"✅ HOÀN TẤT! Đã dọn dẹp, di chuyển và cập nhật Google Sheet cho {count} sản phẩm.")
+        print(f"✅ HOÀN TẤT! Đã đánh giá QA, tự nâng cấp Prompt, di chuyển và cập nhật Google Sheet cho {count} sản phẩm.")
     else:
         print("ℹ️ Chưa có thư mục sản phẩm nào chứa file video .mp4 mới.")
     print("============================================================")
