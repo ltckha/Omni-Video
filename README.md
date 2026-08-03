@@ -60,3 +60,13 @@ Omni-Video/
 1. **Nhấp đúp `Import.command`:** Đồng bộ file CSV và chuyển toàn bộ ảnh từ Downloads về `Product_Assets/<Mã_SP>/`.
 2. **Nhấp đúp `Prompt.command`:** Gemini AI tự động soi ảnh + thông tin SP để tạo Master Prompt 10s tại `Product_Assets/<Mã_SP>/master_prompt.txt` và copy ảnh nhân vật vào.
 3. **Nhấp đúp `Move.command`:** Sau khi dựng video xong và lưu file `.mp4` vào thư mục sản phẩm, nhấp đúp `Move.command` để tự động xóa ảnh nhân vật, xóa `info.json` và di chuyển thư mục về `/Volumes/Media/Omni-Video/Product_Assets/`.
+
+---
+
+## 💡 Roadmap & Ý Tưởng Phát Triển Tương Lai
+
+1. **Tự Động Đánh Giá Quality Assurance (QA) Video Bằng Gemini AI Multimodal:**
+   - Sau khi tạo xong video `.mp4`, tự động đưa file video `.mp4` qua Gemini Vision API để AI xem lại và kiểm tra xem video có bị lỗi rác điểm ảnh (morphing), méo dép, sai nhân vật hay sai sản phẩm hay không.
+
+2. **Tối Ưu Prompt Dạng "Gợi Ý Mềm" (Flexible Creative Suggestion):**
+   - Chỉnh sửa lại cấu trúc Prompt sinh ra theo dạng: *"Đây là gợi ý kịch bản để tạo video, bạn hãy tự do tạo cho tôi 1 video linh hoạt dựa theo gợi ý này..."* thay vì khoá cứng 100% các câu lệnh cứng nhắc, giúp Gemini Omni sáng tạo tự nhiên và mượt mà hơn.
