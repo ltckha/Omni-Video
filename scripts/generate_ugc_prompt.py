@@ -314,6 +314,10 @@ CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
    - CINEMATIC CUT TECHNIQUE (DÙNG CUT ĐỂ CHE KHÓ):
      * Instead of describing 4-5 continuous physical actions ("taking off heels, bending down, putting on slides, standing up"), use clean cinematic cuts or focus on clean state transitions.
      * Example: "0-3s: Character sitting with a tired expression looking down at stiff shoes. 3-10s: Cut to a close-up of her feet ALREADY wearing the soft NESTY clogs. She takes two slow, natural, comfortable steps forward."
+9. ABSOLUTELY NO SHOP LOGOS, WATERMARKS, OR ON-SCREEN GRAPHIC OVERLAYS:
+   - STRICTLY IGNORE any seller shop logos, text watermarks, discount badges, store icons, or promotional overlays present on the input Shopee image.
+   - NEVER include, describe, or generate video logo watermarks, corner brand icons, floating text graphics, or seller badges in any video shot.
+   - Keep the video 100% photorealistic UGC footage with ZERO graphic logo overlays.
 {learned_constraints_text}
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 
@@ -330,6 +334,7 @@ FIXED CONSTRAINTS (STRICT):
 - Video Duration: Exactly 10 seconds.
 - Aspect Ratio: 9:16 Vertical format.
 - Visual Consistency: Maintain 100% exact visual appearance for attached main product, and maintain character's FACIAL IDENTITY (while allowing creative outfit/clothing variation).
+- Clean Footage: No video watermark logos, no shop logo overlays, no text artifacts.
 
 CREATIVE FREEDOM FOR OMNI:
 - For missing/unattached assets: Full creative freedom to generate realistic, contextually appropriate character outfit, secondary props, or environment.
@@ -346,6 +351,7 @@ SCENE BREAKDOWN (10 SECONDS):
 
 STYLE GUIDELINES:
 - Photorealistic UGC review style, natural handheld camera feel, fluid motion, 60fps, realistic audio lip-sync.
+- ABSOLUTELY NO shop logos, video watermark icons, corner brand tags, or text overlays.
 ---
 
 Generate ONLY the final Master Prompt text inside a clean markdown block. Keep Vietnamese voiceovers natural and engaging. Do not include meta explanations."""
