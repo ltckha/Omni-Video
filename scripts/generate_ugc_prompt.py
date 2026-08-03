@@ -117,6 +117,38 @@ def get_available_characters():
                 chars.append(os.path.basename(filepath))
     return chars
 
+def select_character_for_product(product_name):
+    """
+    Tự động phân tích tên sản phẩm và chọn nhân vật phù hợp theo quy tắc:
+    - Nam-25t: Nhân vật Nam 25 tuổi
+    - Nu-25t: Nhân vật Nữ 25 tuổi
+    - Nu-23t: Nhân vật Nữ 23 tuổi
+    """
+    chars = get_available_characters()
+    if not chars:
+        return "Friendly Reviewer"
+
+    p_lower = (product_name or "").lower()
+
+    # Nếu tên sản phẩm có chứa từ khóa đồ Nam -> Chọn nhân vật Nam
+    male_keywords = ["nam", "men", "man", "đàn ông", "giày nam", "dép nam", "áo nam", "quần nam"]
+    is_male_product = any(kw in p_lower for kw in male_keywords) and not any(kw in p_lower for kw in ["nữ", "women", "girl"])
+
+    if is_male_product:
+        for c in chars:
+            if "nam" in c.lower():
+                return c
+
+    # Nếu là đồ Nữ hoặc sản phẩm chung -> Ưu tiên chọn nhân vật Nữ (Nu-25t hoặc Nu-23t)
+    for c in chars:
+        if "nu-25t" in c.lower() or "nu_25t" in c.lower():
+            return c
+    for c in chars:
+        if "nu" in c.lower():
+            return c
+
+    return chars[0]
+
 def get_image_mime_type(filepath):
     ext = os.path.splitext(filepath)[1].lower()
     if ext == ".webp":
