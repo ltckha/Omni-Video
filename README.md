@@ -65,11 +65,7 @@ Omni-Video/
 
 ## 💡 Roadmap & Ý Tưởng Phát Triển Tương Lai
 
-1. **Tự Động Đánh Giá Quality Assurance (QA) Video Bằng Gemini AI Multimodal:**
-   - Sau khi tạo xong video `.mp4`, tự động đưa file video `.mp4` qua Gemini Vision API để AI xem lại và kiểm tra xem video có bị lỗi rác điểm ảnh (morphing), méo dép, dị dạng hay sai sản phẩm hay không.
-
-2. **Học & Tự Động Nâng Cấp Prompt Liên Tục (Prompt Self-Evolution):**
-   - Dựa vào kết quả phân tích video từ Ý tưởng 1, hệ thống tự động đúc kết kinh nghiệm, tinh chỉnh và nâng cấp cấu trúc Prompt liên tục theo thời gian, giúp tỷ lệ sinh video chuẩn đẹp tăng dần tự động.
-
-3. **Kịch Bản UGC Liền Mạch Tự Nhiên (Seamless Single-Shot Narrative):**
-   - Xây dựng kịch bản video UGC liền mạch, trôi chảy tự nhiên từ đầu đến cuối mà không bị gượng ép chia cứng thành các khối Hook / Solution thô cứng.
+1. **Hệ Thống Tự Đánh Giá, Tự Học & Nâng Cấp Prompt Video Vòng Lặp Đóng (Closed-Loop Video QA & Prompt Self-Evolution Engine):**
+   - **Đánh giá chất lượng Video (Video QA):** Đưa video `.mp4` sau khi khởi tạo qua Gemini Vision API để AI tự động thẩm định, phát hiện các lỗi dị dạng, méo sản phẩm, rác điểm ảnh (morphing) hoặc sai nhận diện nhân vật.
+   - **Tự học & Tiến hóa Prompt (Prompt Self-Evolution):** Phân tích các kết quả QA video để tự động đúc kết bài học kinh nghiệm, liên tục tinh chỉnh và nâng cấp cấu trúc Prompt theo thời gian mà không cần con người can thiệp.
+   - **Kịch bản liền mạch tự nhiên (Seamless Single-Shot Narrative):** Tích hợp phong cách kể chuyện liền mạch, trôi chảy từ đầu đến cuối vào hệ thống tự học (thay vì gượng ép chia cứng các khối Hook / Solution thô cứng), giúp video UGC sinh ra vừa chuẩn đẹp, vừa đạt độ hoàn thiện cao nhất.
