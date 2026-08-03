@@ -4,16 +4,42 @@ Omni Video - Archive & Clean Completed Product Videos
 Tự động quét các thư mục sản phẩm trong Product_Assets/:
 1. Nếu đã có file video .mp4 -> Xóa ảnh character và file info.json.
 2. Di chuyển toàn bộ thư mục sản phẩm hoàn thành về /Volumes/Media/Omni-Video/Product_Assets/
+3. Cập nhật trạng thái Master Prompt trên Google Sheet thành "Đã tạo Video".
 """
 
 import os
 import shutil
 import glob
+import json
+import urllib.request
+import ssl
+
+def _load_env_file():
+    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    env_file = os.path.join(project_dir, ".env")
+    if not os.path.exists(env_file):
+        return
+    try:
+        with open(env_file, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, _, val = line.partition("=")
+                key = key.replace("export", "").strip()
+                val = val.strip().strip('"').strip("'")
+                if val and (key not in os.environ or not os.environ[key]):
+                    os.environ[key] = val
+    except Exception:
+        pass
+
+_load_env_file()
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 TARGET_MEDIA_DIR = "/Volumes/Media/Omni-Video/Product_Assets"
+WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "")
 
 def get_known_character_filenames():
     char_names = set()
@@ -21,9 +47,35 @@ def get_known_character_filenames():
         for ext in ["*.png", "*.jpg", "*.webp", "*.jpeg"]:
             for filepath in glob.glob(os.path.join(CHARACTERS_DIR, ext)):
                 char_names.add(os.path.basename(filepath).lower())
-    # Bổ sung danh sách tên nhân vật mặc định
     char_names.update(["nu-25t.png", "nam-25t.png", "nu-23t.png"])
     return char_names
+
+def update_google_sheet_video_status(item_id):
+    if not WEBHOOK_URL:
+        return
+
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    payload = {
+        "action": "update_status",
+        "itemId": item_id,
+        "status": "Đã tạo Video"
+    }
+
+    req = urllib.request.Request(
+        WEBHOOK_URL,
+        data=json.dumps(payload).encode("utf-8"),
+        headers={"Content-Type": "text/plain;charset=utf-8"}
+    )
+
+    try:
+        with urllib.request.urlopen(req, context=ctx) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+            print(f"  📊 Đã cập nhật trạng thái Google Sheet cho mã {item_id} thành 'Đã tạo Video':", data.get("message", "Thành công"))
+    except Exception as e:
+        print(f"  ⚠️ Lỗi cập nhật Sheet cho mã {item_id}:", e)
 
 def archive_completed_folders():
     if not os.path.exists(ASSETS_DIR):
@@ -76,7 +128,6 @@ def archive_completed_folders():
             dest_item_path = os.path.join(TARGET_MEDIA_DIR, item_id)
 
             if os.path.exists(dest_item_path):
-                # Nếu đã tồn tại ở ổ đĩa Media -> Di chuyển ghi đè các file mới
                 for f in os.listdir(item_path):
                     src_f = os.path.join(item_path, f)
                     dst_f = os.path.join(dest_item_path, f)
@@ -87,7 +138,11 @@ def archive_completed_folders():
                 shutil.move(item_path, dest_item_path)
 
             print(f"  🚚 Đã di chuyển thành công: Product_Assets/{item_id} -> {dest_item_path}")
+            
+            # 4. Tự động cập nhật Google Sheet thành "Đã tạo Video"
+            update_google_sheet_video_status(item_id)
             archived_count += 1
+
         except Exception as e:
             print(f"  ❌ Không thể di chuyển tới ổ đĩa Media ({TARGET_MEDIA_DIR}): {e}")
             print("     (Vui lòng kiểm tra ổ đĩa /Volumes/Media/ đã được kết nối chưa)")
@@ -103,7 +158,7 @@ if __name__ == "__main__":
     count = archive_completed_folders()
     print("\n============================================================")
     if count > 0:
-        print(f"✅ HOÀN TẤT! Đã dọn dẹp và di chuyển {count} thư mục sản phẩm hoàn thành.")
+        print(f"✅ HOÀN TẤT! Đã dọn dẹp, di chuyển và cập nhật Google Sheet cho {count} sản phẩm.")
     else:
         print("ℹ️ Chưa có thư mục sản phẩm nào chứa file video .mp4 mới.")
     print("============================================================")
