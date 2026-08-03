@@ -228,8 +228,8 @@ def generate_prompt_for_item(item_id, item_dir):
     raw_product_name = lookup_product_name(item_id, item_dir)
     print(f"📦 Tên sản phẩm Shopee: \"{raw_product_name}\"")
 
-    characters = get_available_characters()
-    selected_char = characters[0] if characters else "Friendly Reviewer"
+    selected_char = select_character_for_product(raw_product_name)
+    print(f"👤 Nhân vật được chọn phù hợp: {selected_char}")
 
     system_directive = f"""You are an expert AI Video Director and Marketing Copywriter specializing in 10-second UGC (User-Generated Content) Review videos for Gemini Omni.
 
