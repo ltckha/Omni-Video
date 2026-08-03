@@ -52,6 +52,39 @@ def backup_current_prompt(item_dir, score=None):
         print(f"⚠️ Lỗi tạo Backup Prompt: {e}")
         return None
 
+def update_global_learned_rules(added_rules):
+    """
+    Lưu trữ các bài học QA vào file hệ thống chung scripts/global_learned_rules.json
+    để tất cả các sản phẩm mới sau này tự động kế thừa.
+    """
+    project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    global_file = os.path.join(project_dir, "scripts", "global_learned_rules.json")
+    
+    rules_data = []
+    if os.path.exists(global_file):
+        try:
+            with open(global_file, "r", encoding="utf-8") as f:
+                rules_data = json.load(f)
+        except Exception:
+            rules_data = []
+
+    existing_set = set(rules_data)
+    new_count = 0
+    for r in added_rules:
+        clean_r = r.replace("- AI EVOLVED RULE: ", "").replace("- AVOID DETECTED FLAW: ", "").strip()
+        if clean_r and clean_r not in existing_set:
+            rules_data.append(clean_r)
+            existing_set.add(clean_r)
+            new_count += 1
+
+    if new_count > 0:
+        try:
+            with open(global_file, "w", encoding="utf-8") as f:
+                json.dump(rules_data, f, ensure_ascii=False, indent=2)
+            print(f"🌐 Đã cập nhật {new_count} bài học mới vào Hồ sơ Hệ thống chung (global_learned_rules.json)!")
+        except Exception as e:
+            print(f"⚠️ Lỗi cập nhật global_learned_rules.json: {e}")
+
 def evolve_prompt_from_qa(item_dir, qa_report):
     """
     Dựa vào báo cáo QA để tự động học và bổ sung Negative Constraints vào Master Prompt
@@ -71,45 +104,11 @@ def evolve_prompt_from_qa(item_dir, qa_report):
         print("ℹ️ Video không có lỗi lớn, giữ nguyên cấu trúc Master Prompt hiện tại.")
         return False
 
-    # Đọc nội dung Master Prompt hiện tại
-    try:
-        with open(prompt_file, "r", encoding="utf-8") as f:
-            prompt_content = f.read()
-    except Exception as e:
-        print(f"⚠️ Lỗi đọc master_prompt.txt: {e}")
-        return False
+    # Cập nhật bài học vào Hồ sơ Hệ thống chung (Global System Memory)
+    added_rules = recommendations + flaws
+    update_global_learned_rules(added_rules)
 
-    # Bổ sung các quy tắc né lỗi mới vào mục STYLE / NEGATIVE GUIDELINES
-    added_rules = []
-    for rec in recommendations:
-        rule_str = f"- AI EVOLVED RULE: {rec}"
-        if rule_str not in prompt_content:
-            added_rules.append(rule_str)
-
-    for fl in flaws:
-        rule_str = f"- AVOID DETECTED FLAW: {fl}"
-        if rule_str not in prompt_content:
-            added_rules.append(rule_str)
-
-    if not added_rules:
-        return False
-
-    evolution_block = "\n" + "\n".join(added_rules) + "\n"
-
-    # Chèn bài học tiến hóa vào trước phần kết thúc
-    if "STYLE GUIDELINES:" in prompt_content:
-        updated_content = prompt_content.replace("STYLE GUIDELINES:", "STYLE GUIDELINES:" + evolution_block)
-    else:
-        updated_content = prompt_content + "\n\n# AI EVOLUTION CONSTRAINTS:" + evolution_block
-
-    try:
-        with open(prompt_file, "w", encoding="utf-8") as f:
-            f.write(updated_content)
-        print(f"🧬 Đã tự động nâng cấp Master Prompt với {len(added_rules)} quy tắc bài học mới từ QA!")
-        return True
-    except Exception as e:
-        print(f"⚠️ Lỗi ghi Master Prompt nâng cấp: {e}")
-        return False
+    return True
 
 def rollback_to_best_prompt(item_dir):
     """

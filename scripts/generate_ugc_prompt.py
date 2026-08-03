@@ -263,6 +263,18 @@ def generate_prompt_for_item(item_id, item_dir):
     selected_char = select_character_for_product(raw_product_name)
     print(f"👤 Nhân vật được chọn phù hợp: {selected_char}")
 
+    # Nạp các bài học kinh nghiệm từ Hồ sơ Hệ thống chung (Global System Memory)
+    global_rules_file = os.path.join(PROJECT_DIR, "scripts", "global_learned_rules.json")
+    learned_constraints_text = ""
+    if os.path.exists(global_rules_file):
+        try:
+            with open(global_rules_file, "r", encoding="utf-8") as f:
+                learned_rules = json.load(f)
+                if learned_rules:
+                    learned_constraints_text = "\nSYSTEM LEARNED NEGATIVE CONSTRAINTS (AUTONOMOUS QA FEEDBACK):\n" + "\n".join([f"- AVOID: {r}" for r in learned_rules]) + "\n"
+        except Exception:
+            pass
+
     system_directive = f"""You are an expert AI Video Director and Marketing Copywriter specializing in 10-second UGC (User-Generated Content) Review videos for Gemini Omni.
 
 Look closely at the attached main product image AND analyze the full Shopee title: "{raw_product_name}".
@@ -285,9 +297,10 @@ CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
 6. AVOID COMPLEX FINE-MOTOR HAND ACTIONS:
    - AI video generation struggles with intricate hand-object interactions (unlacing, tying, buttoning, zipping).
    - Describe simple, robust actions instead: "kicks off her shoes", "slips her feet out", "steps out of them" — NOT "struggling to unlace" or multi-step manual actions.
-7. DIVERSE & CONTEXTUALLY FITTING ENVIRONMENT SELECTION:
-   - DO NOT default to an indoor living room unless the product is strictly for indoor home use.
-   - Dynamically choose vibrant, photorealistic indoor or outdoor environments matching the product's natural lifestyle context:
+7. DIVERSE OUTFIT & ENVIRONMENT SELECTION (DO NOT LOCK OUTFIT TO IMAGE):
+   - **CHARACTER FACE & IDENTITY LOCK**: Lock 100% of the character's facial features, age, skin tone, and hair from `characters/{selected_char}`.
+   - **OUTFIT CREATIVE FREEDOM**: DO NOT lock her outfit/clothing to the picture! Dynamically design a stylish, diverse, modern outfit matching the product scenario (e.g., trendy summer casual wear, chic resort outfit, active athletic park wear, modern city street fashion, cozy loungewear).
+   - **ENVIRONMENT DIVERSITY**: Dynamically choose vibrant, photorealistic indoor or outdoor environments matching the product's natural lifestyle context:
      * Outdoor/Casual sandals/footwear & fashion: Sunny beach boardwalk, resort poolside, outdoor garden cafe, bustling city street sidewalk, sunlit park pathway.
      * Sports/Activewear: Green park running trail, urban outdoor plaza, modern gym, athletic field.
      * Work/Office fashion: Modern office hallway, stylish urban coffee shop, city street backdrop.
@@ -301,25 +314,25 @@ CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
    - CINEMATIC CUT TECHNIQUE (DÙNG CUT ĐỂ CHE KHÓ):
      * Instead of describing 4-5 continuous physical actions ("taking off heels, bending down, putting on slides, standing up"), use clean cinematic cuts or focus on clean state transitions.
      * Example: "0-3s: Character sitting with a tired expression looking down at stiff shoes. 3-10s: Cut to a close-up of her feet ALREADY wearing the soft NESTY clogs. She takes two slow, natural, comfortable steps forward."
-
+{learned_constraints_text}
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 
 ---
 [ATTACHED ASSETS & CREATIVE DIRECTIVES]:
 - Main Product: Attached product image ({main_product_img_name})
-- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point item that matches the Vietnamese hook AND matches the character's gender/style, e.g., for a female character: "tight high-heeled ankle boots" — NOT generic "work shoes"]
-- Character: Attached image characters/{selected_char} (Friendly reviewer matching target audience)
-- Environment: AI Creative Freedom: [Select a vibrant, highly fitting indoor or outdoor environment based on product usage scenario — e.g., sunny beach resort boardwalk, outdoor garden cafe, bustling city sidewalk, green park trail, or modern sunlit space]
+- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point item that matches the Vietnamese hook AND matches the character's gender/style]
+- Character: Attached image characters/{selected_char} (Maintain facial identity & age, but generate stylish diverse outfit suitable for the scenario)
+- Environment: AI Creative Freedom: [Select a vibrant, highly fitting indoor or outdoor environment — e.g., sunny beach resort boardwalk, outdoor garden cafe, bustling city sidewalk, green park trail]
 
 Task: Generate a 10-second high-converting UGC review video seamlessly combining the main product, secondary prop, character, and environment.
 
 FIXED CONSTRAINTS (STRICT):
 - Video Duration: Exactly 10 seconds.
 - Aspect Ratio: 9:16 Vertical format.
-- Visual Consistency: Maintain 100% exact visual appearance for attached main product and character images.
+- Visual Consistency: Maintain 100% exact visual appearance for attached main product, and maintain character's FACIAL IDENTITY (while allowing creative outfit/clothing variation).
 
 CREATIVE FREEDOM FOR OMNI:
-- For missing/unattached assets: Full creative freedom to generate realistic, contextually appropriate character, secondary props, or environment.
+- For missing/unattached assets: Full creative freedom to generate realistic, contextually appropriate character outfit, secondary props, or environment.
 - Motion & Audio: High freedom for audio lip-sync, realistic facial expressions, natural hand gestures, dynamic camera movement, and warm natural lighting.
 
 SCENE BREAKDOWN (10 SECONDS):
