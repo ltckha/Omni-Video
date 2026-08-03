@@ -112,10 +112,19 @@ def archive_completed_folders():
         qa_report = analyze_video_quality(video_file, item_path)
 
         # 2. Tự động Sao Lưu (Backup) & Tự Học Nâng Cấp Master Prompt
+        qa_score = 100
         if qa_report:
+            qa_score = qa_report.get("total_score", 100)
             evolve_prompt_from_qa(item_path, qa_report)
         else:
             backup_current_prompt(item_path)
+
+        # 🛑 CHỐT CHẶN CHẤT LƯỢNG (QA GATE): Nếu video dưới 70 điểm -> GIỮ NGUYÊN KHÔNG MOVE
+        if qa_score < 70:
+            print(f"🛑 CHÚ Ý: VideoSP {item_id} chưa đạt chuẩn QA (Điểm: {qa_score}/100 < 70 điểm tối thiểu).")
+            print(f"   👉 Giữ nguyên thư mục tại Product_Assets/{item_id}/ để anh/chị xem lỗi và làm lại video!")
+            print(f"   💡 Prompt đã được AI tự nâng cấp bài học để sửa lỗi cho lần sinh tiếp theo.")
+            continue
 
         # 3. Xóa file info.json nếu có
         info_file = os.path.join(item_path, "info.json")
