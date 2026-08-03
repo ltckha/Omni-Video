@@ -314,6 +314,19 @@ Generate ONLY the final Master Prompt text inside a clean markdown block. Keep V
             f.write(clean_text)
             
         print(f"✅ Đã lưu Master Prompt tinh lọc thành công tại: {output_file}")
+
+        # Tự động copy ảnh nhân vật đã chọn vào thư mục sản phẩm
+        if selected_char:
+            char_src_path = os.path.join(CHARACTERS_DIR, selected_char)
+            if os.path.exists(char_src_path):
+                char_dest_path = os.path.join(item_dir, selected_char)
+                try:
+                    import shutil
+                    shutil.copy2(char_src_path, char_dest_path)
+                    print(f"📸 Đã copy ảnh nhân vật {selected_char} vào {item_dir}/")
+                except Exception as e:
+                    print(f"⚠️ Không thể copy ảnh nhân vật: {e}")
+
         print("\n--- NỘI DUNG MASTER PROMPT TINH LỌC ---")
         print(clean_text[:550] + "...\n---------------------------------------")
         
