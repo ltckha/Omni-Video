@@ -280,43 +280,40 @@ def generate_prompt_for_item(item_id, item_dir):
 Look closely at the attached main product image AND analyze the full Shopee title: "{raw_product_name}".
 
 CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
-1. VOICEOVER IS THE MASTER ANCHOR:
-   - First, create an extremely relatable, emotional, natural 0-3s Vietnamese hook (e.g., "Chân mỏi nhừ sau ngày dài đi giày nặng nề?").
-2. ENGLISH VISUAL MUST 100% DRAMATIZE THE VOICEOVER:
-   - The English Visual description MUST EXACTLY match every detail in the Vietnamese voiceover!
-   - Example: If the Voiceover says "đi giày nặng nề" (wearing heavy shoes), the 0-3s Visual MUST show the character wearing and taking off heavy, stiff work shoes/sneakers (NOT sandals!). Then at 3-10s, slipping into the comfortable main product slides!
+1. DYNAMIC STORYTELLING MODE SELECTION (FLEXIBLE):
+   Dynamically analyze the product title and image to select ONE of the following two high-converting UGC storytelling structures:
+   - **MODE A: Hook & Problem Transformation (0-3s Hook + 3-10s Solution)**: Best for products solving an explicit pain point (e.g. stiff uncomfortable heels, tired feet, shoe cleaning).
+   - **MODE B: Seamless Single-Shot Narrative (0-10s Continuous Flow)**: Best for lifestyle, fashion, or aesthetic products. Describes a smooth, fluid 0-10s continuous storytelling experience without rigid Hook/Problem division.
+
+2. VOICEOVER & VISUAL DRAMATIZATION:
+   - The English Visual description MUST 100% DRAMATIZE and align with every detail mentioned in the Vietnamese voiceover!
+   - Keep Vietnamese voiceovers conversational, viral, emotional, and natural.
+
 3. PERFECT OBJECT CONSISTENCY:
    - Whatever item/pain point is mentioned in Vietnamese MUST be the EXACT item depicted in the English Visual scene.
+
 4. NO SHOPEE SPAM KEYWORDS:
-   - DO NOT repeat long Shopee model codes or SEO keywords in Vietnamese voiceovers. Keep it conversational, viral, and natural.
+   - DO NOT repeat long Shopee model codes or SEO keywords in Vietnamese voiceovers.
+
 5. SECONDARY PROP MUST MATCH THE CHARACTER'S IDENTITY:
    - Look at the attached character reference image carefully (gender, age, style, body type).
-   - The secondary prop / pain-point item MUST be visually and contextually consistent with that character.
-   - If the character is female, describe the prop using realistic FEMALE-coded items (e.g., "tight high-heeled ankle boots", "narrow pointed flats", "worn-out fashion sneakers") — NEVER generic unisex/male-coded terms like "work boots", "chunky leather sneakers", or "formal boots" unless the character is clearly male.
-   - If the character is male, use male-coded items instead. Mismatched gender/style between character and prop is a critical failure.
+   - If a secondary prop/pain point is used, describe it matching the character's gender/style (e.g., female character gets female-coded footwear like heels/flats).
+
 6. AVOID COMPLEX FINE-MOTOR HAND ACTIONS:
-   - AI video generation struggles with intricate hand-object interactions (unlacing, tying, buttoning, zipping).
-   - Describe simple, robust actions instead: "kicks off her shoes", "slips her feet out", "steps out of them" — NOT "struggling to unlace" or multi-step manual actions.
+   - AI video generation struggles with intricate hand-object interactions (unlacing, tying, buttoning).
+   - Describe simple, robust actions instead: "kicks off her shoes", "slips her feet out", "steps forward" — NOT multi-step manual actions.
+
 7. DIVERSE OUTFIT & ENVIRONMENT SELECTION (DO NOT LOCK OUTFIT TO IMAGE):
    - **CHARACTER FACE & IDENTITY LOCK**: Lock 100% of the character's facial features, age, skin tone, and hair from `characters/{selected_char}`.
    - **OUTFIT CREATIVE FREEDOM**: DO NOT lock her outfit/clothing to the picture! Dynamically design a stylish, diverse, modern outfit matching the product scenario (e.g., trendy summer casual wear, chic resort outfit, active athletic park wear, modern city street fashion, cozy loungewear).
-   - **ENVIRONMENT DIVERSITY**: Dynamically choose vibrant, photorealistic indoor or outdoor environments matching the product's natural lifestyle context:
-     * Outdoor/Casual sandals/footwear & fashion: Sunny beach boardwalk, resort poolside, outdoor garden cafe, bustling city street sidewalk, sunlit park pathway.
-     * Sports/Activewear: Green park running trail, urban outdoor plaza, modern gym, athletic field.
-     * Work/Office fashion: Modern office hallway, stylish urban coffee shop, city street backdrop.
-     * Home/Indoor items: Sunlit apartment balcony, modern kitchen, cozy entryway/living room.
+   - **ENVIRONMENT DIVERSITY**: Dynamically choose vibrant, photorealistic indoor or outdoor environments matching the product's natural lifestyle context.
+
 8. AI VIDEO MOTION SAFETY TIERS & CINEMATIC CUT STRATEGY:
    - GOLDEN RULE: The more AI morphs an object's geometry during motion, the higher the artifact/distortion risk. NEVER force AI to render multi-step continuous physical transformations in a single shot.
-   - PRIORITIZE SAFE ACTIONS (🟢):
-     * 🟢 SAFE (PRIORITY): Standing/sitting still, gentle smile, looking at product, touching product lightly, slow natural walking, slow body turn, extending foot forward, standing up slowly, camera pan/tilt/tracking, or close-up of feet ALREADY wearing the product.
-     * 🟡 MEDIUM RISK (Keep simple): Gently slipping feet into slides, picking up slipper, taking off shoes, sitting down/standing up slowly, holding product and turning.
-     * 🔴 HIGH FAILURE RISK (STRICTLY AVOID): Kicking off shoes violently, running, jumping, fast spinning, throwing/catching objects, taking off AND putting on shoes in a single continuous motion, complex multi-hand interactions, aggressive 360 camera spins.
-   - CINEMATIC CUT TECHNIQUE (DÙNG CUT ĐỂ CHE KHÓ):
-     * Instead of describing 4-5 continuous physical actions ("taking off heels, bending down, putting on slides, standing up"), use clean cinematic cuts or focus on clean state transitions.
-     * Example: "0-3s: Character sitting with a tired expression looking down at stiff shoes. 3-10s: Cut to a close-up of her feet ALREADY wearing the soft NESTY clogs. She takes two slow, natural, comfortable steps forward."
+   - Use clean CINEMATIC CUTS between different scenes/shots to ensure safe visual transitions.
+
 9. ABSOLUTELY NO SHOP LOGOS, WATERMARKS, OR ON-SCREEN GRAPHIC OVERLAYS:
    - STRICTLY IGNORE any seller shop logos, text watermarks, discount badges, store icons, or promotional overlays present on the input Shopee image.
-   - NEVER include, describe, or generate video logo watermarks, corner brand icons, floating text graphics, or seller badges in any video shot.
    - Keep the video 100% photorealistic UGC footage with ZERO graphic logo overlays.
 {learned_constraints_text}
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
@@ -324,7 +321,7 @@ STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 ---
 [ATTACHED ASSETS & CREATIVE DIRECTIVES]:
 - Main Product: Attached product image ({main_product_img_name})
-- Secondary Product / Prop: AI Creative Freedom: [Describe the EXACT specific pain point item that matches the Vietnamese hook AND matches the character's gender/style]
+- Secondary Product / Prop: AI Creative Freedom: [Describe pain-point prop if using Mode A, or lifestyle prop if using Mode B]
 - Character: Attached image characters/{selected_char} (Maintain facial identity & age, but generate stylish diverse outfit suitable for the scenario)
 - Environment: AI Creative Freedom: [Select a vibrant, highly fitting indoor or outdoor environment — e.g., sunny beach resort boardwalk, outdoor garden cafe, bustling city sidewalk, green park trail]
 
@@ -341,13 +338,21 @@ CREATIVE FREEDOM FOR OMNI:
 - Motion & Audio: High freedom for audio lip-sync, realistic facial expressions, natural hand gestures, dynamic camera movement, and warm natural lighting.
 
 SCENE BREAKDOWN (10 SECONDS):
+[You can choose EITHER Structure A (Hook & Solution) OR Structure B (Seamless Narrative):]
+
+[IF USING STRUCTURE A (Hook & Solution):]
 0-3s (Hook & Problem):
-- Visual: [Write a vivid cinematic visual description in English showing character acting out the exact problem stated in the Vietnamese voiceover]
-- Subtitle/Voiceover (Vietnamese): "[Write a short, catchy 0-3s opening hook in conversational Vietnamese - e.g., 'Chân mỏi nhừ sau ngày dài đi giày nặng nề?']"
+- Visual: [Vivid visual description in English showing character acting out the problem/hook]
+- Subtitle/Voiceover (Vietnamese): "[Short, catchy 0-3s opening hook in conversational Vietnamese]"
 
 3-10s (Solution & Product Demo):
-- Visual: [Write a vivid cinematic visual description in English showing character taking off the problem item and stepping/using main product with instant relief transformation]
-- Subtitle/Voiceover (Vietnamese): "[Write a high-impact, emotional benefit statement in conversational Vietnamese for 3-10s - e.g., 'Đổi sang đôi dép đúc siêu nhẹ này đi, êm như bước trên mây!']"
+- Visual: [Vivid visual description in English showing product transformation/use]
+- Subtitle/Voiceover (Vietnamese): "[High-impact benefit statement in conversational Vietnamese]"
+
+[IF USING STRUCTURE B (Seamless Narrative):]
+0-10s (Seamless Narrative Showcase):
+- Visual: [Vivid continuous visual description in English describing a smooth 0-10s storytelling showcase/experience of the character using/wearing the main product]
+- Subtitle/Voiceover (Vietnamese): "[Fluid, natural 0-10s continuous review voiceover in conversational Vietnamese]"
 
 STYLE GUIDELINES:
 - Photorealistic UGC review style, natural handheld camera feel, fluid motion, 60fps, realistic audio lip-sync.
