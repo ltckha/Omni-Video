@@ -168,34 +168,44 @@ def analyze_video_quality(video_path, item_dir):
     if not file_uri:
         return None
 
-    qa_prompt = """You are a Quality Assurance (QA) Video Inspector for AI-generated UGC product review videos.
+    qa_prompt = """You are a Strict, Unforgiving Quality Assurance (QA) Video Inspector for AI-generated UGC product review videos.
 
-Analyze the attached video carefully and evaluate it on 5 core metrics (each scored 0-20 points, total maximum score 100):
+Analyze the attached video frame-by-frame, paying EXTREME ATTENTION to frame transitions, foot/shoe movements, physical object morphing, and item swaps around the 2s–5s mark.
 
-1. **product_fidelity** (0-20): Is the main product clearly visible, accurate in shape/color, without warping or blurring?
-2. **character_consistency** (0-20): Does the character look natural, with consistent face and realistic appearance?
-3. **artifact_free** (0-20): Is the video free of pixel morphing, extra limbs/toes/fingers, or unnatural glitches?
-4. **motion_naturalness** (0-20): Are movements smooth, physically plausible, and free of violent teleports or sudden jumps?
-5. **narrative_flow** (0-20): Is the video narrative smooth, cohesive, and easy to watch from 0-10 seconds?
+CRITICAL FAILURE PENALTY RULES (MUST DEDUCT HEAVILY):
+1. **UNNATURAL TRANSITIONS & SHOE MORPHING**: If high heels/shoes magically disappear, warp, morph shape in mid-air, or instantly transform into clogs/sandals without a clean cinematic cut or realistic physical removal, YOU MUST PENALIZE SEVERELY:
+   - DEDUCT AT LEAST 10-15 POINTS from `artifact_free` (Score 5-8 max!).
+   - DEDUCT AT LEAST 10-15 POINTS from `motion_naturalness` (Score 5-8 max!).
+2. **FEET & HAND DEFORMATION**: If feet, toes, or hands blur into blobs, sprout extra toes, or warp geometry during motion, DEDUCT AT LEAST 10-15 POINTS from `artifact_free`.
+3. **PRODUCT & BRAND DRIFT**: If the main product changes shape, color, sole thickness, or straps between shots, DEDUCT AT LEAST 10-15 POINTS from `product_fidelity`.
+
+SCORING METRICS (0-20 points each, total max 100):
+- `product_fidelity` (0-20): Is the main product 100% accurate in shape/color/sole without any morphing or design changes?
+- `character_consistency` (0-20): Does the character maintain natural facial features and age without warping?
+- `artifact_free` (0-20): Is the video free of pixel morphing, shoe shape-shifting, disappearing items, or extra toes/limbs?
+- `motion_naturalness` (0-20): Are transitions and physical movements realistic? (Instant shoe morphing = MAX 8/20!).
+- `narrative_flow` (0-20): Is the video story clean and believable?
+
+IMPORTANT: If ANY severe transition morphing, shoe shape-shifting, or unnatural item disappearing occurs, the total score MUST BE BELOW 70 (VERDICT: FAIL).
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON object matching this exact schema (no markdown, no extra commentary):
 
 {
-  "total_score": 92,
-  "verdict": "EXCELLENT",
+  "total_score": 58,
+  "verdict": "FAIL",
   "scores": {
-    "product_fidelity": 19,
+    "product_fidelity": 18,
     "character_consistency": 18,
-    "artifact_free": 18,
-    "motion_naturalness": 19,
-    "narrative_flow": 18
+    "artifact_free": 6,
+    "motion_naturalness": 6,
+    "narrative_flow": 10
   },
   "detected_flaws": [
-    "Brief description of any flaw detected, e.g., slight foot morphing at second 4"
+    "Severe unnatural transition at 0:03: high heels disappear and morph into clogs without realistic physical action."
   ],
   "recommendations_for_prompt": [
-    "Specific negative constraint to add to future prompts, e.g., Add 'No foot distortion when stepping' to Negative Constraints"
+    "Use clean CINEMATIC CUT between high heels and clogs; strictly prohibit mid-frame shoe morphing."
   ]
 }
 """
