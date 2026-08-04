@@ -24,3 +24,4 @@ echo "============================================================"
 echo "✅ HOÀN TẤT! Nhấn phím Enter để đóng cửa sổ này."
 echo "============================================================"
 read -r
+osascript -e 'tell application "Terminal" to close first window' 2>/dev/null || kill -9 $$ 2>/dev/null
