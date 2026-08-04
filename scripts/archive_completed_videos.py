@@ -111,22 +111,35 @@ def archive_completed_folders():
         # 1. Chạy phân tích QA video bằng Gemini Video Understanding API
         qa_report = analyze_video_quality(video_file, item_path)
 
-        # 2. Tự động Sao Lưu (Backup) & Tự Học Nâng Cấp Master Prompt
         qa_score = 100
         if qa_report:
             qa_score = qa_report.get("total_score", 100)
-            evolve_prompt_from_qa(item_path, qa_report)
-        else:
-            backup_current_prompt(item_path)
 
-        # 🛑 CHỐT CHẶN CHẤT LƯỢNG (QA GATE): Nếu video dưới 70 điểm -> GIỮ NGUYÊN KHÔNG MOVE
+        # 🛑 CHỐT CHẶN CHẤT LƯỢNG (QA GATE): Nếu video dưới 70 điểm -> GIỮ NGUYÊN KHÔNG MOVE & TẠO BACKUP LỜI LỖI
         if qa_score < 70:
+            if qa_report:
+                evolve_prompt_from_qa(item_path, qa_report, create_backup=True)
+            else:
+                backup_current_prompt(item_path)
             print(f"🛑 CHÚ Ý: VideoSP {item_id} chưa đạt chuẩn QA (Điểm: {qa_score}/100 < 70 điểm tối thiểu).")
             print(f"   👉 Giữ nguyên thư mục tại Product_Assets/{item_id}/ để anh/chị xem lỗi và làm lại video!")
             print(f"   💡 Prompt đã được AI tự nâng cấp bài học để sửa lỗi cho lần sinh tiếp theo.")
             continue
 
-        # 3. Xóa file info.json nếu có
+        # 2. Nếu video đã ĐẠT CHUẨN (>= 70 điểm): Cập nhật bài học hệ thống chung (không cần tạo backup folder)
+        if qa_report:
+            evolve_prompt_from_qa(item_path, qa_report, create_backup=False)
+
+        # 3. Xóa thư mục prompt_backups nếu có (vì sản phẩm đã thành công)
+        backups_dir = os.path.join(item_path, "prompt_backups")
+        if os.path.exists(backups_dir):
+            try:
+                shutil.rmtree(backups_dir)
+                print(f"  🗑️ Đã xóa thư mục backup thừa: prompt_backups/")
+            except Exception as e:
+                pass
+
+        # 4. Xóa file info.json nếu có
         info_file = os.path.join(item_path, "info.json")
         if os.path.exists(info_file):
             try:
@@ -135,7 +148,7 @@ def archive_completed_folders():
             except Exception as e:
                 print(f"  ⚠️ Lỗi xóa info.json: {e}")
 
-        # 4. Xóa ảnh character trong thư mục sản phẩm
+        # 5. Xóa ảnh character trong thư mục sản phẩm
         for f in os.listdir(item_path):
             f_lower = f.lower()
             if f_lower in known_chars or ("nu-" in f_lower) or ("nam-" in f_lower) or ("character" in f_lower):

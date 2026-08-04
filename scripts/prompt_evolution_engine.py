@@ -85,9 +85,10 @@ def update_global_learned_rules(added_rules):
         except Exception as e:
             print(f"⚠️ Lỗi cập nhật global_learned_rules.json: {e}")
 
-def evolve_prompt_from_qa(item_dir, qa_report):
+def evolve_prompt_from_qa(item_dir, qa_report, create_backup=False):
     """
-    Dựa vào báo cáo QA để tự động học và bổ sung Negative Constraints vào Master Prompt
+    Dựa vào báo cáo QA để tự động học và bổ sung Negative Constraints vào Master Prompt.
+    Chỉ tạo backup nếu create_backup=True (khi video không đạt chuẩn cần sửa lại).
     """
     prompt_file = os.path.join(item_dir, "master_prompt.txt")
     if not os.path.exists(prompt_file) or not qa_report:
@@ -97,11 +98,11 @@ def evolve_prompt_from_qa(item_dir, qa_report):
     flaws = qa_report.get("detected_flaws", [])
     score = qa_report.get("total_score", 100)
 
-    # Đầu tiên lưu bản Backup hiện tại trước khi nâng cấp
-    backup_current_prompt(item_dir, score=score)
+    # Chỉ tạo bản Backup khi video lỗi/cần sửa
+    if create_backup:
+        backup_current_prompt(item_dir, score=score)
 
     if not recommendations and not flaws:
-        print("ℹ️ Video không có lỗi lớn, giữ nguyên cấu trúc Master Prompt hiện tại.")
         return False
 
     # Cập nhật bài học vào Hồ sơ Hệ thống chung (Global System Memory)
