@@ -168,44 +168,43 @@ def analyze_video_quality(video_path, item_dir):
     if not file_uri:
         return None
 
-    qa_prompt = """You are a Strict, Unforgiving Quality Assurance (QA) Video Inspector for AI-generated UGC product review videos.
+    qa_prompt = """You are a Professional Quality Assurance (QA) Video Inspector for AI-generated UGC product review videos.
 
-Analyze the attached video frame-by-frame, paying EXTREME ATTENTION to frame transitions, foot/shoe movements, physical object morphing, and item swaps around the 2s–5s mark.
+Analyze the attached video carefully, evaluating frame consistency, visual quality, and storytelling smoothness.
 
-CRITICAL FAILURE PENALTY RULES (MUST DEDUCT HEAVILY):
-1. **UNNATURAL TRANSITIONS & SHOE MORPHING**: If high heels/shoes magically disappear, warp, morph shape in mid-air, or instantly transform into clogs/sandals without a clean cinematic cut or realistic physical removal, YOU MUST PENALIZE SEVERELY:
-   - DEDUCT AT LEAST 10-15 POINTS from `artifact_free` (Score 5-8 max!).
-   - DEDUCT AT LEAST 10-15 POINTS from `motion_naturalness` (Score 5-8 max!).
-2. **FEET & HAND DEFORMATION**: If feet, toes, or hands blur into blobs, sprout extra toes, or warp geometry during motion, DEDUCT AT LEAST 10-15 POINTS from `artifact_free`.
-3. **PRODUCT & BRAND DRIFT**: If the main product changes shape, color, sole thickness, or straps between shots, DEDUCT AT LEAST 10-15 POINTS from `product_fidelity`.
+IMPORTANT DISTINCTION — CINEMATIC CUTS VS MORPHING GLITCHES:
+- **VALID CINEMATIC CUTS (🟢 OK / ALLOWED)**: Switching camera angle or cutting to a new shot (e.g., cutting from a medium shot of uncomfortable heels to a close-up shot of feet wearing the slides) is a NORMAL, VALID VIDEO EDITING TECHNIQUE. DO NOT penalize normal scene cuts!
+- **TRUE MID-FRAME MORPHING GLITCHES (🔴 SEVERE FAILURE)**: Penalize ONLY if footwear physically warps, melts, deforms into liquid/blob, sprouts extra toes, or morphs WITHIN A SINGLE CONTINUOUS UNBROKEN SHOT.
 
 SCORING METRICS (0-20 points each, total max 100):
-- `product_fidelity` (0-20): Is the main product 100% accurate in shape/color/sole without any morphing or design changes?
-- `character_consistency` (0-20): Does the character maintain natural facial features and age without warping?
-- `artifact_free` (0-20): Is the video free of pixel morphing, shoe shape-shifting, disappearing items, or extra toes/limbs?
-- `motion_naturalness` (0-20): Are transitions and physical movements realistic? (Instant shoe morphing = MAX 8/20!).
-- `narrative_flow` (0-20): Is the video story clean and believable?
+1. `product_fidelity` (0-20): Is the main product accurate in shape/color/sole without severe design morphing?
+2. `character_consistency` (0-20): Does the character maintain consistent facial features and realistic appearance?
+3. `artifact_free` (0-20): Is the video free of pixel glitches, melted feet, extra toes, or corrupted mid-frame morphing?
+4. `motion_naturalness` (0-20): Are human movements physically plausible and smooth? (Scene cuts are fine!).
+5. `narrative_flow` (0-20): Is the video storytelling smooth and enjoyable from 0 to 10 seconds?
 
-IMPORTANT: If ANY severe transition morphing, shoe shape-shifting, or unnatural item disappearing occurs, the total score MUST BE BELOW 70 (VERDICT: FAIL).
+PENALTY RULES:
+- Deduct points ONLY for actual visual artifacts, distorted limbs, melted footwear, or broken physics.
+- DO NOT penalize clean camera cuts between scenes.
 
 OUTPUT FORMAT:
 Return ONLY a valid JSON object matching this exact schema (no markdown, no extra commentary):
 
 {
-  "total_score": 58,
-  "verdict": "FAIL",
+  "total_score": 90,
+  "verdict": "EXCELLENT",
   "scores": {
     "product_fidelity": 18,
     "character_consistency": 18,
-    "artifact_free": 6,
-    "motion_naturalness": 6,
-    "narrative_flow": 10
+    "artifact_free": 18,
+    "motion_naturalness": 18,
+    "narrative_flow": 18
   },
   "detected_flaws": [
-    "Severe unnatural transition at 0:03: high heels disappear and morph into clogs without realistic physical action."
+    "Description of any actual pixel artifact or severe glitch, or empty array [] if clean"
   ],
   "recommendations_for_prompt": [
-    "Use clean CINEMATIC CUT between high heels and clogs; strictly prohibit mid-frame shoe morphing."
+    "Suggested negative constraint if actual flaw found, or empty array []"
   ]
 }
 """
