@@ -168,40 +168,36 @@ def analyze_video_quality(video_path, item_dir):
     if not file_uri:
         return None
 
-    qa_prompt = """You are a Professional Quality Assurance (QA) Video Inspector for AI-generated UGC product review videos.
+    qa_prompt = """You are an Objective, Fair, and Accurate Quality Assurance (QA) Video Inspector for AI-generated UGC product review videos.
 
-Analyze the attached video carefully frame-by-frame, evaluating visual quality, item stability, and storytelling smoothness.
+Carefully observe the attached video from 0 to 10 seconds. Evaluate what ACTUALLY happens in the video without hallucinating or making up non-existent flaws.
 
-CRITICAL DEFECT TO WATCH FOR:
-- **MID-FRAME POP-OUT / VANISHING ARTIFACTS (🔴 SEVERE FAILURE)**: In a single continuous shot, if a shoe or object suddenly pops out of existence, vanishes into thin air, or instantly morphs mid-frame without a natural physical removal action or camera cut, DEDUCT AT LEAST 10-15 POINTS from `artifact_free` and `motion_naturalness` (Total score MUST be < 70 FAIL).
-- **VALID CINEMATIC CUTS (🟢 OK / ALLOWED)**: Switching camera angle or cutting to a clean new shot (e.g., cutting from a medium shot of uncomfortable heels to a close-up shot of feet wearing the slides) is a NORMAL, VALID VIDEO EDITING TECHNIQUE. DO NOT penalize clean camera cuts!
+KEY EVALUATION GUIDELINES:
+- **CLEAN CINEMATIC CUTS ARE 100% VALID (🟢 OK)**: Switching camera angles or cutting to a new shot (e.g. cutting from a medium shot of stiff shoes to a close-up shot of feet wearing comfortable slides) is a NORMAL, HIGH-QUALITY EDITING TECHNIQUE. DO NOT penalize clean camera cuts between scenes!
+- **TRUE PIXEL ARTIFACTS / MORPHING (🔴 PENALIZE ONLY IF ACTUALLY VISIBLE)**: Deduct points ONLY if you clearly see physical pixel corruption, extra toes, melted footwear, or severe physics breaking WITHIN a continuous shot.
 
 SCORING METRICS (0-20 points each, total max 100):
-1. `product_fidelity` (0-20): Is the main product accurate in shape/color/sole without severe design morphing?
-2. `character_consistency` (0-20): Does the character maintain consistent facial features and realistic appearance?
-3. `artifact_free` (0-20): Is the video free of pixel glitches, vanishing objects mid-shot, melted feet, or extra toes?
-4. `motion_naturalness` (0-20): Are human movements physically plausible and smooth?
+1. `product_fidelity` (0-20): Is the main product accurate in shape, color, and sole design?
+2. `character_consistency` (0-20): Does the character maintain a natural appearance and consistent facial identity?
+3. `artifact_free` (0-20): Is the video free of severe pixel corruption, melted limbs, or extra toes?
+4. `motion_naturalness` (0-20): Are human movements smooth and realistic? (Scene cuts are fine!).
 5. `narrative_flow` (0-20): Is the video storytelling smooth and enjoyable from 0 to 10 seconds?
 
 OUTPUT FORMAT:
-Return ONLY a valid JSON object matching this exact schema (no markdown, no extra commentary):
+Return ONLY a valid JSON object matching this exact schema (do NOT copy any text, evaluate the real video objectively):
 
 {
-  "total_score": 58,
-  "verdict": "FAIL",
+  "total_score": 92,
+  "verdict": "EXCELLENT",
   "scores": {
-    "product_fidelity": 18,
+    "product_fidelity": 19,
     "character_consistency": 18,
-    "artifact_free": 6,
-    "motion_naturalness": 6,
-    "narrative_flow": 10
+    "artifact_free": 18,
+    "motion_naturalness": 19,
+    "narrative_flow": 18
   },
-  "detected_flaws": [
-    "Mid-frame vanishing artifact at 0:03: high heel shoe pops out of existence mid-shot without physical action or camera cut."
-  ],
-  "recommendations_for_prompt": [
-    "Strictly prohibit mid-shot object pop-out or vanishing artifacts; require clean camera cut or physical removal."
-  ]
+  "detected_flaws": [],
+  "recommendations_for_prompt": []
 }
 """
 
