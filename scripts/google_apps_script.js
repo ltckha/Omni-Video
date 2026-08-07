@@ -8,7 +8,7 @@ function doPost(e) {
     var data = JSON.parse(e.postData.contents);
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
     
-    // 1. Lấy danh sách toàn bộ sản phẩm trên Sheet để Python đọc Tên SP & Trạng thái
+    // 1. Lấy danh sách toàn bộ sản phẩm trên Sheet để Python đọc Tên SP, Trạng thái & Output File
     if (data.action === "get_all_products") {
       var rows = sheet.getDataRange().getValues();
       var productsMap = {};
@@ -24,27 +24,36 @@ function doPost(e) {
             productUrl: String(rows[i][7] || "").trim(),
             cdnUrl: String(rows[i][9] || "").trim(),
             localPath: String(rows[i][10] || "").trim(),
-            status: String(rows[i][11] || "").trim()
+            status: String(rows[i][11] || "").trim(),
+            outputFile: String(rows[i][12] || "").trim()
           };
         }
       }
       return responseJSON({ status: "success", products: productsMap });
     }
     
-    // 2. Cập nhật trạng thái Master Prompt (Ví dụ: "Đã tạo Prompt")
+    // 2. Cập nhật trạng thái & Đường dẫn Video (Cột 12: Trạng thái, Cột 13: Output File)
     if (data.action === "update_status" && data.itemId) {
       var targetItemId = String(data.itemId).trim();
       var newStatus = data.status || "Đã tạo Prompt";
+      var outputFile = data.outputFile || "";
       var rows = sheet.getDataRange().getValues();
       for (var j = 1; j < rows.length; j++) {
         if (String(rows[j][0]).trim() === targetItemId) {
           var currentStatus = String(rows[j][11] || "").trim();
-          // BẢO VỆ: Nếu trạng thái hiện tại đã là "Đã tạo Video", KHÔNG cho phép đè ngược lại
-          if (currentStatus === "Đã tạo Video") {
+          
+          // Ghi đường dẫn file video vào Cột 13 nếu có
+          if (outputFile) {
+            sheet.getRange(j + 1, 13).setValue(outputFile);
+          }
+
+          // BẢO VỆ: Nếu trạng thái hiện tại đã là "Đã tạo Video" và không có outputFile mới, KHÔNG cho phép đè ngược lại
+          if (currentStatus === "Đã tạo Video" && !outputFile) {
             return responseJSON({ status: "success", message: "Giữ nguyên trạng thái 'Đã tạo Video' cho mã " + targetItemId });
           }
+          
           sheet.getRange(j + 1, 12).setValue(newStatus);
-          return responseJSON({ status: "success", message: "Đã cập nhật trạng thái dòng " + (j + 1) });
+          return responseJSON({ status: "success", message: "Đã cập nhật trạng thái & Output File cho dòng " + (j + 1) });
         }
       }
       return responseJSON({ status: "error", message: "Không tìm thấy mã SP " + targetItemId });

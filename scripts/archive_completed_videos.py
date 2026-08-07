@@ -55,8 +55,9 @@ def get_known_character_filenames():
     char_names.update(["nu-25t.png", "nam-25t.png", "nu-23t.png"])
     return char_names
 
-def update_google_sheet_video_status(item_id):
+def update_google_sheet_video_status(item_id, output_file=None):
     if not WEBHOOK_URL:
+        print("  ⚠️ Không tìm thấy WEBHOOK_URL trong .env, bỏ qua bước cập nhật Google Sheet.")
         return
 
     ctx = ssl.create_default_context()
@@ -68,6 +69,8 @@ def update_google_sheet_video_status(item_id):
         "itemId": item_id,
         "status": "Đã tạo Video"
     }
+    if output_file:
+        payload["outputFile"] = output_file
 
     req = urllib.request.Request(
         WEBHOOK_URL,
@@ -78,7 +81,7 @@ def update_google_sheet_video_status(item_id):
     try:
         with urllib.request.urlopen(req, context=ctx) as resp:
             data = json.loads(resp.read().decode("utf-8"))
-            print(f"  📊 Đã cập nhật trạng thái Google Sheet cho mã {item_id} thành 'Đã tạo Video':", data.get("message", "Thành công"))
+            print(f"  📊 Đã cập nhật trạng thái Google Sheet & Output File cho mã {item_id}:", data.get("message", "Thành công"))
     except Exception as e:
         print(f"  ⚠️ Lỗi cập nhật Sheet cho mã {item_id}:", e)
 
@@ -179,10 +182,11 @@ def archive_completed_folders():
             else:
                 shutil.move(item_path, dest_item_path)
 
+            dest_video_path = os.path.join(dest_item_path, os.path.basename(video_file))
             print(f"  🚚 Đã di chuyển thành công: Product_Assets/{item_id} -> {dest_item_path}")
             
-            # 6. Tự động cập nhật Google Sheet thành "Đã tạo Video"
-            update_google_sheet_video_status(item_id)
+            # 6. Tự động cập nhật Google Sheet thành "Đã tạo Video" & lưu đường dẫn Cột 13 (Output File)
+            update_google_sheet_video_status(item_id, output_file=dest_video_path)
             archived_count += 1
 
         except Exception as e:

@@ -15,7 +15,7 @@ Hệ thống tự động hóa toàn diện quy trình thu thập nguyên liệu
    - Kích hoạt tiến trình Python siêu nhẹ bật lên đúng 0.1s để di chuyển file ảnh vào đúng thư mục dự án: `Product_Assets/<Mã_SP>/`.
 
 3. **Google Sheets Sync & Lọc Trùng Sâu:**
-   - Bảo toàn dữ liệu 9 cột gốc từ CSV. Tự động cập nhật `Link ảnh CDN chọn lọc`, `File ảnh lưu local` và bảo vệ trạng thái `Đã tạo Video`.
+   - Bảo toàn dữ liệu 9 cột gốc từ CSV. Tự động cập nhật `Link ảnh CDN chọn lọc` (Cột 10), `File ảnh lưu local` (Cột 11), trạng thái `Đã tạo Video` (Cột 12) và đường dẫn file video hoàn thành `Output File` (Cột 13).
 
 4. **Gemini AI UGC Master Prompt Generator (`scripts/generate_ugc_prompt.py`):**
    - Tự động nhìn ảnh Multimodal + Tên sản phẩm để sinh Master Prompt 10s chuẩn theo `omni-ugc-creator.md`.
@@ -25,6 +25,7 @@ Hệ thống tự động hóa toàn diện quy trình thu thập nguyên liệu
    - Tự động quét các thư mục sản phẩm đã tạo xong video `.mp4`.
    - Tự động dọn dẹp sạch sẽ: xóa file ảnh nhân vật mẫu và file `info.json`.
    - Di chuyển toàn bộ thư mục sản phẩm hoàn thành về lưu trữ tại `/Volumes/Media/Omni-Video/Product_Assets/`.
+   - Tự động cập nhật đường dẫn tuyệt đối của file video hoàn thành vào cột **`Output File` (Cột 13)** trên Google Sheets.
 
 ---
 
