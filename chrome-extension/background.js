@@ -1,6 +1,6 @@
 // Omni Video - Background Service Worker (Bảo mật Webhook URL qua storage.sync)
 
-const DEFAULT_WEBHOOK_URL = "";
+const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxFF8hp9WpoUROqikUQGSqyxMxhCxcQ--3nwrNxYBNa4dD7M5C58PQqSo_EBy6hX4ao/exec";
 const NATIVE_HOST_NAME = "com.omni.video.curator";
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -91,7 +91,14 @@ async function processSaveWorkflow(payloadData, tabId) {
   // 3. Gửi Webhook POST lên Google Apps Script
   try {
     chrome.storage.sync.get(["gasWebhookUrl"], (stored) => {
-      let webhookUrl = stored.gasWebhookUrl || DEFAULT_WEBHOOK_URL;
+      let webhookUrl = stored.gasWebhookUrl;
+      
+      // Nếu chưa có hoặc vẫn đang lưu URL cũ -> Tự động chuyển sang DEFAULT_WEBHOOK_URL mới
+      if (!webhookUrl || webhookUrl.includes("AKfycbyxBWA7")) {
+        webhookUrl = DEFAULT_WEBHOOK_URL;
+        chrome.storage.sync.set({ gasWebhookUrl: DEFAULT_WEBHOOK_URL });
+      }
+
       if (!webhookUrl) {
         sendToastToTab(tabId, "⚠️ Chưa cấu hình Webhook URL. Mở popup tiện ích để dán Webhook URL.", true);
         return;
@@ -100,6 +107,7 @@ async function processSaveWorkflow(payloadData, tabId) {
         method: "POST",
         headers: { "Content-Type": "text/plain;charset=utf-8" },
         body: JSON.stringify({
+          sheetName: "Omni-Video",
           itemId: itemId,
           productName: payloadData.productName,
           price: payloadData.price,

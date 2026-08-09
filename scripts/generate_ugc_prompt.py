@@ -37,11 +37,11 @@ PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
-WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbyxBWA7eJjmi0vn9etRyainI3rrHbAQAN_Uc7tI14sMyyJLftBSnQLJjm5o0WTamS20Rg/exec"
+WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "https://script.google.com/macros/s/AKfycbxFF8hp9WpoUROqikUQGSqyxMxhCxcQ--3nwrNxYBNa4dD7M5C58PQqSo_EBy6hX4ao/exec")
 
-# Danh sách mô hình THUẦN FLASH (Chỉ dùng Flash, không dùng Pro)
+# Danh sách mô hình THUẦN FLASH (Chỉ dùng Flash 3.6 và 2.5)
 PREFERRED_MODELS = [
-    "gemini-3.5-flash",
+    "gemini-3.6-flash",
     "gemini-2.5-flash"
 ]
 
@@ -56,7 +56,7 @@ def fetch_products_from_google_sheet():
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
 
-    payload = {"action": "get_all_products"}
+    payload = {"action": "get_all_products", "sheetName": "Omni-Video"}
     req = urllib.request.Request(
         WEBHOOK_URL,
         data=json.dumps(payload).encode("utf-8"),
@@ -193,7 +193,7 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
         }
     }
 
-    # Thử các mô hình Flash (Gemini 3.5 Flash -> Gemini 2.5 Flash)
+    # Thử các mô hình Flash (gemini-3.6-flash -> gemini-2.5-flash)
     for model_name in PREFERRED_MODELS:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
         req = urllib.request.Request(
@@ -207,6 +207,9 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
                 text = data["candidates"][0]["content"]["parts"][0]["text"]
                 print(f"⚡ Đã sinh Master Prompt thành công bằng Mô hình Flash: {model_name}")
                 return text
+        except urllib.error.HTTPError as http_err:
+            err_msg = http_err.read().decode("utf-8", errors="ignore")
+            print(f"🔄 Mô hình {model_name} trả về lỗi ({http_err.code}): {err_msg[:200]}")
         except Exception as e:
             print(f"🔄 Mô hình {model_name} chưa hỗ trợ hoặc bận ({e}), tự động chuyển sang Flash tiếp theo...")
 
@@ -230,6 +233,7 @@ def update_google_sheet_status(item_id):
 
     payload = {
         "action": "update_status",
+        "sheetName": "Omni-Video",
         "itemId": item_id,
         "status": "Đã tạo Prompt"
     }

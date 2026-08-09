@@ -84,6 +84,7 @@ def upload_csv_to_gsheet(csv_filepath):
 
     payload = {
         "action": "import_csv_text",
+        "sheetName": "Omni-Video",
         "csvText": csv_content
     }
 

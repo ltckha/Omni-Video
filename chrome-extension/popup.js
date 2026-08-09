@@ -1,6 +1,6 @@
 // Omni Video - Popup Script
 
-const DEFAULT_WEBHOOK_URL = "";
+const DEFAULT_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbxFF8hp9WpoUROqikUQGSqyxMxhCxcQ--3nwrNxYBNa4dD7M5C58PQqSo_EBy6hX4ao/exec";
 
 document.addEventListener("DOMContentLoaded", () => {
   const webhookInput = document.getElementById("webhookUrl");
@@ -9,10 +9,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Đọc cấu hình từ chrome.storage.sync
   chrome.storage.sync.get(["gasWebhookUrl"], (stored) => {
-    if (stored.gasWebhookUrl) {
+    if (stored.gasWebhookUrl && !stored.gasWebhookUrl.includes("AKfycbyxBWA7")) {
       webhookInput.value = stored.gasWebhookUrl;
     } else {
       webhookInput.value = DEFAULT_WEBHOOK_URL;
+      chrome.storage.sync.set({ gasWebhookUrl: DEFAULT_WEBHOOK_URL });
     }
   });
 

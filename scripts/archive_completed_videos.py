@@ -66,6 +66,7 @@ def update_google_sheet_video_status(item_id, output_file=None):
 
     payload = {
         "action": "update_status",
+        "sheetName": "Omni-Video",
         "itemId": item_id,
         "status": "Đã tạo Video"
     }
