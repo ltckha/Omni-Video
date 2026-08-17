@@ -21,10 +21,14 @@ Product_Assets/
 .env
 .env.local
 data/*.csv
+*service*.json
+config/*service*.json
 
-# Python Cache
+# Python Cache & Virtual Environments
 __pycache__/
 *.py[cod]
+venv/
+.venv/
 
 # IDE Settings
 .vscode/

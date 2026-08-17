@@ -87,43 +87,6 @@ async function processSaveWorkflow(payloadData, tabId) {
       }
     );
   });
-
-  // 3. Gửi Webhook POST lên Google Apps Script
-  try {
-    chrome.storage.sync.get(["gasWebhookUrl"], (stored) => {
-      let webhookUrl = stored.gasWebhookUrl;
-      
-      // Nếu chưa có hoặc vẫn đang lưu URL cũ -> Tự động chuyển sang DEFAULT_WEBHOOK_URL mới
-      if (!webhookUrl || webhookUrl.includes("AKfycbyxBWA7")) {
-        webhookUrl = DEFAULT_WEBHOOK_URL;
-        chrome.storage.sync.set({ gasWebhookUrl: DEFAULT_WEBHOOK_URL });
-      }
-
-      if (!webhookUrl) {
-        sendToastToTab(tabId, "⚠️ Chưa cấu hình Webhook URL. Mở popup tiện ích để dán Webhook URL.", true);
-        return;
-      }
-      fetch(webhookUrl, {
-        method: "POST",
-        headers: { "Content-Type": "text/plain;charset=utf-8" },
-        body: JSON.stringify({
-          sheetName: "Omni-Video",
-          itemId: itemId,
-          productName: payloadData.productName,
-          price: payloadData.price,
-          salesCount: payloadData.salesCount,
-          shopName: payloadData.shopName,
-          productUrl: payloadData.productUrl,
-          cdnUrl: cdnUrl,
-          localPath: `Product_Assets/${itemId}/`
-        })
-      }).then(res => res.json())
-        .then(resData => console.log("GAS Result:", resData))
-        .catch(err => console.error("Lỗi fetch Webhook GAS:", err));
-    });
-  } catch (err) {
-    console.error("Lỗi kích hoạt Webhook:", err);
-  }
 }
 
 function sendToastToTab(tabId, msg, isError = false) {
@@ -131,3 +94,4 @@ function sendToastToTab(tabId, msg, isError = false) {
     chrome.tabs.sendMessage(tabId, { action: "SHOW_TOAST", msg: msg, isError: isError }).catch(() => {});
   }
 }
+

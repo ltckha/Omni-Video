@@ -1,0 +1,24 @@
+{
+  "FORBIDDEN_ACTIONS": [
+    "ABSOLUTELY NO ASYMMETRICAL FOOTWEAR / ONE FOOT COVERED, ONE FOOT BARE: Strictly forbid depicting one foot wearing a shoe cover while the other foot wears a bare sneaker/uncovered shoe (this looks deformed, limping, and physically awkward). BOTH FEET must ALWAYS wear the EXACT same footwear state simultaneously: either BOTH feet are fully inside the protective shoe covers, or BOTH feet are in clean sneakers with the folded cover held in hand.",
+    "ABSOLUTELY NO PEELING / PULLING ON / TAKING OFF TIGHT COVERS OR FOOTWEAR: Strictly forbid describing hands pulling, stretching, or peeling off silicone shoe covers, boots, tight socks, or shoes directly on camera (this melts fingers and deforms shoe geometry into rubber morphing artifacts). Only show the product in an ALREADY-WORN state on feet, or show the ALREADY-REMOVED/FOLDED product held cleanly in hand.",
+    "ABSOLUTELY NO FINE-MOTOR FINGER INTERACTIONS: Strictly forbid intricate manual hand actions like tying/untying shoelaces, buttoning clothes, zipping tight zippers, or peeling adhesive stickers.",
+    "ABSOLUTELY NO MID-FRAME VANISHING OR MORPHING IN A SINGLE SHOT: Never render an object or footwear changing shape, popping out of existence, or transforming geometry within continuous footage. Always require a clean CINEMATIC CUT between different scenes/states.",
+    "ABSOLUTELY NO SHOP LOGOS, WATERMARKS, OR ON-SCREEN GRAPHICS: Ignore all seller store logos, discount tags, corner badges, or promotional text present on reference images. Video footage must be 100% photorealistic with zero graphic overlays."
+  ],
+  "PRODUCT_AND_IMAGE_ANCHORING": [
+    "RELY 100% ON ATTACHED PRODUCT IMAGE: Strictly avoid over-describing product micro-details (colors, patterns, tread designs) in text prompts to prevent text-vs-image contradiction. The video diffusion model must extract 100% of the product's visual appearance directly from the attached reference photo.",
+    "In scene descriptions, simply refer to 'the attached product from the reference image' without inventing conflicting color/pattern adjectives."
+  ],
+  "STORYTELLING_AND_VOICEOVER_RULES": [
+    "FLEXIBLE 0-10S NARRATIVE STRUCTURE: A 10-second video does NOT always require a rigid 0-3s hook division. Dynamically choose between: (A) Seamless 0-10s Continuous Narrative Flow (smooth, uninterrupted single-shot experience), OR (B) 2-Scene Cinematic Cut (0-3s opening + 3-10s showcase).",
+    "Make Vietnamese voiceovers sound 100% natural, viral, authentic, and charismatic like a real Gen-Z / young professional reviewer.",
+    "Avoid cliché, overused openings like 'Trời ơi...', 'Mỗi lần...', 'Đôi giày quốc dân...'. Start immediately with an intriguing, natural voiceover.",
+    "Perfect Voiceover-to-Visual synchronization: The English visual scene must 100% dramatize and reflect every specific detail and emotion mentioned in the Vietnamese voiceover."
+  ],
+  "VISUAL_AND_CHARACTER_STANDARDS": [
+    "Maintain 100% exact facial identity, age, and hair from the character reference image, while dynamically generating a scenario-appropriate stylish outfit.",
+    "Maintain complete bilateral symmetry for all clothing, accessories, and footwear across both sides of the body.",
+    "Dynamic camera pacing: Use varied camera angles (POV first-person, Low-Angle footstep tracking, Over-the-shoulder lifestyle, Macro texture close-up) with smooth 60fps motion."
+  ]
+}

@@ -10,6 +10,7 @@ Tự động quét các thư mục sản phẩm trong Product_Assets/:
 """
 
 import os
+import sys
 import shutil
 import glob
 import json
@@ -56,37 +57,13 @@ def get_known_character_filenames():
     return char_names
 
 def update_google_sheet_video_status(item_id, output_file=None):
-    if not WEBHOOK_URL:
-        print("  ⚠️ Không tìm thấy WEBHOOK_URL trong .env, bỏ qua bước cập nhật Google Sheet.")
-        return
-
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
-    payload = {
-        "action": "update_status",
-        "sheetName": "Omni-Video",
-        "itemId": item_id,
-        "status": "Đã tạo Video"
-    }
-    if output_file:
-        payload["outputFile"] = output_file
-
-    req = urllib.request.Request(
-        WEBHOOK_URL,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "text/plain;charset=utf-8"}
-    )
-
     try:
-        with urllib.request.urlopen(req, context=ctx) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            print(f"  📊 Đã cập nhật trạng thái Google Sheet & Output File cho mã {item_id}:", data.get("message", "Thành công"))
+        from sheet_sync import update_status_by_item_id
+        update_status_by_item_id(item_id, "Đã tạo Video", video_path=output_file)
     except Exception as e:
         print(f"  ⚠️ Lỗi cập nhật Sheet cho mã {item_id}:", e)
 
-def archive_completed_folders():
+def archive_completed_folders(skip_qa=False):
     if not os.path.exists(ASSETS_DIR):
         print(f"❌ Thư mục {ASSETS_DIR} không tồn tại!")
         return 0
@@ -112,27 +89,30 @@ def archive_completed_folders():
         print(f"\n🎬 Phát hiện video MP4 hoàn thành tại mã SP: {item_id}")
         video_file = mp4_files[0]
 
-        # 1. Chạy phân tích QA video bằng Gemini Video Understanding API
-        qa_report = analyze_video_quality(video_file, item_path)
+        if not skip_qa:
+            # 1. Chạy phân tích QA video bằng Gemini Video Understanding API
+            qa_report = analyze_video_quality(video_file, item_path)
 
-        qa_score = 100
-        if qa_report:
-            qa_score = qa_report.get("total_score", 100)
-
-        # 🛑 CHỐT CHẶN CHẤT LƯỢNG (QA GATE): Nếu video dưới 70 điểm -> GIỮ NGUYÊN KHÔNG MOVE & TẠO BACKUP LỜI LỖI
-        if qa_score < 70:
+            qa_score = 100
             if qa_report:
-                evolve_prompt_from_qa(item_path, qa_report, create_backup=True)
-            else:
-                backup_current_prompt(item_path)
-            print(f"🛑 CHÚ Ý: VideoSP {item_id} chưa đạt chuẩn QA (Điểm: {qa_score}/100 < 70 điểm tối thiểu).")
-            print(f"   👉 Giữ nguyên thư mục tại Product_Assets/{item_id}/ để anh/chị xem lỗi và làm lại video!")
-            print(f"   💡 Prompt đã được AI tự nâng cấp bài học để sửa lỗi cho lần sinh tiếp theo.")
-            continue
+                qa_score = qa_report.get("total_score", 100)
 
-        # 2. Nếu video đã ĐẠT CHUẨN (>= 70 điểm): Cập nhật bài học hệ thống chung (không cần tạo backup folder)
-        if qa_report:
-            evolve_prompt_from_qa(item_path, qa_report, create_backup=False)
+            # 🛑 CHỐT CHẶN CHẤT LƯỢNG (QA GATE): Nếu video dưới 70 điểm -> GIỮ NGUYÊN KHÔNG MOVE & TẠO BACKUP LỜI LỖI
+            if qa_score < 70:
+                if qa_report:
+                    evolve_prompt_from_qa(item_path, qa_report, create_backup=True)
+                else:
+                    backup_current_prompt(item_path)
+                print(f"🛑 CHÚ Ý: VideoSP {item_id} chưa đạt chuẩn QA (Điểm: {qa_score}/100 < 70 điểm tối thiểu).")
+                print(f"   👉 Giữ nguyên thư mục tại Product_Assets/{item_id}/ để anh/chị xem lỗi và làm lại video!")
+                print(f"   💡 Prompt đã được AI tự nâng cấp bài học để sửa lỗi cho lần sinh tiếp theo.")
+                continue
+
+            # 2. Nếu video đã ĐẠT CHUẨN (>= 70 điểm): Cập nhật bài học hệ thống chung (không cần tạo backup folder)
+            if qa_report:
+                evolve_prompt_from_qa(item_path, qa_report, create_backup=False)
+        else:
+            print("  ⚡ Chế độ BỎ QUA QA: Di chuyển siêu tốc thẳng về ổ Media...")
 
         # 3. Xóa thư mục prompt_backups nếu có (vì sản phẩm đã thành công)
         backups_dir = os.path.join(item_path, "prompt_backups")
@@ -197,15 +177,18 @@ def archive_completed_folders():
     return archived_count
 
 if __name__ == "__main__":
+    skip_qa = "--skip-qa" in sys.argv or "--direct" in sys.argv or "-s" in sys.argv
+    mode_str = "BỎ QUA QA - MOVE SIÊU TỐC" if skip_qa else "CHẨN ĐOÁN QA & NÂNG CẤP PROMPT"
+
     print("============================================================")
-    print("🚀 OMNI VIDEO - TỰ ĐỘNG QA, NÂNG CẤP PROMPT & LƯU VỀ Ổ MEDIA")
+    print(f"🚀 OMNI VIDEO - DI CHUYỂN VIDEO VỀ Ổ MEDIA ({mode_str})")
     print("============================================================")
     print(f"📁 Thư mục đích: {TARGET_MEDIA_DIR}\n")
     
-    count = archive_completed_folders()
+    count = archive_completed_folders(skip_qa=skip_qa)
     print("\n============================================================")
     if count > 0:
-        print(f"✅ HOÀN TẤT! Đã đánh giá QA, tự nâng cấp Prompt, di chuyển và cập nhật Google Sheet cho {count} sản phẩm.")
+        print(f"✅ HOÀN TẤT! Đã di chuyển và cập nhật Google Sheet cho {count} sản phẩm.")
     else:
         print("ℹ️ Chưa có thư mục sản phẩm nào chứa file video .mp4 mới.")
     print("============================================================")

@@ -1,8 +1,9 @@
-#!/Library/Frameworks/Python.framework/Versions/3.11/bin/python3
+#!/Users/khan/Developer/Omni-Video/venv/bin/python3
 """
-Omni Video - Chrome Native Messaging Host (Super Robust File Sorter & Info Saver)
+Omni Video - Chrome Native Messaging Host (Super Robust File Sorter, Info Saver & Direct Google Sheets Syncer)
 Tự động tìm mọi file ảnh bắt đầu bằng <itemId> trong ~/Downloads,
-di chuyển vào <project_dir>/Product_Assets/<itemId>/, lưu file info.json rồi TẮT HOÀN TOÀN.
+di chuyển vào <project_dir>/Product_Assets/<itemId>/, lưu file info.json,
+đồng bộ trực tiếp lên Google Sheets API v4 (Service Account) rồi TẮT HOÀN TOÀN.
 """
 
 import sys
@@ -16,6 +17,13 @@ import time
 DOWNLOADS_DIR = os.path.expanduser("~/Downloads")
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 PROJECT_ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
+
+# Import direct Google Sheets synchronizer
+try:
+    sys.path.append(os.path.join(PROJECT_DIR, "scripts"))
+    from sheet_sync import sync_product_to_sheet
+except Exception:
+    sync_product_to_sheet = None
 
 def read_message():
     try:
@@ -57,6 +65,13 @@ def main():
                     json.dump(info_data, f, ensure_ascii=False, indent=2)
             except Exception:
                 pass
+
+            # Direct Google Sheets API v4 sync (Zero Apps Script)
+            if sync_product_to_sheet:
+                try:
+                    sync_product_to_sheet(info_data, item_id)
+                except Exception:
+                    pass
 
         for attempt in range(40):
             matching_files = [

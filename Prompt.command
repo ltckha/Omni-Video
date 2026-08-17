@@ -17,7 +17,12 @@ fi
 source ~/.zshrc 2>/dev/null
 source ~/.zshenv 2>/dev/null
 
-python3 scripts/generate_ugc_prompt.py
+PYTHON_EXEC="python3"
+if [ -f "./venv/bin/python3" ]; then
+  PYTHON_EXEC="./venv/bin/python3"
+fi
+
+$PYTHON_EXEC scripts/generate_ugc_prompt.py
 
 echo ""
 echo "============================================================"

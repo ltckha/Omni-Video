@@ -224,22 +224,25 @@ Return ONLY a valid JSON object matching this exact schema (do NOT copy any text
         }
     }
 
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={api_key}"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"}
-    )
-
     report_data = None
-    try:
-        with urllib.request.urlopen(req, context=ctx) as resp:
-            res_json = json.loads(resp.read().decode("utf-8"))
-            raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"]
-            clean_text = raw_text.replace("```json", "").replace("```", "").strip()
-            report_data = json.loads(clean_text)
-    except Exception as e:
-        print(f"⚠️ Lỗi gọi Gemini QA Video API: {e}")
+    models_to_try = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"]
+    for m in models_to_try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        try:
+            with urllib.request.urlopen(req, context=ctx) as resp:
+                res_json = json.loads(resp.read().decode("utf-8"))
+                raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"]
+                clean_text = raw_text.replace("```json", "").replace("```", "").strip()
+                report_data = json.loads(clean_text)
+                if report_data:
+                    break
+        except Exception as e:
+            print(f"[QA] Model {m} gặp lỗi: {e}, thử model kế tiếp...")
 
     # Xóa file video trên Gemini Files API ngay lập tức
     delete_gemini_file(file_name)

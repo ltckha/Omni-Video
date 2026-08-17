@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V6 - Flash Models Only)
-Chuyên dùng các mô hình Flash tốc độ cao (Gemini 3.5 Flash & 2.5 Flash), loại bỏ hoàn toàn mô hình Pro.
+Omni Video - Gemini Multimodal AI UGC Master Prompt Generator (V6 - Direct Google Sheets API v4)
+Chuyên dùng các mô hình Flash tốc độ cao, giao tiếp trực tiếp qua Direct API v4.
 """
 
 import sys
@@ -11,6 +11,8 @@ import urllib.request
 import json
 import ssl
 import base64
+import time
+import select
 import mimetypes
 
 def load_env_if_needed():
@@ -39,57 +41,25 @@ CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
 WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "https://script.google.com/macros/s/AKfycbxFF8hp9WpoUROqikUQGSqyxMxhCxcQ--3nwrNxYBNa4dD7M5C58PQqSo_EBy6hX4ao/exec")
 
-# Danh sách mô hình THUẦN FLASH (Chỉ dùng Flash 3.6 và 2.5)
+# Danh sách mô hình Flash ưu tiên
 PREFERRED_MODELS = [
+    "gemini-3.7-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash",
     "gemini-3.6-flash",
-    "gemini-2.5-flash"
+    "gemini-3.5-flash"
 ]
 
-PRODUCTS_CACHE = None
-
-def fetch_products_from_google_sheet():
-    global PRODUCTS_CACHE
-    if PRODUCTS_CACHE is not None:
-        return PRODUCTS_CACHE
-
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
-    payload = {"action": "get_all_products", "sheetName": "Omni-Video"}
-    req = urllib.request.Request(
-        WEBHOOK_URL,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"}
-    )
-
-    try:
-        with urllib.request.urlopen(req, context=ctx) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            if data.get("status") == "success":
-                PRODUCTS_CACHE = data.get("products", {})
-                print(f"📊 Đã tải thành công dữ liệu {len(PRODUCTS_CACHE)} sản phẩm từ Google Sheet!")
-                return PRODUCTS_CACHE
-    except Exception as e:
-        print("⚠️ Không thể kết nối Google Sheet Webhook:", e)
-
-    PRODUCTS_CACHE = {}
-    return PRODUCTS_CACHE
-
 def lookup_product_name(item_id, item_dir):
-    products_map = fetch_products_from_google_sheet()
-    if item_id in products_map:
-        title = products_map[item_id].get("productName", "")
-        if title and title != "Sản phẩm mới":
-            return title
-
+    """Ưu tiên đọc tên sản phẩm trực tiếp từ info.json nội bộ trên máy (Siêu tốc)."""
     info_path = os.path.join(item_dir, "info.json")
     if os.path.exists(info_path):
         try:
             with open(info_path, "r", encoding="utf-8") as f:
                 info = json.load(f)
-                if info.get("productName"):
-                    return info["productName"]
+                name = info.get("productName") or info.get("title") or info.get("name")
+                if name and name != "Sản phẩm mới":
+                    return name
         except Exception:
             pass
 
@@ -118,19 +88,12 @@ def get_available_characters():
     return chars
 
 def select_character_for_product(product_name):
-    """
-    Tự động phân tích tên sản phẩm và chọn nhân vật phù hợp theo quy tắc:
-    - Nam-25t: Nhân vật Nam 25 tuổi
-    - Nu-25t: Nhân vật Nữ 25 tuổi
-    - Nu-23t: Nhân vật Nữ 23 tuổi
-    """
     chars = get_available_characters()
     if not chars:
         return "Friendly Reviewer"
 
     p_lower = (product_name or "").lower()
 
-    # Nếu tên sản phẩm có chứa từ khóa đồ Nam -> Chọn nhân vật Nam
     male_keywords = ["nam", "men", "man", "đàn ông", "giày nam", "dép nam", "áo nam", "quần nam"]
     is_male_product = any(kw in p_lower for kw in male_keywords) and not any(kw in p_lower for kw in ["nữ", "women", "girl"])
 
@@ -139,7 +102,6 @@ def select_character_for_product(product_name):
             if "nam" in c.lower():
                 return c
 
-    # Nếu là đồ Nữ hoặc sản phẩm chung -> Ưu tiên chọn nhân vật Nữ (Nu-25t hoặc Nu-23t)
     for c in chars:
         if "nu-25t" in c.lower() or "nu_25t" in c.lower():
             return c
@@ -193,7 +155,6 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
         }
     }
 
-    # Thử các mô hình Flash (gemini-3.6-flash -> gemini-2.5-flash)
     for model_name in PREFERRED_MODELS:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
         req = urllib.request.Request(
@@ -201,55 +162,58 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
             data=json.dumps(payload).encode("utf-8"),
             headers={"Content-Type": "application/json"}
         )
-        try:
-            with urllib.request.urlopen(req, context=ctx) as resp:
-                data = json.loads(resp.read().decode("utf-8"))
-                text = data["candidates"][0]["content"]["parts"][0]["text"]
-                print(f"⚡ Đã sinh Master Prompt thành công bằng Mô hình Flash: {model_name}")
-                return text
-        except urllib.error.HTTPError as http_err:
-            err_msg = http_err.read().decode("utf-8", errors="ignore")
-            print(f"🔄 Mô hình {model_name} trả về lỗi ({http_err.code}): {err_msg[:200]}")
-        except Exception as e:
-            print(f"🔄 Mô hình {model_name} chưa hỗ trợ hoặc bận ({e}), tự động chuyển sang Flash tiếp theo...")
+        
+        for attempt in range(2):
+            try:
+                with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
+                    data = json.loads(resp.read().decode("utf-8"))
+                    text = data["candidates"][0]["content"]["parts"][0]["text"]
+                    print(f"⚡ Đã sinh Master Prompt thành công bằng Mô hình Flash: {model_name}")
+                    return text
+            except urllib.error.HTTPError as http_err:
+                err_msg = http_err.read().decode("utf-8", errors="ignore")
+                print(f"🔄 Mô hình {model_name} trả về lỗi ({http_err.code}): {err_msg[:180]}")
+                if http_err.code in [503, 429] and attempt == 0:
+                    print("  ⏳ Máy chủ bận, chờ 2 giây và thử lại...")
+                    time.sleep(2)
+                    continue
+                break
+            except Exception as e:
+                print(f"🔄 Mô hình {model_name} chưa hỗ trợ hoặc bận ({e}), tự động chuyển sang Flash tiếp theo...")
+                break
 
     print("❌ Lỗi: Tất cả mô hình Gemini Flash API đều không phản hồi.")
     return None
 
 def update_google_sheet_status(item_id):
-    if not WEBHOOK_URL:
-        return
-
-    products_map = fetch_products_from_google_sheet()
-    if item_id in products_map:
-        current_status = products_map[item_id].get("status", "")
-        if current_status == "Đã tạo Video":
-            print(f"ℹ️ Mã {item_id} đang ở trạng thái 'Đã tạo Video', giữ nguyên trên Google Sheet.")
-            return
-
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
-
-    payload = {
-        "action": "update_status",
-        "sheetName": "Omni-Video",
-        "itemId": item_id,
-        "status": "Đã tạo Prompt"
-    }
-
-    req = urllib.request.Request(
-        WEBHOOK_URL,
-        data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "text/plain;charset=utf-8"}
-    )
-
     try:
-        with urllib.request.urlopen(req, context=ctx) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-            print(f"📊 Đã cập nhật trạng thái Google Sheet cho mã {item_id}:", data.get("message", "Thành công"))
+        from sheet_sync import update_status_by_item_id
+        update_status_by_item_id(item_id, "Đã tạo Prompt")
     except Exception as e:
         print(f"⚠️ Lỗi cập nhật Sheet cho mã {item_id}:", e)
+
+def load_central_prompt_rules():
+    """Tự động nạp toàn bộ danh sách quy tắc và điều cấm kỵ từ config/prompt_rules.json."""
+    rules_path = os.path.join(PROJECT_DIR, "config", "prompt_rules.json")
+    if not os.path.exists(rules_path):
+        return ""
+    try:
+        with open(rules_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            
+        lines = ["\n[MANDATORY ZERO-TOLERANCE COMPLIANCE & NEGATIVE CONSTRAINTS (STRICT)]:\nYOU MUST STRICTLY OBEY EVERY SINGLE RULE BELOW WITHOUT EXCEPTION:"]
+        for category, items in data.items():
+            lines.append(f"\n>>> {category.upper()}:")
+            if isinstance(items, list):
+                for item in items:
+                    lines.append(f"  * {item}")
+            elif isinstance(items, dict):
+                for k, v in items.items():
+                    lines.append(f"  * {k}: {v}")
+        return "\n".join(lines) + "\n"
+    except Exception as e:
+        print("⚠️ Không thể đọc config/prompt_rules.json:", e)
+        return ""
 
 def generate_prompt_for_item(item_id, item_dir):
     print(f"\n🎬 Đang xử lý sinh Master Prompt chuẩn cho Mã SP: {item_id}...")
@@ -267,103 +231,103 @@ def generate_prompt_for_item(item_id, item_dir):
     selected_char = select_character_for_product(raw_product_name)
     print(f"👤 Nhân vật được chọn phù hợp: {selected_char}")
 
-    # Nạp các bài học kinh nghiệm từ Hồ sơ Hệ thống chung (Global System Memory)
-    global_rules_file = os.path.join(PROJECT_DIR, "scripts", "global_learned_rules.json")
-    learned_constraints_text = ""
-    if os.path.exists(global_rules_file):
-        try:
-            with open(global_rules_file, "r", encoding="utf-8") as f:
-                learned_rules = json.load(f)
-                if learned_rules:
-                    learned_constraints_text = "\nSYSTEM LEARNED NEGATIVE CONSTRAINTS (AUTONOMOUS QA FEEDBACK):\n" + "\n".join([f"- AVOID: {r}" for r in learned_rules]) + "\n"
-        except Exception:
-            pass
+    # Nạp toàn bộ các quy tắc sắt đá trung tâm từ config/prompt_rules.json
+    central_rules_text = load_central_prompt_rules()
 
-    system_directive = f"""You are an expert AI Video Director and Marketing Copywriter specializing in 10-second UGC (User-Generated Content) Review videos for Gemini Omni.
+    # Bộ 8 góc tiếp cận UGC Viral đa dạng hóa kịch bản
+    ugc_angles = [
+        ("REVERSE EXPECTATION (TƯỞNG KHÔNG NGON MÀ NGON KHÔNG TƯỞNG)", "Đảo ngược kỳ vọng ban đầu: Nghĩ là món đồ bình thường/mua thử cho vui ai ngờ mê luôn vì tiện lợi và bền đẹp bất ngờ."),
+        ("EXTREME STRESS TEST (THỬ THÁCH THỰC TẾ CỰC HẠN)", "Hành động kịch tính trực diện: Dẫm nước ngập, dầm mưa lớn, test độ co giãn chống thấm ngay trước ống kính để chứng minh độ bền."),
+        ("LIFEHACK & ON-THE-GO (MẸO BỎ TÚI CỨU CÁNH MÙA MƯA)", "Phong cách tiện lợi bỏ cốp xe/túi xách: Bí quyết cứu nguy đôi giày trong 3 giây cho dân công sở, sinh viên, người đi làm."),
+        ("BEFORE VS AFTER (SO SÁNH TƯƠNG PHẢN TRỰC DIỆN)", "Tạo đối lập mạnh: Một bên chịu cảnh dơ bẩn ướt sũng - một bên khô ráo tinh tươm sạch sẽ như vừa mở hộp."),
+        ("RELATABLE REGRET (HỐI HẬN VÌ KHÔNG BIẾT SỚM HƠN)", "Tâm lý tiếc nuối chân thực: 'Biết món này sớm hơn thì tháng trước đã không phải bỏ xó đôi giày yêu thích'."),
+        ("FRIEND GOSSIP & SOCIAL PROOF (AI CŨNG HỎI MUA Ở ĐÂU)", "Câu chuyện đời thường gần gũi: 'Hôm nay mang đi làm/dạo phố mà đồng nghiệp cứ hỏi xin link mãi vì quá xịn'."),
+        ("DAY IN MY LIFE / REALISTIC POV (GÓC NHÌN THỰC TẾ)", "Theo chân nhân vật trải nghiệm dạo phố, đi làm, đi cafe bất chấp thời tiết với góc nhìn POV chân thực."),
+        ("AESTHETIC LIFESTYLE & SENSORY SATISFACTION (THỜI TRANG & CẢM GIÁC)", "Phối đồ phong cách, bước đi tự tin sảng khoái, chất liệu cao cấp bảo vệ tuyệt đối và tôn dáng.")
+    ]
+    import random
+    suggested_angle_name, suggested_angle_desc = random.choice(ugc_angles)
+
+    system_directive = f"""You are a World-Class Viral Video Creative Director and Marketing Copywriter specializing in 10-second high-converting UGC (User-Generated Content) Review videos for Gemini Omni.
 
 Look closely at the attached main product image AND analyze the full Shopee title: "{raw_product_name}".
 
+{central_rules_text}
+
+CREATIVE TARGET FOR THIS VIDEO:
+- Primary UGC Story Angle: **{suggested_angle_name}**
+- Angle Core Concept: {suggested_angle_desc}
+(You have full creative freedom to blend or refine this angle while strictly respecting all negative constraints above!)
+
 CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
-1. DYNAMIC STORYTELLING MODE SELECTION (FLEXIBLE):
-   Dynamically analyze the product title and image to select ONE of the following two high-converting UGC storytelling structures:
-   - **MODE A: Hook & Problem Transformation (0-3s Hook + 3-10s Solution)**: Best for products solving an explicit pain point (e.g. stiff uncomfortable heels, tired feet, shoe cleaning).
-   - **MODE B: Seamless Single-Shot Narrative (0-10s Continuous Flow)**: Best for lifestyle, fashion, or aesthetic products. Describes a smooth, fluid 0-10s continuous storytelling experience without rigid Hook/Problem division.
+1. FRESH, DIVERSE & VIRAL VIETNAMESE VOICEOVER:
+   - Make the voiceover sound 100% like a REAL, charismatic Vietnamese Gen-Z / Young Professional sharing their genuine experience.
+   - Use vivid, natural, everyday Vietnamese phrasing with emotional punch.
+   - AVOID cliché repetitive openings like "Trời ơi...", "Mỗi lần...", "Đôi giày quốc dân...". Start immediately with an intriguing hook matching the chosen angle!
 
-2. VOICEOVER & VISUAL DRAMATIZATION:
+2. VOICEOVER & VISUAL DRAMATIZATION (PERFECT SYNC):
    - The English Visual description MUST 100% DRAMATIZE and align with every detail mentioned in the Vietnamese voiceover!
-   - Keep Vietnamese voiceovers conversational, viral, emotional, and natural.
+   - Ensure the actions on screen reflect the emotional energy of the voiceover.
 
-3. PERFECT OBJECT CONSISTENCY:
-   - Whatever item/pain point is mentioned in Vietnamese MUST be the EXACT item depicted in the English Visual scene.
-
-4. NO SHOPEE SPAM KEYWORDS:
-   - DO NOT repeat long Shopee model codes or SEO keywords in Vietnamese voiceovers.
-
-5. SECONDARY PROP MUST MATCH THE CHARACTER'S IDENTITY:
-   - Look at the attached character reference image carefully (gender, age, style, body type).
-   - If a secondary prop/pain point is used, describe it matching the character's gender/style (e.g., female character gets female-coded footwear like heels/flats).
-
-6. AVOID COMPLEX FINE-MOTOR HAND ACTIONS:
-   - AI video generation struggles with intricate hand-object interactions (unlacing, tying, buttoning).
-   - Describe simple, robust actions instead: "kicks off her shoes", "slips her feet out", "steps forward" — NOT multi-step manual actions.
-
-7. DIVERSE OUTFIT & ENVIRONMENT SELECTION (DO NOT LOCK OUTFIT TO IMAGE):
-   - **CHARACTER FACE & IDENTITY LOCK**: Lock 100% of the character's facial features, age, skin tone, and hair from `characters/{selected_char}`.
-   - **OUTFIT CREATIVE FREEDOM**: DO NOT lock her outfit/clothing to the picture! Dynamically design a stylish, diverse, modern outfit matching the product scenario (e.g., trendy summer casual wear, chic resort outfit, active athletic park wear, modern city street fashion, cozy loungewear).
-   - **ENVIRONMENT DIVERSITY**: Dynamically choose vibrant, photorealistic indoor or outdoor environments matching the product's natural lifestyle context.
-
-8. AI VIDEO MOTION SAFETY TIERS & CINEMATIC CUT STRATEGY:
-   - GOLDEN RULE: The more AI morphs an object's geometry during motion, the higher the artifact/distortion risk. NEVER force AI to render multi-step continuous physical transformations in a single shot.
+3. DYNAMIC CAMERA PACING & ANGLES (NO MONOTONOUS SHOTS):
+   - Dynamically vary camera perspectives: POV First-Person angle, Dynamic Low-Angle tracking footstep shot, Over-the-shoulder lifestyle shot, or Macro texture close-up.
    - Use clean CINEMATIC CUTS between different scenes/shots to ensure safe visual transitions.
 
-9. ABSOLUTELY NO SHOP LOGOS, WATERMARKS, OR ON-SCREEN GRAPHIC OVERLAYS:
-   - STRICTLY IGNORE any seller shop logos, text watermarks, discount badges, store icons, or promotional overlays present on the input Shopee image.
-   - Keep the video 100% photorealistic UGC footage with ZERO graphic logo overlays.
-{learned_constraints_text}
+4. PERFECT OBJECT CONSISTENCY & RELEVANT PROPS:
+   - Whatever item/pain point is mentioned in Vietnamese MUST be the EXACT item depicted in the English Visual scene.
+   - Secondary props must match the character's identity and gender.
+
+5. AVOID COMPLEX FINE-MOTOR HAND ACTIONS:
+   - Describe simple, robust actions instead: "kicks off her shoes", "steps forward confidently", "holds the folded pouch" — NOT intricate multi-step tying/unlacing/peeling.
+
+6. DIVERSE OUTFIT & VIBRANT ENVIRONMENT:
+   - **CHARACTER FACE & IDENTITY LOCK**: Lock 100% of the character's facial features, age, skin tone, and hair from `characters/{selected_char}`.
+   - **OUTFIT CREATIVE FREEDOM**: Dynamically design a stylish, trendy outfit matching the scenario (e.g. chic rainy day trench coat, trendy casual streetwear, elegant office attire, sunny resort outfit).
+   - **ENVIRONMENT DIVERSITY**: Choose a vibrant, photorealistic lifestyle backdrop (e.g. cozy outdoor garden cafe, bustling modern city sidewalk with gentle rain reflections, stylish loft apartment, sunny park promenade).
+
+7. ZERO GRAPHIC LOGOS OR WATERMARKS:
+   - Keep the video 100% photorealistic UGC footage with ZERO graphic logo overlays, watermarks, or text overlays.
+
 STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
 
 ---
 [ATTACHED ASSETS & CREATIVE DIRECTIVES]:
-- Main Product: Attached product image ({main_product_img_name})
-- Secondary Product / Prop: AI Creative Freedom: [Describe pain-point prop if using Mode A, or lifestyle prop if using Mode B]
-- Character: Attached image characters/{selected_char} (Maintain facial identity & age, but generate stylish diverse outfit suitable for the scenario)
-- Environment: AI Creative Freedom: [Select a vibrant, highly fitting indoor or outdoor environment — e.g., sunny beach resort boardwalk, outdoor garden cafe, bustling city sidewalk, green park trail]
+- Main Product: Attached product image ({main_product_img_name}) — (Extract 100% exact visual details, colors, textures, and design solely from this attached reference photo; do not hallucinate details).
+- Secondary Product / Prop: AI Creative Freedom: [Describe creative secondary prop matching the scene]
+- Character: Attached image characters/{selected_char} (Maintain facial identity & age, generate stylish scenario-matching outfit)
+- Environment: AI Creative Freedom: [Select a vibrant, immersive indoor or outdoor environment]
 
 Task: Generate a 10-second high-converting UGC review video seamlessly combining the main product, secondary prop, character, and environment.
 
 FIXED CONSTRAINTS (STRICT):
 - Video Duration: Exactly 10 seconds.
 - Aspect Ratio: 9:16 Vertical format.
-- Visual Consistency: Maintain 100% exact visual appearance for attached main product, and maintain character's FACIAL IDENTITY (while allowing creative outfit/clothing variation).
+- Visual Consistency: Maintain 100% exact visual appearance for attached main product, and maintain character's FACIAL IDENTITY.
 - Clean Footage: No video watermark logos, no shop logo overlays, no text artifacts.
 
-CREATIVE FREEDOM FOR OMNI:
-- For missing/unattached assets: Full creative freedom to generate realistic, contextually appropriate character outfit, secondary props, or environment.
-- Motion & Audio: High freedom for audio lip-sync, realistic facial expressions, natural hand gestures, dynamic camera movement, and warm natural lighting.
-
 SCENE BREAKDOWN (10 SECONDS):
-[You can choose EITHER Structure A (Hook & Solution) OR Structure B (Seamless Narrative):]
+[You can choose EITHER Structure A (0-10s Seamless Continuous Narrative) OR Structure B (2-Scene Cinematic Cut) — whichever feels most fluid, natural, and compelling for this product:]
 
-[IF USING STRUCTURE A (Hook & Solution):]
-0-3s (Hook & Problem):
-- Visual: [Vivid visual description in English showing character acting out the problem/hook]
-- Subtitle/Voiceover (Vietnamese): "[Short, catchy 0-3s opening hook in conversational Vietnamese]"
+[IF CHOOSING STRUCTURE A (0-10s Seamless Continuous Narrative - RECOMMENDED FOR FLUID LIFESTYLE/EXPERIENCES):]
+0-10s (Seamless Continuous Showcase):
+- Visual: [Vivid continuous 0-10s single-shot visual description in English showing character naturally walking, using, or showcasing the attached product without abrupt cuts]
+- Subtitle/Voiceover (Vietnamese): "[Smooth, captivating, conversational 0-10s continuous review voiceover in natural Vietnamese]"
 
-3-10s (Solution & Product Demo):
-- Visual: [Vivid visual description in English showing product transformation/use]
-- Subtitle/Voiceover (Vietnamese): "[High-impact benefit statement in conversational Vietnamese]"
+[IF CHOOSING STRUCTURE B (2-Scene Cinematic Cut - FOR DRAMATIC CONTRAST/ACTION CUTS):]
+0-3s (Opening Scene):
+- Visual: [Vivid visual description in English showing character and the dynamic opening action]
+- Subtitle/Voiceover (Vietnamese): "[Catchy opening line in natural Vietnamese]"
 
-[IF USING STRUCTURE B (Seamless Narrative):]
-0-10s (Seamless Narrative Showcase):
-- Visual: [Vivid continuous visual description in English describing a smooth 0-10s storytelling showcase/experience of the character using/wearing the main product]
-- Subtitle/Voiceover (Vietnamese): "[Fluid, natural 0-10s continuous review voiceover in conversational Vietnamese]"
+3-10s (Showcase & Resolution):
+- Visual: [Vivid visual description in English with a clean cinematic cut showcasing benefits and effortless experience]
+- Subtitle/Voiceover (Vietnamese): "[Impactful benefit statement and authentic recommendation in conversational Vietnamese]"
 
 STYLE GUIDELINES:
-- Photorealistic UGC review style, natural handheld camera feel, fluid motion, 60fps, realistic audio lip-sync.
+- Photorealistic UGC review style, dynamic handheld camera feel, fluid motion, 60fps, realistic audio lip-sync.
 - ABSOLUTELY NO shop logos, video watermark icons, corner brand tags, or text overlays.
 ---
 
-Generate ONLY the final Master Prompt text inside a clean markdown block. Keep Vietnamese voiceovers natural and engaging. Do not include meta explanations."""
+Generate ONLY the final Master Prompt text inside a clean markdown block. Keep Vietnamese voiceovers natural, fresh, and engaging. Do not include meta explanations."""
 
     generated_text = call_gemini_multimodal_api(system_directive, image_path)
     if generated_text:
@@ -375,7 +339,6 @@ Generate ONLY the final Master Prompt text inside a clean markdown block. Keep V
             
         print(f"✅ Đã lưu Master Prompt tinh lọc thành công tại: {output_file}")
 
-        # Tự động copy ảnh nhân vật đã chọn vào thư mục sản phẩm
         if selected_char:
             char_src_path = os.path.join(CHARACTERS_DIR, selected_char)
             if os.path.exists(char_src_path):
@@ -394,6 +357,31 @@ Generate ONLY the final Master Prompt text inside a clean markdown block. Keep V
         return True
     return False
 
+def prompt_user_continue_with_timeout(current, total, timeout=10):
+    print(f"\n------------------------------------------------------------")
+    print(f"📌 Đã hoàn thành {current}/{total} sản phẩm.")
+    print("Vui lòng chọn:")
+    print("  [1] Tiếp tục sinh Prompt cho sản phẩm tiếp theo")
+    print("  [2] Thoát ra (MẶC ĐỊNH - TỰ ĐỘNG THOÁT SAU 10 GIÂY)")
+    print(f"\n👉 Nhập lựa chọn (1 hoặc 2, tự động chọn [2] thoát sau {timeout}s): ", end="", flush=True)
+
+    try:
+        rlist, _, _ = select.select([sys.stdin], [], [], timeout)
+        if rlist:
+            ans = sys.stdin.readline().strip().lower()
+            if ans == "1":
+                print("⚡ Đã chọn [1]: Tiếp tục sản phẩm tiếp theo...\n")
+                return True
+            else:
+                print("🛑 Đã chọn [2]: Dừng tiến trình và thoát.\n")
+                return False
+        else:
+            print(f"\n⏱️ Hết {timeout} giây không thao tác. Tự động chọn [2] Thoát ra.\n")
+            return False
+    except Exception:
+        print("\n🛑 Đã dừng tiến trình.")
+        return False
+
 def main():
     if not os.path.exists(ASSETS_DIR):
         print(f"❌ Thư mục {ASSETS_DIR} không tồn tại!")
@@ -407,18 +395,59 @@ def main():
         else:
             print(f"❌ Không tìm thấy thư mục của mã SP: {target_id}")
     else:
-        item_dirs = [d for d in os.listdir(ASSETS_DIR) if os.path.isdir(os.path.join(ASSETS_DIR, d))]
-        if not item_dirs:
+        all_dirs = [d for d in os.listdir(ASSETS_DIR) if os.path.isdir(os.path.join(ASSETS_DIR, d))]
+        if not all_dirs:
             print("ℹ️ Thư mục Product_Assets/ chưa có sản phẩm nào.")
             return
 
-        print(f"🚀 Phát hiện {len(item_dirs)} thư mục sản phẩm. Bắt đầu sinh Master Prompt Multimodal...")
+        print(f"🔍 Quét thư mục: Tìm thấy {len(all_dirs)} thư mục sản phẩm trong Product_Assets/.")
+        print("📊 Đang kiểm tra trạng thái tiến trình trên Google Sheet...")
+
+        # Lấy trạng thái hiện tại từ Google Sheet
+        status_map = {}
+        try:
+            from sheet_sync import get_all_product_statuses
+            status_map = get_all_product_statuses()
+        except Exception as e:
+            print("⚠️ Không thể kết nối Google Sheet để kiểm tra trạng thái:", e)
+
+        pending_items = []
+        skipped_items = []
+
+        for item_id in sorted(all_dirs):
+            item_status = status_map.get(item_id, "")
+            prompt_file = os.path.join(ASSETS_DIR, item_id, "master_prompt.txt")
+            
+            # Nếu Sheet ghi đã tạo prompt/video hoặc local đã có prompt hợp lệ
+            if item_status in ["Đã tạo Prompt", "Đã tạo Video"] or (os.path.exists(prompt_file) and os.path.getsize(prompt_file) > 100):
+                skipped_items.append((item_id, item_status or "Đã có master_prompt.txt"))
+            else:
+                pending_items.append(item_id)
+
+        if skipped_items:
+            print(f"ℹ️ Đã tự động BỎ QUA {len(skipped_items)} sản phẩm đã hoàn thành Prompt/Video:")
+            for s_id, s_st in skipped_items:
+                print(f"   - Mã SP {s_id}: [{s_st}]")
+
+        if not pending_items:
+            print("\n✨ TẤT CẢ sản phẩm trong Product_Assets/ đều đã được tạo Prompt hoặc hoàn thành Video! Không có sản phẩm nào cần xử lý.")
+            return
+
+        print(f"\n🚀 Phát hiện {len(pending_items)} sản phẩm cần tạo Master Prompt: {', '.join(pending_items)}")
         count = 0
-        for item_id in item_dirs:
+        total_items = len(pending_items)
+
+        for idx, item_id in enumerate(pending_items, start=1):
             item_dir = os.path.join(ASSETS_DIR, item_id)
             if generate_prompt_for_item(item_id, item_dir):
                 count += 1
-        print(f"\n🎉 Hoàn tất! Đã sinh {count} Master Prompt chuẩn thành công!")
+
+            if idx < total_items:
+                should_continue = prompt_user_continue_with_timeout(idx, total_items, timeout=10)
+                if not should_continue:
+                    break
+
+        print(f"\n🎉 Hoàn tất đợt xử lý! Đã sinh thành công {count} Master Prompt chuẩn!")
 
 if __name__ == "__main__":
     main()

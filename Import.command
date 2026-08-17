@@ -17,12 +17,17 @@ fi
 source ~/.zshrc 2>/dev/null
 source ~/.zshenv 2>/dev/null
 
+PYTHON_EXEC="python3"
+if [ -f "./venv/bin/python3" ]; then
+  PYTHON_EXEC="./venv/bin/python3"
+fi
+
 # 1. Di chuyển toàn bộ ảnh từ Downloads về đúng Product_Assets/<Mã_SP>/
-python3 scripts/auto_organize_downloads.py
+$PYTHON_EXEC scripts/auto_organize_downloads.py
 
 echo ""
-# 2. Chạy Import CSV & Lọc trùng sản phẩm trên Google Sheet
-python3 scripts/import_csv_to_gsheet.py
+# 2. Chạy Direct Import CSV & Lọc trùng sản phẩm trên Google Sheets API v4
+$PYTHON_EXEC scripts/import_csv_to_gsheet.py
 
 echo ""
 echo "============================================================"
