@@ -215,6 +215,12 @@ def load_central_prompt_rules():
         print("⚠️ Không thể đọc config/prompt_rules.json:", e)
         return ""
 
+CHARACTER_VOICE_PROFILES = {
+    "Nu-25t.png": "A 25-year-old Vietnamese female voice speaking Southern Vietnamese accent, gentle, soft, warm, relaxed, conversational tone, clear articulation. (Stability: 0.60, Clarity: 0.75, Style Exaggeration: 0.15)",
+    "Nu-23t.png": "A 23-year-old Vietnamese female voice speaking Southern Vietnamese accent, cheerful, energetic, bright, youthful, conversational tone, clear articulation. (Stability: 0.55, Clarity: 0.80, Style Exaggeration: 0.20)",
+    "Nam-25t.png": "A 25-year-old Vietnamese male voice speaking Southern Vietnamese accent, charismatic, confident, warm, relaxed, conversational tone, clear articulation. (Stability: 0.65, Clarity: 0.75, Style Exaggeration: 0.15)"
+}
+
 def generate_prompt_for_item(item_id, item_dir):
     print(f"\n🎬 Đang xử lý sinh Master Prompt chuẩn cho Mã SP: {item_id}...")
     
@@ -223,13 +229,17 @@ def generate_prompt_for_item(item_id, item_dir):
         images.extend(glob.glob(os.path.join(item_dir, ext)))
 
     image_path = images[0] if images else None
-    main_product_img_name = os.path.basename(image_path) if image_path else "Product Image"
     
     raw_product_name = lookup_product_name(item_id, item_dir)
     print(f"📦 Tên sản phẩm Shopee: \"{raw_product_name}\"")
 
     selected_char = select_character_for_product(raw_product_name)
     print(f"👤 Nhân vật được chọn phù hợp: {selected_char}")
+
+    voice_profile = CHARACTER_VOICE_PROFILES.get(
+        selected_char,
+        "A 25-year-old Vietnamese female voice speaking Southern Vietnamese accent, gentle, soft, warm, relaxed, conversational tone, clear articulation. (Stability: 0.60, Clarity: 0.75, Style Exaggeration: 0.15)"
+    )
 
     # Nạp toàn bộ các quy tắc sắt đá trung tâm từ config/prompt_rules.json
     central_rules_text = load_central_prompt_rules()
@@ -257,77 +267,42 @@ Look closely at the attached main product image AND analyze the full Shopee titl
 CREATIVE TARGET FOR THIS VIDEO:
 - Primary UGC Story Angle: **{suggested_angle_name}**
 - Angle Core Concept: {suggested_angle_desc}
-(You have full creative freedom to blend or refine this angle while strictly respecting all negative constraints above!)
+- Character Voice Profile: {voice_profile}
 
-CRITICAL VOICEOVER-FIRST STORYTELLING RULES:
-1. FRESH, DIVERSE & VIRAL VIETNAMESE VOICEOVER:
-   - Make the voiceover sound 100% like a REAL, charismatic Vietnamese Gen-Z / Young Professional sharing their genuine experience.
-   - Use vivid, natural, everyday Vietnamese phrasing with emotional punch.
-   - AVOID cliché repetitive openings like "Trời ơi...", "Mỗi lần...", "Đôi giày quốc dân...". Start immediately with an intriguing hook matching the chosen angle!
+CRITICAL RULES:
+1. ULTRA-LEAN & CONCISE PROMPT:
+   - Do NOT write long, micro-managed visual descriptions. Let the AI video diffusion model naturally synthesize fluid cinematic physics.
+   - Simply write 1-2 punchy, dynamic sentences describing a single-shot continuous handheld tracking shot or POV of the character walking / showcasing the attached product.
+   - Do NOT over-describe product colors or textures in text — the video model extracts 100% of product visual details directly from the attached image.
 
-2. VOICEOVER & VISUAL DRAMATIZATION (PERFECT SYNC):
-   - The English Visual description MUST 100% DRAMATIZE and align with every detail mentioned in the Vietnamese voiceover!
-   - Ensure the actions on screen reflect the emotional energy of the voiceover.
+2. CHARISMATIC VIETNAMESE VOICEOVER:
+   - Write a natural, viral, conversational 0-10s Vietnamese voiceover sharing a genuine review matching the story angle and character voice profile.
+   - Keep the voiceover lively, emotional, and captivating without cliché repetitive openings.
 
-3. DYNAMIC CAMERA PACING & ANGLES (NO MONOTONOUS SHOTS):
-   - Dynamically vary camera perspectives: POV First-Person angle, Dynamic Low-Angle tracking footstep shot, Over-the-shoulder lifestyle shot, or Macro texture close-up.
-   - Use clean CINEMATIC CUTS between different scenes/shots to ensure safe visual transitions.
+3. ZERO-TOLERANCE SAFETY:
+   - Absolutely NO peeling, pulling, or manual slipping off shoe covers on camera.
+   - Both feet must always wear the exact same footwear state simultaneously.
+   - No watermarks, logos, or graphic text overlays.
 
-4. PERFECT OBJECT CONSISTENCY & RELEVANT PROPS:
-   - Whatever item/pain point is mentioned in Vietnamese MUST be the EXACT item depicted in the English Visual scene.
-   - Secondary props must match the character's identity and gender.
+STRICTLY GENERATE THE FINAL MASTER PROMPT IN THIS EXACT CLEAN ULTRA-LEAN FORMAT:
 
-5. AVOID COMPLEX FINE-MOTOR HAND ACTIONS:
-   - Describe simple, robust actions instead: "kicks off her shoes", "steps forward confidently", "holds the folded pouch" — NOT intricate multi-step tying/unlacing/peeling.
+```markdown
+[ASSETS]:
+- Product: Attached image
+- Character: Attached image (Lock facial identity & voice, diverse stylish outfit, Voice: {voice_profile})
 
-6. DIVERSE OUTFIT & VIBRANT ENVIRONMENT:
-   - **CHARACTER FACE & IDENTITY LOCK**: Lock 100% of the character's facial features, age, skin tone, and hair from `characters/{selected_char}`.
-   - **OUTFIT CREATIVE FREEDOM**: Dynamically design a stylish, trendy outfit matching the scenario (e.g. chic rainy day trench coat, trendy casual streetwear, elegant office attire, sunny resort outfit).
-   - **ENVIRONMENT DIVERSITY**: Choose a vibrant, photorealistic lifestyle backdrop (e.g. cozy outdoor garden cafe, bustling modern city sidewalk with gentle rain reflections, stylish loft apartment, sunny park promenade).
+[PROMPT]:
+- Visual: [1-2 concise, vivid sentences describing a dynamic handheld tracking shot / POV of the character walking or showcasing the attached product with fluid, realistic motion]
+- Voiceover (Vietnamese): "[Natural, captivating, conversational 0-10s review voiceover in Vietnamese]"
 
-7. ZERO GRAPHIC LOGOS OR WATERMARKS:
-   - Keep the video 100% photorealistic UGC footage with ZERO graphic logo overlays, watermarks, or text overlays.
+[CONSTRAINTS]:
+- 9:16 vertical, 10s, photorealistic UGC, 60fps, no watermarks/logos.
+- No peeling/pulling/slipping off covers on camera; no intricate finger actions.
+- Both feet must wear the exact same footwear state simultaneously.
+- No mid-frame object vanishing or morphing.
+```
 
-STRICTLY FOLLOW THIS MASTER PROMPT STRUCTURE:
-
----
-[ATTACHED ASSETS & CREATIVE DIRECTIVES]:
-- Main Product: Attached product image ({main_product_img_name}) — (Extract 100% exact visual details, colors, textures, and design solely from this attached reference photo; do not hallucinate details).
-- Secondary Product / Prop: AI Creative Freedom: [Describe creative secondary prop matching the scene]
-- Character: Attached image characters/{selected_char} (Maintain facial identity & age, generate stylish scenario-matching outfit)
-- Environment: AI Creative Freedom: [Select a vibrant, immersive indoor or outdoor environment]
-
-Task: Generate a 10-second high-converting UGC review video seamlessly combining the main product, secondary prop, character, and environment.
-
-FIXED CONSTRAINTS (STRICT):
-- Video Duration: Exactly 10 seconds.
-- Aspect Ratio: 9:16 Vertical format.
-- Visual Consistency: Maintain 100% exact visual appearance for attached main product, and maintain character's FACIAL IDENTITY.
-- Clean Footage: No video watermark logos, no shop logo overlays, no text artifacts.
-
-SCENE BREAKDOWN (10 SECONDS):
-[You can choose EITHER Structure A (0-10s Seamless Continuous Narrative) OR Structure B (2-Scene Cinematic Cut) — whichever feels most fluid, natural, and compelling for this product:]
-
-[IF CHOOSING STRUCTURE A (0-10s Seamless Continuous Narrative - RECOMMENDED FOR FLUID LIFESTYLE/EXPERIENCES):]
-0-10s (Seamless Continuous Showcase):
-- Visual: [Vivid continuous 0-10s single-shot visual description in English showing character naturally walking, using, or showcasing the attached product without abrupt cuts]
-- Subtitle/Voiceover (Vietnamese): "[Smooth, captivating, conversational 0-10s continuous review voiceover in natural Vietnamese]"
-
-[IF CHOOSING STRUCTURE B (2-Scene Cinematic Cut - FOR DRAMATIC CONTRAST/ACTION CUTS):]
-0-3s (Opening Scene):
-- Visual: [Vivid visual description in English showing character and the dynamic opening action]
-- Subtitle/Voiceover (Vietnamese): "[Catchy opening line in natural Vietnamese]"
-
-3-10s (Showcase & Resolution):
-- Visual: [Vivid visual description in English with a clean cinematic cut showcasing benefits and effortless experience]
-- Subtitle/Voiceover (Vietnamese): "[Impactful benefit statement and authentic recommendation in conversational Vietnamese]"
-
-STYLE GUIDELINES:
-- Photorealistic UGC review style, dynamic handheld camera feel, fluid motion, 60fps, realistic audio lip-sync.
-- ABSOLUTELY NO shop logos, video watermark icons, corner brand tags, or text overlays.
----
-
-Generate ONLY the final Master Prompt text inside a clean markdown block. Keep Vietnamese voiceovers natural, fresh, and engaging. Do not include meta explanations."""
+Generate ONLY the clean markdown block above. Do not include any explanations."""
 
     generated_text = call_gemini_multimodal_api(system_directive, image_path)
     if generated_text:
