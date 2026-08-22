@@ -44,7 +44,7 @@ _load_env_file()
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
-TARGET_MEDIA_DIR = "/Volumes/Media/Omni-Video/Product_Assets"
+TARGET_MEDIA_DIR = "/Volumes/Media/Omni-Video"
 WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "")
 
 def get_known_character_filenames():
@@ -143,28 +143,41 @@ def archive_completed_folders(skip_qa=False):
                 except Exception as e:
                     print(f"  ⚠️ Lỗi xóa ảnh character {f}: {e}")
 
-        # 5. Kiểm tra và di chuyển thư mục sang /Volumes/Media/Omni-Video/Product_Assets/
+        # 5. Kiểm tra và di chuyển thư mục sang /Volumes/Media/Omni-Video/<item_id>/
         try:
             os.makedirs(TARGET_MEDIA_DIR, exist_ok=True)
             dest_item_path = os.path.join(TARGET_MEDIA_DIR, item_id)
+            os.makedirs(dest_item_path, exist_ok=True)
 
-            if os.path.exists(dest_item_path):
-                for f in os.listdir(item_path):
-                    src_f = os.path.join(item_path, f)
+            target_mp4_name = f"{item_id}.mp4"
+            dest_video_path = os.path.join(dest_item_path, target_mp4_name)
+
+            for f in os.listdir(item_path):
+                src_f = os.path.join(item_path, f)
+                # Nếu là file video MP4, tự động chuẩn hóa đổi tên thành <item_id>.mp4
+                if f.lower().endswith(".mp4"):
+                    dst_f = dest_video_path
+                else:
                     dst_f = os.path.join(dest_item_path, f)
-                    if os.path.isfile(src_f):
-                        shutil.move(src_f, dst_f)
-                    elif os.path.isdir(src_f):
-                        dst_dir = os.path.join(dest_item_path, f)
-                        os.makedirs(dst_dir, exist_ok=True)
-                        for sub_f in os.listdir(src_f):
-                            shutil.move(os.path.join(src_f, sub_f), os.path.join(dst_dir, sub_f))
-                shutil.rmtree(item_path)
-            else:
-                shutil.move(item_path, dest_item_path)
 
-            dest_video_path = os.path.join(dest_item_path, os.path.basename(video_file))
+                if os.path.isfile(src_f):
+                    if os.path.exists(dst_f):
+                        try:
+                            os.remove(dst_f)
+                        except Exception:
+                            pass
+                    shutil.move(src_f, dst_f)
+                elif os.path.isdir(src_f):
+                    dst_dir = os.path.join(dest_item_path, f)
+                    os.makedirs(dst_dir, exist_ok=True)
+                    for sub_f in os.listdir(src_f):
+                        shutil.move(os.path.join(src_f, sub_f), os.path.join(dst_dir, sub_f))
+
+            if os.path.exists(item_path):
+                shutil.rmtree(item_path)
+
             print(f"  🚚 Đã di chuyển thành công: Product_Assets/{item_id} -> {dest_item_path}")
+            print(f"  🎬 Video chuẩn hóa: {dest_video_path}")
             
             # 6. Tự động cập nhật Google Sheet thành "Đã tạo Video" & lưu đường dẫn Cột 13 (Output File)
             update_google_sheet_video_status(item_id, output_file=dest_video_path)

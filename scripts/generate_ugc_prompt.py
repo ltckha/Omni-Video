@@ -275,14 +275,14 @@ CRITICAL RULES:
    - Simply write 1-2 punchy, dynamic sentences describing a single-shot continuous handheld tracking shot or POV of the character walking / showcasing the attached product.
    - Do NOT over-describe product colors or textures in text — the video model extracts 100% of product visual details directly from the attached image.
 
-2. CHARISMATIC VIETNAMESE VOICEOVER:
+2. CHARISMATIC VIETNAMESE VOICEOVER & ON-CAMERA LIP-SYNC:
    - Write a natural, viral, conversational 0-10s Vietnamese voiceover sharing a genuine review matching the story angle and character voice profile.
-   - Keep the voiceover lively, emotional, and captivating without cliché repetitive openings.
+   - The Visual description MUST explicitly show the character actively speaking to the camera with accurate, expressive Vietnamese lip-sync matching the spoken words.
 
 3. ZERO-TOLERANCE SAFETY:
+   - Absolutely NO on-screen text, floating subtitles, words, price tags, typography, or logos rendered onto the video frames.
    - Absolutely NO peeling, pulling, or manual slipping off shoe covers on camera.
    - Both feet must always wear the exact same footwear state simultaneously.
-   - No watermarks, logos, or graphic text overlays.
 
 STRICTLY GENERATE THE FINAL MASTER PROMPT IN THIS EXACT CLEAN ULTRA-LEAN FORMAT:
 
@@ -292,11 +292,12 @@ STRICTLY GENERATE THE FINAL MASTER PROMPT IN THIS EXACT CLEAN ULTRA-LEAN FORMAT:
 - Character: Attached image (Lock facial identity & voice, diverse stylish outfit, Voice: {voice_profile})
 
 [PROMPT]:
-- Visual: [1-2 concise, vivid sentences describing a dynamic handheld tracking shot / POV of the character walking or showcasing the attached product with fluid, realistic motion]
+- Visual: [1-2 concise, vivid sentences describing a dynamic handheld tracking shot / POV of the character walking or showcasing the attached product while actively speaking to the camera with expressive, accurate Vietnamese lip-sync and fluid mouth articulation]
 - Voiceover (Vietnamese): "[Natural, captivating, conversational 0-10s review voiceover in Vietnamese]"
 
 [CONSTRAINTS]:
-- 9:16 vertical, 10s, photorealistic UGC, 60fps, no watermarks/logos.
+- 9:16 vertical, 10s, photorealistic UGC, 60fps, clean footage with zero text/subtitles/typography/watermarks/logos.
+- Accurate on-camera Vietnamese lip-sync matching the spoken voiceover; natural mouth movement and expressive facial gestures.
 - No peeling/pulling/slipping off covers on camera; no intricate finger actions.
 - Both feet must wear the exact same footwear state simultaneously.
 - No mid-frame object vanishing or morphing.
@@ -308,7 +309,7 @@ Generate ONLY the clean markdown block above. Do not include any explanations.""
     if generated_text:
         clean_text = generated_text.replace("```markdown", "").replace("```text", "").replace("```", "").strip()
         
-        output_file = os.path.join(item_dir, "master_prompt.txt")
+        output_file = os.path.join(item_dir, f"{item_id}.txt")
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(clean_text)
             
@@ -391,11 +392,14 @@ def main():
 
         for item_id in sorted(all_dirs):
             item_status = status_map.get(item_id, "")
-            prompt_file = os.path.join(ASSETS_DIR, item_id, "master_prompt.txt")
+            prompt_file = os.path.join(ASSETS_DIR, item_id, f"{item_id}.txt")
+            legacy_prompt_file = os.path.join(ASSETS_DIR, item_id, "master_prompt.txt")
+            has_valid_prompt = (os.path.exists(prompt_file) and os.path.getsize(prompt_file) > 100) or \
+                               (os.path.exists(legacy_prompt_file) and os.path.getsize(legacy_prompt_file) > 100)
             
             # Nếu Sheet ghi đã tạo prompt/video hoặc local đã có prompt hợp lệ
-            if item_status in ["Đã tạo Prompt", "Đã tạo Video"] or (os.path.exists(prompt_file) and os.path.getsize(prompt_file) > 100):
-                skipped_items.append((item_id, item_status or "Đã có master_prompt.txt"))
+            if item_status in ["Đã tạo Prompt", "Đã tạo Video"] or has_valid_prompt:
+                skipped_items.append((item_id, item_status or "Đã có file prompt .txt"))
             else:
                 pending_items.append(item_id)
 

@@ -1,5 +1,6 @@
 {
   "FORBIDDEN_ACTIONS": [
+    "ABSOLUTELY NO ON-SCREEN TEXT, SUBTITLES, CAPTIONS, OR GRAPHIC TYPOGRAPHY: Strictly forbid generating, rendering, or describing any on-screen text, floating subtitles, words, price tags, sale stickers, brand slogans, or graphic typography inside the video frames (AI diffusion models severely distort and glitch when rendering text). Video footage must be 100% clean, pure photorealistic footage with ZERO on-screen lettering or text overlays.",
     "ABSOLUTELY NO ASYMMETRICAL FOOTWEAR / ONE FOOT COVERED, ONE FOOT BARE: Both feet must always wear the exact same footwear state simultaneously.",
     "ABSOLUTELY NO PEELING / PULLING ON / TAKING OFF TIGHT COVERS OR FOOTWEAR: Strictly forbid describing hands pulling, stretching, or peeling off silicone shoe covers, boots, tight socks, or shoes directly on camera. Only show the product in an already-worn state on feet, or show the already-removed/folded product held cleanly in hand.",
     "ABSOLUTELY NO FINE-MOTOR FINGER INTERACTIONS: Strictly forbid intricate manual hand actions like tying/untying shoelaces, buttoning clothes, zipping tight zippers, or peeling adhesive stickers.",
@@ -10,7 +11,8 @@
     "RELY 100% ON ATTACHED PRODUCT IMAGE: Strictly avoid over-describing product micro-details in text. In scene descriptions, simply refer to 'the attached product' without inventing conflicting color/pattern adjectives."
   ],
   "CHARACTER_AND_VOICE_STANDARDS": [
-    "CHARACTER IDENTITY & VOICE LOCK: Lock 100% facial identity, age, and hair from the character reference image, and lock the character's fixed Southern Vietnamese voice profile, while dynamically allowing stylish scenario-fitting outfits."
+    "CHARACTER IDENTITY & VOICE LOCK: Lock 100% facial identity, age, and hair from the character reference image, and lock the character's fixed Southern Vietnamese voice profile, while dynamically allowing stylish scenario-fitting outfits.",
+    "ACCURATE VIETNAMESE LIP-SYNC & ON-CAMERA SPEAKING: Explicitly depict the character actively speaking naturally to the camera with expressive, fluid Vietnamese lip-sync and realistic mouth articulation matching the spoken voiceover line."
   ],
   "PROMPT_STRUCTURE_STANDARDS": [
     "Strictly format the final Master Prompt into 3 ultra-lean sections: [ASSETS], [PROMPT], and [CONSTRAINTS]."

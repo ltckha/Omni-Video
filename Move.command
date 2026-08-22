@@ -1,5 +1,5 @@
 #!/bin/bash
-# Script 1-Click tự động dọn dẹp (xóa ảnh character, info.json) và di chuyển thư mục sản phẩm có video MP4 về /Volumes/Media/Omni-Video/Product_Assets/
+# Script 1-Click tự động dọn dẹp (xóa ảnh character, info.json) và di chuyển thư mục sản phẩm có video MP4 về /Volumes/Media/Omni-Video/
 
 cd "$(dirname "$0")"
 

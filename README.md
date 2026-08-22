@@ -24,8 +24,8 @@ Hệ thống tự động hóa toàn diện quy trình thu thập nguyên liệu
 5. **1-Click Clean & Move Completed Video Folders (`Move.command`):**
    - Tự động quét các thư mục sản phẩm đã tạo xong video `.mp4`.
    - Tự động dọn dẹp sạch sẽ: xóa file ảnh nhân vật mẫu và file `info.json`.
-   - Di chuyển toàn bộ thư mục sản phẩm hoàn thành về lưu trữ tại `/Volumes/Media/Omni-Video/Product_Assets/`.
-   - Tự động cập nhật đường dẫn tuyệt đối của file video hoàn thành vào cột **`Output File` (Cột 13)** trên Google Sheets.
+    - Di chuyển toàn bộ thư mục sản phẩm hoàn thành về lưu trữ tại `/Volumes/Media/Omni-Video/`.
+    - Tự động cập nhật đường dẫn tuyệt đối của file video hoàn thành vào cột **`Output File` (Cột 13)** trên Google Sheets.
 
 ---
 
@@ -60,7 +60,7 @@ Omni-Video/
 
 1. **Nhấp đúp `Import.command`:** Đồng bộ file CSV và chuyển toàn bộ ảnh từ Downloads về `Product_Assets/<Mã_SP>/`.
 2. **Nhấp đúp `Prompt.command`:** Gemini AI tự động soi ảnh + thông tin SP để tạo Master Prompt 10s tại `Product_Assets/<Mã_SP>/master_prompt.txt` và copy ảnh nhân vật vào.
-3. **Nhấp đúp `Move.command`:** Sau khi dựng video xong và lưu file `.mp4` vào thư mục sản phẩm, nhấp đúp `Move.command` để tự động xóa ảnh nhân vật, xóa `info.json` và di chuyển thư mục về `/Volumes/Media/Omni-Video/Product_Assets/`.
+3. **Nhấp đúp `Move.command`:** Sau khi dựng video xong và lưu file `.mp4` vào thư mục sản phẩm, nhấp đúp `Move.command` để tự động xóa ảnh nhân vật, xóa `info.json` và di chuyển thư mục về `/Volumes/Media/Omni-Video/`.
 
 ---
 

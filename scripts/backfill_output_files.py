@@ -1,49 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Script quét toàn bộ video đã hoàn thành tại /Volumes/Media/Omni-Video/Product_Assets/
-và cập nhật hàng loạt đường dẫn file video vào Cột 13 (Output File) trên Google Sheet.
+Script quét toàn bộ video đã hoàn thành tại /Volumes/Media/Omni-Video/
+chuẩn hóa tên file thành <item_id>.mp4 và cập nhật hàng loạt đường dẫn file video vào Cột 13 (Output File) trên Google Sheet.
 """
 
 import os
 import sys
 import glob
-import json
-import urllib.request
-import ssl
+import shutil
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-TARGET_MEDIA_DIR = "/Volumes/Media/Omni-Video/Product_Assets"
+TARGET_MEDIA_DIR = "/Volumes/Media/Omni-Video"
 
-def _load_env_file():
-    env_file = os.path.join(PROJECT_DIR, ".env")
-    if not os.path.exists(env_file):
-        return
-    try:
-        with open(env_file, "r", encoding="utf-8", errors="ignore") as f:
-            for line in f:
-                line = line.strip()
-                if not line or line.startswith("#") or "=" not in line:
-                    continue
-                key, _, val = line.partition("=")
-                key = key.replace("export", "").strip()
-                val = val.strip().strip('"').strip("'")
-                if val and (key not in os.environ or not os.environ[key]):
-                    os.environ[key] = val
-    except Exception:
-        pass
-
-_load_env_file()
-WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "") or os.environ.get("WEBHOOK_URL", "")
+# Import direct Google Sheets synchronizer
+sys.path.append(os.path.join(PROJECT_DIR, "scripts"))
+try:
+    from sheet_sync import update_status_by_item_id
+except Exception as e:
+    print("❌ Lỗi import sheet_sync:", e)
+    update_status_by_item_id = None
 
 def backfill_output_files():
-    if not WEBHOOK_URL:
-        print("❌ Lỗi: Không tìm thấy OMNI_GAS_WEBHOOK_URL trong .env")
+    if not update_status_by_item_id:
+        print("❌ Lỗi: Không thể kết nối Google Sheets API v4.")
         return
-
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
 
     search_dirs = []
     if os.path.exists(TARGET_MEDIA_DIR):
@@ -61,41 +42,44 @@ def backfill_output_files():
 
     updated_count = 0
     for target_dir in search_dirs:
-        print(f"🔍 Đang quét các file video hoàn thành tại {target_dir}...")
-        item_dirs = [d for d in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, d))]
+        print(f"\n🔍 Đang quét và chuẩn hóa các file video hoàn thành tại {target_dir}...")
+        item_dirs = [d for d in os.listdir(target_dir) if os.path.isdir(os.path.join(target_dir, d)) and not d.startswith(".")]
         
-        for item_id in item_dirs:
+        for item_id in sorted(item_dirs):
             item_path = os.path.join(target_dir, item_id)
             mp4s = glob.glob(os.path.join(item_path, "*.mp4")) + glob.glob(os.path.join(item_path, "*.MP4"))
             
             if not mp4s:
                 continue
 
-            video_file_path = mp4s[0]
-            print(f"📦 Mã SP {item_id} -> File video: {video_file_path}")
+            current_video_file = mp4s[0]
+            standard_video_name = f"{item_id}.mp4"
+            standard_video_path = os.path.join(item_path, standard_video_name)
 
-            payload = {
-                "action": "update_status",
-                "itemId": item_id,
-                "status": "Đã tạo Video",
-                "outputFile": video_file_path
-            }
+            # Tự động đổi tên file sang chuẩn <item_id>.mp4 nếu chưa đúng
+            if os.path.basename(current_video_file) != standard_video_name:
+                try:
+                    if os.path.exists(standard_video_path):
+                        os.remove(standard_video_path)
+                    shutil.move(current_video_file, standard_video_path)
+                    print(f"  🔄 Đã đổi tên: {os.path.basename(current_video_file)} -> {standard_video_name}")
+                except Exception as e:
+                    print(f"  ⚠️ Lỗi đổi tên file: {e}")
+                    standard_video_path = current_video_file
 
-            req = urllib.request.Request(
-                WEBHOOK_URL,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "text/plain;charset=utf-8"}
-            )
+            print(f"📦 Mã SP {item_id} -> File video: {standard_video_path}")
 
             try:
-                with urllib.request.urlopen(req, context=ctx) as resp:
-                    res_data = json.loads(resp.read().decode("utf-8"))
-                    print(f"  ✅ Đã ghi Cột 13 (Output File) cho mã {item_id}:", res_data.get("message", "Thành công"))
+                success = update_status_by_item_id(item_id, "Đã tạo Video", video_path=standard_video_path)
+                if success:
+                    print(f"  ✅ Đã ghi Cột 13 (Output File) cho mã {item_id}")
                     updated_count += 1
+                else:
+                    print(f"  ⚠️ Không tìm thấy dòng cho mã {item_id} trên Sheet.")
             except Exception as e:
-                print(f"  ⚠️ Lỗi gửi Webhook cho mã {item_id}:", e)
+                print(f"  ❌ Lỗi cập nhật Sheet cho mã {item_id}:", e)
 
-    print(f"\n🎉 HOÀN TẤT! Đã đồng bộ đường dẫn Cột 13 (Output File) cho {updated_count} sản phẩm lên Google Sheet.")
+    print(f"\n🎉 HOÀN TẤT! Đã chuẩn hóa và đồng bộ đường dẫn Cột 13 (Output File) cho {updated_count} sản phẩm lên Google Sheet.")
 
 if __name__ == "__main__":
     backfill_output_files()

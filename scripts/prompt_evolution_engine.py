@@ -19,11 +19,22 @@ def get_backups_dir(item_dir):
     os.makedirs(backups_dir, exist_ok=True)
     return backups_dir
 
+def find_prompt_file(item_dir):
+    item_id = os.path.basename(os.path.normpath(item_dir))
+    std_file = os.path.join(item_dir, f"{item_id}.txt")
+    if os.path.exists(std_file):
+        return std_file
+    legacy_file = os.path.join(item_dir, "master_prompt.txt")
+    if os.path.exists(legacy_file):
+        return legacy_file
+    txts = [f for f in glob.glob(os.path.join(item_dir, "*.txt")) if "prompt_backups" not in f]
+    return txts[0] if txts else std_file
+
 def backup_current_prompt(item_dir, score=None):
     """
-    Tự động lưu bản backup của master_prompt.txt hiện tại
+    Tự động lưu bản backup của file prompt hiện tại (<itemId>.txt hoặc master_prompt.txt)
     """
-    prompt_file = os.path.join(item_dir, "master_prompt.txt")
+    prompt_file = find_prompt_file(item_dir)
     if not os.path.exists(prompt_file):
         return None
 
@@ -90,7 +101,7 @@ def evolve_prompt_from_qa(item_dir, qa_report, create_backup=False):
     Dựa vào báo cáo QA để tự động học và bổ sung Negative Constraints vào Master Prompt.
     Chỉ tạo backup nếu create_backup=True (khi video không đạt chuẩn cần sửa lại).
     """
-    prompt_file = os.path.join(item_dir, "master_prompt.txt")
+    prompt_file = find_prompt_file(item_dir)
     if not os.path.exists(prompt_file) or not qa_report:
         return False
 
@@ -140,7 +151,7 @@ def rollback_to_best_prompt(item_dir):
 
     if best_v is not None:
         best_txt = os.path.join(backups_dir, f"master_prompt_v{best_v}.txt")
-        target_txt = os.path.join(item_dir, "master_prompt.txt")
+        target_txt = find_prompt_file(item_dir)
         if os.path.exists(best_txt):
             try:
                 shutil.copy2(best_txt, target_txt)
