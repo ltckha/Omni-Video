@@ -15,5 +15,4 @@
 - **Module trung tâm:** Sử dụng `scripts/drive_sync.py` để thực hiện:
   - Đọc file: `read_drive_file(filename)`
   - Ghi/Cập nhật file: `write_drive_file(filename, content)`
-  - Ghi nhật ký: `append_to_anti_spark_log(log_text)`
-  - Cập nhật task: `update_ideas_task(...)`
+  - Ghi nhật ký: `append_to_anti_spark_log(log_entry)`

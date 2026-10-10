@@ -38,14 +38,16 @@ Omni-Video/
 ├── .env.example                 # File mẫu cấu hình biến môi trường
 ├── Import.command              # 🚀 File 1-Click Import CSV & đồng bộ dữ liệu
 ├── Prompt.command              # 🎬 File 1-Click sinh Master Prompt hàng loạt bằng Gemini AI
+├── Video.command               # 🎥 File 1-Click sinh video 9:16 bằng Gemini Omni (scripts/generate_omni_video.py)
 ├── Move.command                # 🚚 File 1-Click dọn dẹp & di chuyển SP đã tạo xong MP4 về ổ đĩa Media
 ├── characters/                  # 👤 Thư mục chứa hình ảnh nhân vật/KOLs mẫu (Nam, Nữ)
-├── sample_media/                # 🎥 Thư mục chứa các video & hình ảnh mẫu thử nghiệm
 ├── data/                        # 📊 Thư mục chứa các file dữ liệu CSV xuất từ Shopee Affiliate
 ├── scripts/                     # ⚙️ Thư mục chứa toàn bộ mã nguồn xử lý & backend
-│   ├── google_apps_script.js    # Mã nguồn Google Apps Script (Webhook & Google Sheets API)
+│   ├── sheet_sync.py            # Module đồng bộ Google Sheets API v4 (gspread, map cột theo header)
+│   ├── drive_sync.py            # Module đồng bộ Google Drive API v3 với Spark
 │   ├── import_csv_to_gsheet.py  # Script Python import file CSV & lọc trùng sâu
 │   ├── generate_ugc_prompt.py   # Script Gemini AI Multimodal sinh Master Prompt 10s
+│   ├── generate_omni_video.py   # Script gọi Gemini Omni (gemini-omni-1.1-flash) sinh video <Mã_SP>.mp4
 │   ├── archive_completed_videos.py # Script tự động dọn dẹp & di chuyển SP có MP4 về /Volumes/Media/...
 │   ├── auto_organize_downloads.py # Script tự động di chuyển ảnh vào Product_Assets/<Mã_SP>/
 │   ├── omni_native_host.py      # Native Messaging Host Python (Di chuyển ảnh 0.1s)
@@ -56,11 +58,12 @@ Omni-Video/
 
 ---
 
-## 🚀 Quy Trình Sử Dụng 3 Bước Nhanh Gọn
+## 🚀 Quy Trình Sử Dụng 4 Bước Nhanh Gọn
 
 1. **Nhấp đúp `Import.command`:** Đồng bộ file CSV và chuyển toàn bộ ảnh từ Downloads về `Product_Assets/<Mã_SP>/`.
-2. **Nhấp đúp `Prompt.command`:** Gemini AI tự động soi ảnh + thông tin SP để tạo Master Prompt 10s tại `Product_Assets/<Mã_SP>/master_prompt.txt` và copy ảnh nhân vật vào.
-3. **Nhấp đúp `Move.command`:** Sau khi dựng video xong và lưu file `.mp4` vào thư mục sản phẩm, nhấp đúp `Move.command` để tự động xóa ảnh nhân vật, xóa `info.json` và di chuyển thư mục về `/Volumes/Media/Omni-Video/`.
+2. **Nhấp đúp `Prompt.command`:** Gemini AI tự động soi ảnh + thông tin SP để tạo Master Prompt 10s tại `Product_Assets/<Mã_SP>/<Mã_SP>.txt` và copy ảnh nhân vật vào.
+3. **Nhấp đúp `Video.command`:** Gọi Gemini Omni (`scripts/generate_omni_video.py`) dùng prompt + ảnh sản phẩm + ảnh nhân vật để sinh `Product_Assets/<Mã_SP>/<Mã_SP>.mp4` dọc 9:16 (API trả phí, cần nhập PIN `OMNI_SECURITY_PIN`).
+4. **Nhấp đúp `Move.command`:** Sau khi có file `.mp4` trong thư mục sản phẩm, nhấp đúp `Move.command` để tự động xóa ảnh nhân vật, xóa `info.json` và di chuyển thư mục về `/Volumes/Media/Omni-Video/`.
 
 ---
 
