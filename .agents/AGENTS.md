@@ -8,3 +8,7 @@
   - Tuyệt đối KHÔNG BAO GIỜ hỏi người dùng có muốn push lên Git hay không.
   - Người dùng sẽ tự thực hiện việc push Git hoặc chủ động yêu cầu Assistant khi thấy cần thiết.
 
+- **ALWAYS USE GOOGLE DRIVE API V3 FOR SPARK (GIAO TIẾP VỚI SPARK 100% QUA GOOGLE DRIVE API V3)**:
+  - Mọi thao tác trao đổi dữ liệu hai chiều, đọc/ghi nhật ký (`anti-spark_omni.md`), sổ tay ý tưởng & nhiệm vụ (`IDEAS.md`) với Spark BẮT BUỘC 100% thực hiện qua Google Drive API v3 (`scripts/drive_sync.py`).
+  - Hoàn toàn độc lập, tuyệt đối KHÔNG phụ thuộc hay truy cập qua đường dẫn thư mục đồng bộ cục bộ trên macOS (`/Users/khan/Library/CloudStorage/...`).
+

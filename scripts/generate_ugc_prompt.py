@@ -15,9 +15,11 @@ import time
 import select
 import mimetypes
 
+PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
 def load_env_if_needed():
     if "GEMINI_API_KEY" not in os.environ or not os.environ["GEMINI_API_KEY"]:
-        for env_file in [os.path.expanduser("~/.zshrc"), os.path.expanduser("~/.zshenv"), os.path.expanduser("~/.bash_profile")]:
+        for env_file in [os.path.join(PROJECT_DIR, ".env"), os.path.expanduser("~/.zshrc"), os.path.expanduser("~/.zshenv"), os.path.expanduser("~/.bash_profile")]:
             if os.path.exists(env_file):
                 try:
                     with open(env_file, "r", encoding="utf-8", errors="ignore") as f:
@@ -35,7 +37,6 @@ def load_env_if_needed():
 load_env_if_needed()
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
@@ -121,6 +122,35 @@ def get_image_mime_type(filepath):
         return "image/png"
     return "image/jpeg"
 
+def is_valid_prompt_structure(text: str) -> bool:
+    """Kiểm tra tính toàn vẹn của Master Prompt sinh ra (đủ 3 phần bắt buộc và độ dài chuẩn)."""
+    if not text or len(text.strip()) < 150:
+        return False
+    clean = text.replace("```markdown", "").replace("```text", "").replace("```", "").strip()
+    required_sections = ["[ASSETS]", "[PROMPT]", "[CONSTRAINTS]"]
+    return all(sec in clean for sec in required_sections)
+
+def get_recent_voiceovers(limit=5):
+    """Quét các file prompt gần đây để lấy danh sách voiceover đã dùng nhằm tránh lặp lại."""
+    voiceovers = []
+    if not os.path.exists(ASSETS_DIR):
+        return voiceovers
+    txt_files = glob.glob(os.path.join(ASSETS_DIR, "*", "*.txt"))
+    for fpath in sorted(txt_files, key=os.path.getmtime, reverse=True):
+        try:
+            with open(fpath, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+                for line in content.splitlines():
+                    if "Voiceover (Vietnamese):" in line or "Voiceover:" in line:
+                        vo = line.split(":", 1)[1].strip().strip('"')
+                        if vo and vo not in voiceovers:
+                            voiceovers.append(vo)
+                            if len(voiceovers) >= limit:
+                                return voiceovers
+        except Exception:
+            pass
+    return voiceovers
+
 def call_gemini_multimodal_api(prompt_text, image_filepath=None):
     if not GEMINI_API_KEY:
         print("❌ Lỗi: Không tìm thấy GEMINI_API_KEY trong biến môi trường!")
@@ -150,7 +180,7 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
     payload = {
         "contents": [{"parts": parts}],
         "generationConfig": {
-            "temperature": 0.7,
+            "temperature": 0.95,
             "topP": 0.95
         }
     }
@@ -165,11 +195,14 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
         
         for attempt in range(2):
             try:
-                with urllib.request.urlopen(req, context=ctx, timeout=10) as resp:
+                with urllib.request.urlopen(req, context=ctx, timeout=30) as resp:
                     data = json.loads(resp.read().decode("utf-8"))
                     text = data["candidates"][0]["content"]["parts"][0]["text"]
-                    print(f"⚡ Đã sinh Master Prompt thành công bằng Mô hình Flash: {model_name}")
-                    return text
+                    if is_valid_prompt_structure(text):
+                        print(f"⚡ Đã sinh Master Prompt thành công bằng Mô hình Flash: {model_name}")
+                        return text
+                    else:
+                        print(f"⚠️ Mô hình {model_name} sinh prompt bị thiếu cấu trúc (độ dài: {len(text)} ký tự), đang chuyển tiếp...")
             except urllib.error.HTTPError as http_err:
                 err_msg = http_err.read().decode("utf-8", errors="ignore")
                 print(f"🔄 Mô hình {model_name} trả về lỗi ({http_err.code}): {err_msg[:180]}")
@@ -221,8 +254,64 @@ CHARACTER_VOICE_PROFILES = {
     "Nam-25t.png": "A 25-year-old Vietnamese male voice speaking Southern Vietnamese accent, charismatic, confident, warm, relaxed, conversational tone, clear articulation. (Stability: 0.65, Clarity: 0.75, Style Exaggeration: 0.15)"
 }
 
+def is_footwear_product(product_name: str) -> bool:
+    """Xác định sản phẩm có thuộc nhóm ngành hàng giày dép/bọc giày mang vào chân hay không."""
+    if not product_name:
+        return False
+    name_lower = product_name.lower()
+
+    # Các từ khóa loại trừ: thiết bị điện tử, phụ kiện, dụng cụ vệ sinh, hộp/tủ/túi chứa đựng giày dép
+    exclude_keywords = [
+        "máy sấy", "kệ", "hộp", "tủ", "nước lau", "chai xịt", "xịt", "vệ sinh",
+        "xi đánh", "xi ", "bàn chải", "viên khử mùi", "sáp khử mùi", "máy khử mùi",
+        "dây giày", "túi đựng", "túi", "dụng cụ", "miếng lót", "lót giày",
+        "khay", "giá để", "cây đón gót", "đón gót"
+    ]
+    if any(ex in name_lower for ex in exclude_keywords):
+        return False
+
+    footwear_keywords = [
+        "giày", "dép", "ủng", "bọc giày", "bao giày", "vớ", "tất",
+        "shoe", "shoes", "boot", "boots", "sneaker", "sneakers",
+        "sandal", "sandals", "slipper", "slippers", "clog", "crocs",
+        "footwear"
+    ]
+    return any(kw in name_lower for kw in footwear_keywords)
+
+def select_story_angle(product_name: str):
+    """Lựa chọn góc tiếp cận sáng tạo phù hợp cho sản phẩm, linh hoạt giữa quà tặng và các góc review thực chiến."""
+    p_lower = (product_name or "").lower()
+    gift_keywords = ["quà", "gift", "set quà", "combo quà", "tặng người yêu", "tặng bạn", "tặng mẹ", "20/10", "8/3", "valentine"]
+    is_gift_related = any(kw in p_lower for kw in gift_keywords)
+
+    ugc_angles = [
+        ("SURPRISE GIFT & HIGH-EQ MOMENT (MÓN QUÀ BẤT NGỜ & TÌNH CẢM TINH TẾ)",
+         "Tình huống trao tặng món quà bất ngờ trong bối cảnh đời thường tự nhiên (văn phòng, bàn làm việc, quán cafe, phòng khách...), người nhận đón nhận với sự xúc động chân thành, nâng niu sản phẩm và dành lời khen ngợi tinh tế đúng vào đặc tính sản phẩm."),
+        ("REVERSE EXPECTATION (TƯỞNG KHÔNG NGON MÀ NGON KHÔNG TƯỞNG)",
+         "Đảo ngược kỳ vọng ban đầu: Nghĩ là món đồ bình thường/mua thử cho vui ai ngờ mê luôn vì tiện lợi và chất lượng bất ngờ."),
+        ("EXTREME STRESS TEST (THỬ THÁCH THỰC TẾ CỰC HẠN)",
+         "Hành động kịch tính trực diện: Thử độ bền, chống nước, chống bám bẩn hoặc test hiệu năng trực tiếp trước ống kính."),
+        ("LIFEHACK & ON-THE-GO (MẸO BỎ TÚI CỨU CÁNH)",
+         "Phong cách tiện lợi mang theo người/bỏ túi: Bí quyết cứu nguy siêu tốc cho dân công sở, sinh viên, người bận rộn."),
+        ("BEFORE VS AFTER (SO SÁNH TƯƠNG PHẢN TRỰC DIỆN)",
+         "Tạo đối lập mạnh mẽ: So sánh trước và sau khi dùng sản phẩm một cách trực quan, rõ nét."),
+        ("RELATABLE REGRET (HỐI HẬN VÌ KHÔNG BIẾT SỚM HƠN)",
+         "Tâm lý tiếc nuối chân thực: Chia sẻ trải nghiệm thật vì sao nếu biết món này sớm hơn thì đã tiết kiệm được bao nhiêu thời gian/công sức."),
+        ("FRIEND GOSSIP & SOCIAL PROOF (AI CŨNG HỎI MUA Ở ĐÂU)",
+         "Câu chuyện đời thường gần gũi: Vừa dùng thử/mang đi làm mà đồng nghiệp, bạn bè ai cũng tò mò hỏi xin địa chỉ mua."),
+        ("DAY IN MY LIFE / REALISTIC POV (GÓC NHÌN THỰC TẾ)",
+         "Theo chân nhân vật trải nghiệm sản phẩm trong nhịp sống hằng ngày với góc nhìn gần gũi, chân thực."),
+        ("AESTHETIC LIFESTYLE & SENSORY SATISFACTION (THỜI TRANG & CẢM GIÁC THƯ THÁI)",
+         "Tôn vinh vẻ đẹp thiết kế, cảm giác sảng khoái và phong cách sống hiện đại khi trải nghiệm sản phẩm.")
+    ]
+
+    import random
+    if is_gift_related and random.random() < 0.7:
+        return ugc_angles[0]
+    return random.choice(ugc_angles)
+
 def generate_prompt_for_item(item_id, item_dir):
-    print(f"\n🎬 Đang xử lý sinh Master Prompt chuẩn cho Mã SP: {item_id}...")
+    print(f"\n🎬 Đang xử lý sinh Master Prompt UGC cho Mã SP: {item_id}...")
     
     images = []
     for ext in ["*.webp", "*.jpg", "*.png", "*.jpeg"]:
@@ -244,63 +333,78 @@ def generate_prompt_for_item(item_id, item_dir):
     # Nạp toàn bộ các quy tắc sắt đá trung tâm từ config/prompt_rules.json
     central_rules_text = load_central_prompt_rules()
 
-    # Bộ 8 góc tiếp cận UGC Viral đa dạng hóa kịch bản
-    ugc_angles = [
-        ("REVERSE EXPECTATION (TƯỞNG KHÔNG NGON MÀ NGON KHÔNG TƯỞNG)", "Đảo ngược kỳ vọng ban đầu: Nghĩ là món đồ bình thường/mua thử cho vui ai ngờ mê luôn vì tiện lợi và bền đẹp bất ngờ."),
-        ("EXTREME STRESS TEST (THỬ THÁCH THỰC TẾ CỰC HẠN)", "Hành động kịch tính trực diện: Dẫm nước ngập, dầm mưa lớn, test độ co giãn chống thấm ngay trước ống kính để chứng minh độ bền."),
-        ("LIFEHACK & ON-THE-GO (MẸO BỎ TÚI CỨU CÁNH MÙA MƯA)", "Phong cách tiện lợi bỏ cốp xe/túi xách: Bí quyết cứu nguy đôi giày trong 3 giây cho dân công sở, sinh viên, người đi làm."),
-        ("BEFORE VS AFTER (SO SÁNH TƯƠNG PHẢN TRỰC DIỆN)", "Tạo đối lập mạnh: Một bên chịu cảnh dơ bẩn ướt sũng - một bên khô ráo tinh tươm sạch sẽ như vừa mở hộp."),
-        ("RELATABLE REGRET (HỐI HẬN VÌ KHÔNG BIẾT SỚM HƠN)", "Tâm lý tiếc nuối chân thực: 'Biết món này sớm hơn thì tháng trước đã không phải bỏ xó đôi giày yêu thích'."),
-        ("FRIEND GOSSIP & SOCIAL PROOF (AI CŨNG HỎI MUA Ở ĐÂU)", "Câu chuyện đời thường gần gũi: 'Hôm nay mang đi làm/dạo phố mà đồng nghiệp cứ hỏi xin link mãi vì quá xịn'."),
-        ("DAY IN MY LIFE / REALISTIC POV (GÓC NHÌN THỰC TẾ)", "Theo chân nhân vật trải nghiệm dạo phố, đi làm, đi cafe bất chấp thời tiết với góc nhìn POV chân thực."),
-        ("AESTHETIC LIFESTYLE & SENSORY SATISFACTION (THỜI TRANG & CẢM GIÁC)", "Phối đồ phong cách, bước đi tự tin sảng khoái, chất liệu cao cấp bảo vệ tuyệt đối và tôn dáng.")
-    ]
-    import random
-    suggested_angle_name, suggested_angle_desc = random.choice(ugc_angles)
+    # Nạp các voiceover gần đây để chống lặp lại từ ngữ
+    recent_vos = get_recent_voiceovers(limit=5)
+    anti_repetition_text = ""
+    if recent_vos:
+        anti_repetition_text = "\n[CRITICAL ANTI-REPETITION CONSTRAINT]:\nDO NOT reuse or closely resemble any of these recent voiceovers:\n" + "\n".join(f"- \"{vo}\"" for vo in recent_vos) + "\n"
 
-    system_directive = f"""You are a World-Class Viral Video Creative Director and Marketing Copywriter specializing in 10-second high-converting UGC (User-Generated Content) Review videos for Gemini Omni.
+    # Lựa chọn góc sáng tạo đa dạng
+    suggested_angle_name, suggested_angle_desc = select_story_angle(raw_product_name)
+    print(f"💡 Góc sáng tạo: {suggested_angle_name}")
 
-Look closely at the attached main product image AND analyze the full Shopee title: "{raw_product_name}".
-
-{central_rules_text}
-
-CREATIVE TARGET FOR THIS VIDEO:
-- Primary UGC Story Angle: **{suggested_angle_name}**
-- Angle Core Concept: {suggested_angle_desc}
-- Character Voice Profile: {voice_profile}
-
-CRITICAL RULES:
-1. ULTRA-LEAN & CONCISE PROMPT:
-   - Do NOT write long, micro-managed visual descriptions. Let the AI video diffusion model naturally synthesize fluid cinematic physics.
-   - Simply write 1-2 punchy, dynamic sentences describing a single-shot continuous handheld tracking shot or POV of the character walking / showcasing the attached product.
-   - Do NOT over-describe product colors or textures in text — the video model extracts 100% of product visual details directly from the attached image.
-
-2. CHARISMATIC VIETNAMESE VOICEOVER & ON-CAMERA LIP-SYNC:
-   - Write a natural, viral, conversational 0-10s Vietnamese voiceover sharing a genuine review matching the story angle and character voice profile.
-   - The Visual description MUST explicitly show the character actively speaking to the camera with accurate, expressive Vietnamese lip-sync matching the spoken words.
-
-3. ZERO-TOLERANCE SAFETY:
+    # Phân loại ngữ cảnh: Chỉ áp dụng luật đối xứng giày khi sản phẩm thực sự là giày dép mang vào chân
+    is_footwear = is_footwear_product(raw_product_name)
+    if is_footwear:
+        safety_rules_text = """3. ZERO-TOLERANCE SAFETY:
    - Absolutely NO on-screen text, floating subtitles, words, price tags, typography, or logos rendered onto the video frames.
    - Absolutely NO peeling, pulling, or manual slipping off shoe covers on camera.
-   - Both feet must always wear the exact same footwear state simultaneously.
+   - Both feet must always wear the exact same footwear state simultaneously."""
+        constraints_block = """[CONSTRAINTS]:
+- 9:16 vertical, 10s, photorealistic UGC, 60fps, clean footage with zero text/subtitles/typography/watermarks/logos.
+- Accurate on-camera Vietnamese lip-sync matching the spoken voiceover; natural mouth movement and expressive facial gestures.
+- No peeling/pulling/slipping off covers on camera; no intricate finger actions.
+- Both feet must wear the exact same footwear state simultaneously.
+- No mid-frame object vanishing or morphing."""
+    else:
+        safety_rules_text = """3. ZERO-TOLERANCE SAFETY:
+   - Absolutely NO on-screen text, floating subtitles, words, price tags, typography, or logos rendered onto the video frames.
+   - Absolutely NO mid-frame object vanishing or morphing in a single continuous shot."""
+        constraints_block = """[CONSTRAINTS]:
+- 9:16 vertical, 10s, photorealistic UGC, 60fps, clean footage with zero text/subtitles/typography/watermarks/logos.
+- Accurate on-camera Vietnamese lip-sync matching the spoken voiceover; natural mouth movement and expressive facial gestures.
+- No mid-frame object vanishing or morphing."""
+
+    system_directive = f"""You are a World-Class Viral Video Creative Director and Marketing Copywriter specializing in 10-second high-converting UGC (User-Generated Content) videos for Gemini Omni.
+
+Look closely at the attached main product image (Input Image 1) AND analyze the full Shopee title: "{raw_product_name}".
+
+{central_rules_text}
+{anti_repetition_text}
+
+CREATIVE TARGET FOR THIS VIDEO:
+- Story Hook & Creative Angle: **{suggested_angle_name}**
+- Angle Core Premise: {suggested_angle_desc}
+- Presenter / Recipient: {selected_char} (Voice: {voice_profile})
+
+CRITICAL ARCHITECTURE RULES (SINGLE CONTINUOUS SHOT & PRODUCT-CENTRIC):
+1. SINGLE CONTINUOUS CAMERA TAKE (ONE-TAKE FLOW):
+   - The entire 10-second video MUST be described as ONE single continuous camera take without any fragmented scene cuts, multi-beats, whip-pans, or timestamps.
+2. PRODUCT IS THE PRIMARY SUBJECT (40-50% VERTICAL FRAME COVERAGE):
+   - The visual MUST feature a crisp, center-framed close-up demonstration or presentation of the specific physical product held prominently at chest level, occupying 40-50% of the vertical 9:16 frame.
+   - Smooth physical demonstration or appreciative handling maintaining 100% geometric shape, material, and color fidelity to Input Image 1.
+   - The setting (office desk, coffee table, vanity table, cozy living space, or street scene) should be authentic, atmospheric, and natural.
+   - The character ({selected_char}) actively interacts with the product while speaking with continuous, natural Vietnamese lip-sync.
+
+3. CHARISMATIC VIETNAMESE VOICEOVER & ON-CAMERA LIP-SYNC (STRICTLY PRODUCT-ANCHORED & DYNAMIC):
+   - Compose a completely original, natural, emotional 0-10s Vietnamese voiceover (12-20 words).
+   - The voiceover MUST specifically highlight the real utility, texture, scent, color, or tangible benefit of "{raw_product_name}".
+   - Do NOT use generic template placeholders or repetitive canned phrases. The spoken line must feel spontaneous, authentic, and tailor-made for this exact product.
+
+{safety_rules_text}
 
 STRICTLY GENERATE THE FINAL MASTER PROMPT IN THIS EXACT CLEAN ULTRA-LEAN FORMAT:
 
 ```markdown
 [ASSETS]:
-- Product: Attached image
-- Character: Attached image (Lock facial identity & voice, diverse stylish outfit, Voice: {voice_profile})
+- Product (Primary Subject - Input Image 1): [Specific physical product noun, form factor, and key identifying colors/materials from Input Image 1]. Must maintain 100% visual fidelity to Input Image 1.
+- Character / Presenter (Secondary Subject - Input Image 2): {selected_char} (Lock facial identity & voice, diverse stylish outfit, Voice: {voice_profile}) acting as the presenter/recipient.
 
 [PROMPT]:
-- Visual: [1-2 concise, vivid sentences describing a dynamic handheld tracking shot / POV of the character walking or showcasing the attached product while actively speaking to the camera with expressive, accurate Vietnamese lip-sync and fluid mouth articulation]
-- Voiceover (Vietnamese): "[Natural, captivating, conversational 0-10s review voiceover in Vietnamese]"
+- Visual: [1-2 concise sentences describing a single continuous one-take shot with the product as the primary subject held or demonstrated at center stage occupying 40-50% of the vertical 9:16 frame in a natural setting, with {selected_char} actively speaking with continuous natural Vietnamese lip-sync]
+- Voiceover (Vietnamese): "[Natural, captivating, product-specific conversational 0-10s voiceover in Vietnamese]"
 
-[CONSTRAINTS]:
-- 9:16 vertical, 10s, photorealistic UGC, 60fps, clean footage with zero text/subtitles/typography/watermarks/logos.
-- Accurate on-camera Vietnamese lip-sync matching the spoken voiceover; natural mouth movement and expressive facial gestures.
-- No peeling/pulling/slipping off covers on camera; no intricate finger actions.
-- Both feet must wear the exact same footwear state simultaneously.
-- No mid-frame object vanishing or morphing.
+{constraints_block}
 ```
 
 Generate ONLY the clean markdown block above. Do not include any explanations."""
@@ -363,8 +467,17 @@ def main():
         print(f"❌ Thư mục {ASSETS_DIR} không tồn tại!")
         return
 
-    if len(sys.argv) > 1:
-        target_id = sys.argv[1].strip()
+    # Phân tích tham số dòng lệnh
+    target_id = None
+    force_all = False
+
+    for arg in sys.argv[1:]:
+        if arg in ["--force", "-f"]:
+            force_all = True
+        elif not arg.startswith("-"):
+            target_id = arg.strip()
+
+    if target_id:
         item_dir = os.path.join(ASSETS_DIR, target_id)
         if os.path.exists(item_dir):
             generate_prompt_for_item(target_id, item_dir)
@@ -397,8 +510,9 @@ def main():
             has_valid_prompt = (os.path.exists(prompt_file) and os.path.getsize(prompt_file) > 100) or \
                                (os.path.exists(legacy_prompt_file) and os.path.getsize(legacy_prompt_file) > 100)
             
-            # Nếu Sheet ghi đã tạo prompt/video hoặc local đã có prompt hợp lệ
-            if item_status in ["Đã tạo Prompt", "Đã tạo Video"] or has_valid_prompt:
+            if force_all:
+                pending_items.append(item_id)
+            elif item_status in ["Đã tạo Prompt", "Đã tạo Video"] or has_valid_prompt:
                 skipped_items.append((item_id, item_status or "Đã có file prompt .txt"))
             else:
                 pending_items.append(item_id)

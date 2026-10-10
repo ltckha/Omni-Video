@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(PROJECT_DIR / "scripts"))
 
-from sheet_sync import get_gspread_client, SPREADSHEET_ID, FIELD_ALIASES, normalize_name
+from sheet_sync import get_gspread_client, SPREADSHEET_ID, FIELD_ALIASES, normalize_name, determine_default_brand
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -156,6 +156,10 @@ def upload_csv_to_gsheet(csv_filepath: Path):
             
             existing_ids.add(item_id)
             
+            title_val = item.get("title", "")
+            shop_val = item.get("shop_name", "")
+            default_brand = determine_default_brand(title_val, shop_val)
+
             # Map item fields to the exact columns of Tab Omni-Video
             row_data = []
             for h in headers:
@@ -169,6 +173,12 @@ def upload_csv_to_gsheet(csv_filepath: Path):
                     if norm_h in [normalize_name(a) for a in aliases]:
                         matched_val = val
                         break
+
+                # Auto-populate brand channels if not provided in CSV
+                is_brand_col = any(norm_h in [normalize_name(a) for a in FIELD_ALIASES[b]] for b in ["brand_fb", "brand_yt", "brand_ig", "brand_tt", "brand_shopee", "brand_zalo"])
+                if not matched_val and is_brand_col:
+                    matched_val = default_brand
+
                 row_data.append(matched_val)
             
             rows_to_append.append(row_data)

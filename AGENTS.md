@@ -7,6 +7,7 @@ Omni-Video automates the generation of UGC (User Generated Content) video script
 
 ## 2. Core Integrations
 - **Google Sheets API v4:** Direct integration via `gspread` and `config/service_account.json`. Spreadsheet ID: `1Xg67qhp1J_Izt7v5uDKRgKjdEZapX9giKJ_ym0OMJN4`.
+- **Google Drive API v3:** Direct Two-Way Cloud Sync with Spark (`scripts/drive_sync.py` and `config/service_account.json`). Zero dependency on macOS local sync paths.
 - **Zero Apps Script:** Google Apps Script webhooks have been 100% eliminated.
 - **AI Models:** Priority list for prompts: `["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-3.5-flash-lite"]`.
 
@@ -14,3 +15,5 @@ Omni-Video automates the generation of UGC (User Generated Content) video script
 - **Rule 1:** Always consult and obtain explicit user approval before editing code (`.agents/rules/always_consult_user_first.md`).
 - **Rule 2:** Never push to Git automatically.
 - **Rule 3:** Never use `-preview` models.
+- **Rule 4:** Always communicate with Spark 100% via Google Drive API v3 (`.agents/rules/always_use_drive_api_for_spark.md`).
+

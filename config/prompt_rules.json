@@ -1,14 +1,16 @@
 {
   "FORBIDDEN_ACTIONS": [
     "ABSOLUTELY NO ON-SCREEN TEXT, SUBTITLES, CAPTIONS, OR GRAPHIC TYPOGRAPHY: Strictly forbid generating, rendering, or describing any on-screen text, floating subtitles, words, price tags, sale stickers, brand slogans, or graphic typography inside the video frames (AI diffusion models severely distort and glitch when rendering text). Video footage must be 100% clean, pure photorealistic footage with ZERO on-screen lettering or text overlays.",
-    "ABSOLUTELY NO ASYMMETRICAL FOOTWEAR / ONE FOOT COVERED, ONE FOOT BARE: Both feet must always wear the exact same footwear state simultaneously.",
-    "ABSOLUTELY NO PEELING / PULLING ON / TAKING OFF TIGHT COVERS OR FOOTWEAR: Strictly forbid describing hands pulling, stretching, or peeling off silicone shoe covers, boots, tight socks, or shoes directly on camera. Only show the product in an already-worn state on feet, or show the already-removed/folded product held cleanly in hand.",
-    "ABSOLUTELY NO FINE-MOTOR FINGER INTERACTIONS: Strictly forbid intricate manual hand actions like tying/untying shoelaces, buttoning clothes, zipping tight zippers, or peeling adhesive stickers.",
-    "ABSOLUTELY NO MID-FRAME VANISHING OR MORPHING IN A SINGLE SHOT: Never render an object or footwear changing shape, popping out of existence, or transforming geometry within continuous footage.",
+    "ABSOLUTELY NO MID-FRAME VANISHING OR MORPHING IN A SINGLE SHOT: Never render an object changing shape, popping out of existence, or transforming geometry within continuous footage.",
     "ABSOLUTELY NO SHOP LOGOS, WATERMARKS, OR ON-SCREEN GRAPHICS: Keep video footage 100% photorealistic with zero graphic overlays."
   ],
-  "PRODUCT_AND_IMAGE_ANCHORING": [
-    "RELY 100% ON ATTACHED PRODUCT IMAGE: Strictly avoid over-describing product micro-details in text. In scene descriptions, simply refer to 'the attached product' without inventing conflicting color/pattern adjectives."
+  "FOOTWEAR_SPECIFIC_RULES": [
+    "APPLIES ONLY WHEN FILMING FOOTWEAR / SHOES / COVERS: Both feet must always wear the exact same footwear state simultaneously (no asymmetrical one foot covered, one foot bare).",
+    "APPLIES ONLY WHEN FILMING FOOTWEAR / SHOES / COVERS: Strictly forbid describing hands pulling, stretching, or peeling off silicone shoe covers, boots, tight socks, or shoes directly on camera. Only show the product in an already-worn state on feet, or show the already-removed/folded product held cleanly in hand."
+  ],
+  "PRODUCT_CENTRIC_AND_SEMANTIC_ANCHORING": [
+    "PRODUCT AS PRIMARY SUBJECT (40-50% FRAME OCCUPATION): The product must be the center-stage primary subject, held prominently at chest level or filmed in macro close-up, occupying 40-50% of the vertical 9:16 frame with crisp focus. The presenter/character is secondary in the mid-ground.",
+    "SEMANTIC ANCHORING WITH INPUT IMAGE 1: Explicitly specify the concrete physical product noun and key distinguishing features referenced directly to Input Image 1 (e.g. 'the attached electric fabric shaver with metallic honeycomb mesh (Input Image 1)'). Must maintain 100% geometric shape, material, and color fidelity to Input Image 1 without any hallucination or morphing."
   ],
   "CHARACTER_AND_VOICE_STANDARDS": [
     "CHARACTER IDENTITY & VOICE LOCK: Lock 100% facial identity, age, and hair from the character reference image, and lock the character's fixed Southern Vietnamese voice profile, while dynamically allowing stylish scenario-fitting outfits.",
@@ -16,5 +18,12 @@
   ],
   "PROMPT_STRUCTURE_STANDARDS": [
     "Strictly format the final Master Prompt into 3 ultra-lean sections: [ASSETS], [PROMPT], and [CONSTRAINTS]."
+  ],
+  "SINGLE_CONTINUOUS_ONE_TAKE_STANDARDS": [
+    "ZERO MULTI-BEAT FRAGMENTATION & ZERO JUMP-CUTS: Strictly forbid dividing a 10s video into fragmented beats, separate time-stamps (e.g. 0-3s, 3-6s), whip-pans, or multi-scene cuts inside the prompt. The entire 10-second video MUST be described as ONE single continuous, seamless cinematic camera take (One-Take Continuous Flow) to prevent AI morphing and preserve 100% lip-sync stability."
+  ],
+  "HIGH_EQ_WAREHOUSE_GIFT_STORYLINE": [
+    "SINGLE CONTINUOUS SCENE STAGING: In one uninterrupted medium close-up shot, the presenter (Input Image 2) stands at their workspace with stacked shipping cartons subtly visible in the background. A hand enters the frame offering the single product (Input Image 1). The presenter smoothly receives the product with both hands at chest level (occupying 40-50% frame), looking at the giver with heartwarming awe and speaking emotional, sincere Vietnamese appreciation from start to finish.",
+    "EMOTIONAL AUTHENTICITY: Express pure appreciation that honors the giver's heart above material possessions without any abrupt camera cuts or awkward transitions."
   ]
 }

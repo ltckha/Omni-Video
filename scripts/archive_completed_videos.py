@@ -44,6 +44,7 @@ _load_env_file()
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
+DOWNLOADS_DIR = os.path.expanduser("~/Downloads")
 TARGET_MEDIA_DIR = "/Volumes/Media/Omni-Video"
 WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "")
 
@@ -56,12 +57,80 @@ def get_known_character_filenames():
     char_names.update(["nu-25t.png", "nam-25t.png", "nu-23t.png"])
     return char_names
 
+def find_video_for_item(item_id, item_path):
+    """
+    Tìm file video .mp4 cho sản phẩm:
+    1. Kiểm tra trực tiếp trong Product_Assets/<item_id>/
+    2. Nếu chưa có, tự động quét trong ~/Downloads/ tìm file có tên khớp/chứa <item_id>
+    Trả về (video_file_path, is_from_downloads)
+    """
+    # 1. Tìm trong thư mục Product_Assets/<item_id>/
+    local_mp4s = glob.glob(os.path.join(item_path, "*.mp4")) + glob.glob(os.path.join(item_path, "*.MP4"))
+    if local_mp4s:
+        return local_mp4s[0], False
+
+    # 2. Tìm trong thư mục ~/Downloads/
+    if os.path.exists(DOWNLOADS_DIR):
+        exact_dl = os.path.join(DOWNLOADS_DIR, f"{item_id}.mp4")
+        if os.path.exists(exact_dl):
+            return exact_dl, True
+        exact_dl_upper = os.path.join(DOWNLOADS_DIR, f"{item_id}.MP4")
+        if os.path.exists(exact_dl_upper):
+            return exact_dl_upper, True
+
+        dl_mp4s = glob.glob(os.path.join(DOWNLOADS_DIR, f"*{item_id}*.mp4")) + glob.glob(os.path.join(DOWNLOADS_DIR, f"*{item_id}*.MP4"))
+        if dl_mp4s:
+            return dl_mp4s[0], True
+
+    return None, False
+
 def update_google_sheet_video_status(item_id, output_file=None):
     try:
         from sheet_sync import update_status_by_item_id
         update_status_by_item_id(item_id, "Đã tạo Video", video_path=output_file)
     except Exception as e:
         print(f"  ⚠️ Lỗi cập nhật Sheet cho mã {item_id}:", e)
+
+def safe_move_file(src: str, dst: str):
+    """
+    Safely moves a single file across filesystems / network shares (SMB/NAS).
+    Bypasses macOS fcopyfile / copystat / xattr issues that cause [Errno 22] Invalid argument.
+    """
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if os.path.exists(dst):
+        try:
+            os.remove(dst)
+        except Exception:
+            pass
+
+    try:
+        os.rename(src, dst)
+        return
+    except OSError:
+        pass
+
+    # Stream copy without copying xattr/flags to avoid EINVAL on SMB
+    with open(src, "rb") as fsrc:
+        with open(dst, "wb") as fdst:
+            shutil.copyfileobj(fsrc, fdst, length=1024 * 1024)
+    os.remove(src)
+
+def safe_move_path(src_path: str, dst_path: str):
+    """
+    Recursively moves a file or directory across filesystems / network shares (SMB/NAS).
+    """
+    if os.path.isfile(src_path):
+        safe_move_file(src_path, dst_path)
+    elif os.path.isdir(src_path):
+        os.makedirs(dst_path, exist_ok=True)
+        for item in os.listdir(src_path):
+            s = os.path.join(src_path, item)
+            d = os.path.join(dst_path, item)
+            safe_move_path(s, d)
+        try:
+            shutil.rmtree(src_path)
+        except Exception:
+            pass
 
 def archive_completed_folders(skip_qa=False):
     if not os.path.exists(ASSETS_DIR):
@@ -80,14 +149,16 @@ def archive_completed_folders(skip_qa=False):
     for item_id in item_dirs:
         item_path = os.path.join(ASSETS_DIR, item_id)
         
-        # Tìm file .mp4 trong thư mục sản phẩm
-        mp4_files = glob.glob(os.path.join(item_path, "*.mp4")) + glob.glob(os.path.join(item_path, "*.MP4"))
+        # Tìm file video từ Product_Assets hoặc trực tiếp từ ~/Downloads/
+        video_file, is_from_downloads = find_video_for_item(item_id, item_path)
         
-        if not mp4_files:
+        if not video_file:
             continue
 
-        print(f"\n🎬 Phát hiện video MP4 hoàn thành tại mã SP: {item_id}")
-        video_file = mp4_files[0]
+        if is_from_downloads:
+            print(f"\n🎬 Phát hiện video MP4 tại Downloads: {os.path.basename(video_file)} (Mã SP: {item_id})")
+        else:
+            print(f"\n🎬 Phát hiện video MP4 hoàn thành tại mã SP: {item_id}")
 
         if not skip_qa:
             # 1. Chạy phân tích QA video bằng Gemini Video Understanding API
@@ -143,7 +214,7 @@ def archive_completed_folders(skip_qa=False):
                 except Exception as e:
                     print(f"  ⚠️ Lỗi xóa ảnh character {f}: {e}")
 
-        # 5. Kiểm tra và di chuyển thư mục sang /Volumes/Media/Omni-Video/<item_id>/
+        # 6. Kiểm tra và di chuyển an toàn sang /Volumes/Media/Omni-Video/<item_id>/
         try:
             os.makedirs(TARGET_MEDIA_DIR, exist_ok=True)
             dest_item_path = os.path.join(TARGET_MEDIA_DIR, item_id)
@@ -152,36 +223,28 @@ def archive_completed_folders(skip_qa=False):
             target_mp4_name = f"{item_id}.mp4"
             dest_video_path = os.path.join(dest_item_path, target_mp4_name)
 
+            # A. Di chuyển file video an toàn từ nguồn (Downloads hoặc Product_Assets) sang Media
+            safe_move_file(video_file, dest_video_path)
+
+            # B. Di chuyển tất cả các file nguyên liệu còn lại trong Product_Assets/<item_id>/
             for f in os.listdir(item_path):
                 src_f = os.path.join(item_path, f)
-                # Nếu là file video MP4, tự động chuẩn hóa đổi tên thành <item_id>.mp4
-                if f.lower().endswith(".mp4"):
-                    dst_f = dest_video_path
-                else:
-                    dst_f = os.path.join(dest_item_path, f)
-
-                if os.path.isfile(src_f):
-                    if os.path.exists(dst_f):
-                        try:
-                            os.remove(dst_f)
-                        except Exception:
-                            pass
-                    shutil.move(src_f, dst_f)
-                elif os.path.isdir(src_f):
-                    dst_dir = os.path.join(dest_item_path, f)
-                    os.makedirs(dst_dir, exist_ok=True)
-                    for sub_f in os.listdir(src_f):
-                        shutil.move(os.path.join(src_f, sub_f), os.path.join(dst_dir, sub_f))
+                dst_f = os.path.join(dest_item_path, f)
+                safe_move_path(src_f, dst_f)
 
             if os.path.exists(item_path):
-                shutil.rmtree(item_path)
+                try:
+                    shutil.rmtree(item_path)
+                except Exception:
+                    pass
 
-            print(f"  🚚 Đã di chuyển thành công: Product_Assets/{item_id} -> {dest_item_path}")
-            print(f"  🎬 Video chuẩn hóa: {dest_video_path}")
+            print(f"  🚚 Đã dọn dẹp và di chuyển trọn bộ về: {dest_item_path}")
+            print(f"  🎬 Video hoàn thiện: {dest_video_path}")
             
-            # 6. Tự động cập nhật Google Sheet thành "Đã tạo Video" & lưu đường dẫn Cột 13 (Output File)
+            # 7. Tự động cập nhật Google Sheet thành "Đã tạo Video" & lưu đường dẫn Cột 13 (Output File)
             update_google_sheet_video_status(item_id, output_file=dest_video_path)
             archived_count += 1
+
 
         except Exception as e:
             print(f"  ❌ Không thể di chuyển tới ổ đĩa Media ({TARGET_MEDIA_DIR}): {e}")

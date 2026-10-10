@@ -21,6 +21,23 @@ except Exception as e:
     print("❌ Lỗi import sheet_sync:", e)
     update_status_by_item_id = None
 
+def safe_move_file(src: str, dst: str):
+    os.makedirs(os.path.dirname(dst), exist_ok=True)
+    if os.path.exists(dst):
+        try:
+            os.remove(dst)
+        except Exception:
+            pass
+    try:
+        os.rename(src, dst)
+        return
+    except OSError:
+        pass
+    with open(src, "rb") as fsrc:
+        with open(dst, "wb") as fdst:
+            shutil.copyfileobj(fsrc, fdst, length=1024 * 1024)
+    os.remove(src)
+
 def backfill_output_files():
     if not update_status_by_item_id:
         print("❌ Lỗi: Không thể kết nối Google Sheets API v4.")
@@ -56,12 +73,11 @@ def backfill_output_files():
             standard_video_name = f"{item_id}.mp4"
             standard_video_path = os.path.join(item_path, standard_video_name)
 
+
             # Tự động đổi tên file sang chuẩn <item_id>.mp4 nếu chưa đúng
             if os.path.basename(current_video_file) != standard_video_name:
                 try:
-                    if os.path.exists(standard_video_path):
-                        os.remove(standard_video_path)
-                    shutil.move(current_video_file, standard_video_path)
+                    safe_move_file(current_video_file, standard_video_path)
                     print(f"  🔄 Đã đổi tên: {os.path.basename(current_video_file)} -> {standard_video_name}")
                 except Exception as e:
                     print(f"  ⚠️ Lỗi đổi tên file: {e}")
