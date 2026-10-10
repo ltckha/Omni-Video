@@ -14,8 +14,7 @@
   "host_permissions": [
     "*://shopee.vn/*",
     "*://*.shopee.vn/*",
-    "https://*.susercontent.com/*",
-    "https://script.google.com/*"
+    "https://*.susercontent.com/*"
   ],
   "action": {
     "default_popup": "popup.html",

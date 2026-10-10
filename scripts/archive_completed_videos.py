@@ -46,7 +46,6 @@ ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DOWNLOADS_DIR = os.path.expanduser("~/Downloads")
 TARGET_MEDIA_DIR = "/Volumes/Media/Omni-Video"
-WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "")
 
 def get_known_character_filenames():
     char_names = set()

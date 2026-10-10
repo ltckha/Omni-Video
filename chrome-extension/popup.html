@@ -20,67 +20,20 @@
       align-items: center;
       gap: 8px;
     }
-    .form-group {
-      margin-bottom: 12px;
-    }
-    label {
-      display: block;
-      font-size: 12px;
-      color: #aaaaaa;
-      margin-bottom: 4px;
-    }
-    input[type="text"] {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 8px;
-      background: #2a2a2a;
-      border: 1px solid #444;
-      border-radius: 4px;
-      color: #fff;
-      font-size: 12px;
-    }
-    button {
-      width: 100%;
-      padding: 8px;
-      background: #ff5722;
-      border: none;
-      border-radius: 4px;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 13px;
-    }
-    button:hover {
-      background: #e64a19;
-    }
     .info-box {
       background: #262626;
       border-left: 3px solid #ff5722;
       padding: 8px;
       font-size: 11px;
       color: #ccc;
-      margin-top: 14px;
+      margin-top: 0;
       line-height: 1.4;
-    }
-    .status {
-      margin-top: 8px;
-      font-size: 11px;
-      color: #4caf50;
-      display: none;
     }
   </style>
 </head>
 <body>
   <h3>📸 Omni Shopee Curator</h3>
   
-  <div class="form-group">
-    <label for="webhookUrl">Google Apps Script Web App URL:</label>
-    <input type="text" id="webhookUrl" placeholder="https://script.google.com/macros/s/.../exec">
-  </div>
-  
-  <button id="saveBtn">Lưu Cấu Hình</button>
-  <div id="status" class="status">✓ Đã lưu cài đặt!</div>
-
   <div class="info-box">
     <strong>💡 Hướng dẫn sử dụng:</strong><br>
     1. Mở trang sản phẩm Shopee bất kỳ.<br>
@@ -89,6 +42,5 @@
     4. Ảnh sẽ lưu vào <code>Product_Assets/&lt;Mã_SP&gt;/</code> và đồng bộ Google Sheet!
   </div>
 
-  <script src="popup.js"></script>
 </body>
 </html>

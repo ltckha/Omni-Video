@@ -40,15 +40,14 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")
-WEBHOOK_URL = os.environ.get("OMNI_GAS_WEBHOOK_URL", "https://script.google.com/macros/s/AKfycbxFF8hp9WpoUROqikUQGSqyxMxhCxcQ--3nwrNxYBNa4dD7M5C58PQqSo_EBy6hX4ao/exec")
 
 # Danh sách mô hình Flash ưu tiên
 PREFERRED_MODELS = [
     "gemini-3.7-flash",
-    "gemini-3.5-flash-lite",
-    "gemini-2.5-flash",
     "gemini-3.6-flash",
-    "gemini-3.5-flash"
+    "gemini-3.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-2.5-flash"
 ]
 
 def lookup_product_name(item_id, item_dir):

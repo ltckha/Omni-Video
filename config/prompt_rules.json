@@ -21,9 +21,5 @@
   ],
   "SINGLE_CONTINUOUS_ONE_TAKE_STANDARDS": [
     "ZERO MULTI-BEAT FRAGMENTATION & ZERO JUMP-CUTS: Strictly forbid dividing a 10s video into fragmented beats, separate time-stamps (e.g. 0-3s, 3-6s), whip-pans, or multi-scene cuts inside the prompt. The entire 10-second video MUST be described as ONE single continuous, seamless cinematic camera take (One-Take Continuous Flow) to prevent AI morphing and preserve 100% lip-sync stability."
-  ],
-  "HIGH_EQ_WAREHOUSE_GIFT_STORYLINE": [
-    "SINGLE CONTINUOUS SCENE STAGING: In one uninterrupted medium close-up shot, the presenter (Input Image 2) stands at their workspace with stacked shipping cartons subtly visible in the background. A hand enters the frame offering the single product (Input Image 1). The presenter smoothly receives the product with both hands at chest level (occupying 40-50% frame), looking at the giver with heartwarming awe and speaking emotional, sincere Vietnamese appreciation from start to finish.",
-    "EMOTIONAL AUTHENTICITY: Express pure appreciation that honors the giver's heart above material possessions without any abrupt camera cuts or awkward transitions."
   ]
 }
