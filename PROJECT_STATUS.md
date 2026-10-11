@@ -59,5 +59,5 @@
 
 ## 5. 🛡️ Quy Tắc Làm Việc Của AI Assistant
 1. **BẮT BUỘC THẢO LUẬN TRƯỚC KHI LÀM (`always_consult_user_first.md`):** Luôn trình bày kế hoạch và xin ý kiến duyệt từ User trước khi sửa code hoặc chạy lệnh.
-2. **KHÔNG TỰ Ý PUSH GIT:** Chỉ push khi User yêu cầu rõ ràng.
+2. **GIT: CHỈ NHÁNH RIÊNG + PR (`git_branch_pr_only.md`):** Không push thẳng `main`; anh Kha Merge trên GitHub.
 3. **SPARK QUA DRIVE API V3 (`always_use_drive_api_for_spark.md`).**
