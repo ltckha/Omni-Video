@@ -15,7 +15,7 @@
    - Cấm push thẳng `main`. `main` chỉ thay đổi khi anh Kha bấm **Merge** trên GitHub (Merge = lệnh push của anh Kha).
    - Khi được giao việc, được push lên nhánh riêng (vd. `claude/<mô-tả>`) và mở Pull Request để anh Kha duyệt.
    - Trước khi push, kiểm tra không lọt `.env`, credentials, token, cookie vào các file được commit.
-   - Cấm `git commit -am`. Luôn `git add` từng file cụ thể.
+   - Cấm `git commit -am` / `git add -A` / `git add .`. Luôn `git add` từng file cụ thể.
 
 3. **MÔ HÌNH PHỐI HỢP CẶP BÀI TRÙNG (DUAL-CLAUDE ARCHITECTURE):**
    - **Claude Cowork (Cloud):** Đảm nhận tư duy vĩ mô: Quy hoạch kiến trúc, phản biện logic mã nguồn, viết prompt Gemini Omni, lập kế hoạch hành động.

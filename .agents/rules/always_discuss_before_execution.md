@@ -4,4 +4,4 @@
   1. Phân tích chi tiết nguyên nhân, giải pháp và phương án triển khai.
   2. Báo cáo, thảo luận và HỎI Ý KIẾN người dùng trước.
 - **KHÔNG TỰ Ý SỬA CODE/FILE KHI CHƯA CÓ ĐỒNG Ý**: Tuyệt đối không tự ý ghi đè file, sửa code hay chạy lệnh thay đổi dự án khi chưa nhận được sự xác nhận / đồng ý rõ ràng từ người dùng.
-- **TUYỆT ĐỐI KHÔNG HỎI PUSH GIT**: Tuyệt đối không bao giờ hỏi người dùng có cần push lên Git hay không. Người dùng sẽ tự push hoặc chủ động yêu cầu khi thấy cần thiết.
+- **GIT: CHỈ NHÁNH RIÊNG + PULL REQUEST**: Không push thẳng `main`; `main` chỉ đổi khi anh Kha Merge trên GitHub. Cấm `git commit -am` / `git add -A` / `git add .`. Chỉ phiên "Thực thi – Omni-Video" được commit/push. Chi tiết: `git_branch_pr_only.md`.

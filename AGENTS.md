@@ -13,7 +13,7 @@ Omni-Video automates the generation of UGC (User Generated Content) video script
 
 ## 3. Mandatory AI Rules
 - **Rule 1:** Always consult and obtain explicit user approval before editing code (`.agents/rules/always_consult_user_first.md`).
-- **Rule 2:** Never push to Git automatically.
+- **Rule 2:** Push only to a feature branch + Pull Request; never push `main` directly (Kha merges on GitHub). No `git commit -am` / `git add -A` / `git add .`; only the "Thực thi – Omni-Video" session commits/pushes (`.agents/rules/git_branch_pr_only.md`).
 - **Rule 3:** Never use `-preview` models.
 - **Rule 4:** Always communicate with Spark 100% via Google Drive API v3 (`.agents/rules/always_use_drive_api_for_spark.md`).
 
