@@ -11,14 +11,24 @@
    - Trước khi sửa code, thêm module, đổi cấu hình, hay chạy lệnh, **bắt buộc phải trình bày giải pháp kỹ thuật chi tiết và được anh Kha đồng ý trước**.
    - Không tự ý suy đoán, không tự tiện thay đổi luồng dữ liệu.
 
-2. **TUYỆT ĐỐI KHÔNG TỰ Ý CHẠY `git push`:**
-   - Nghiêm cấm chạy `git push` dưới mọi hình thức khi chưa có lệnh trực tiếp từ anh Kha.
-   - Chỉ được tạo commit cục bộ (`git commit`) trên máy để lưu tiến độ công việc an toàn.
+2. **GIT: CHỈ PUSH LÊN NHÁNH RIÊNG + MỞ PULL REQUEST:**
+   - Cấm push thẳng `main`. `main` chỉ thay đổi khi anh Kha bấm **Merge** trên GitHub (Merge = lệnh push của anh Kha).
+   - Khi được giao việc, được push lên nhánh riêng (vd. `claude/<mô-tả>`) và mở Pull Request để anh Kha duyệt.
+   - Trước khi push, kiểm tra không lọt `.env`, credentials, token, cookie vào các file được commit.
+   - Cấm `git commit -am`. Luôn `git add` từng file cụ thể.
 
 3. **MÔ HÌNH PHỐI HỢP CẶP BÀI TRÙNG (DUAL-CLAUDE ARCHITECTURE):**
    - **Claude Cowork (Cloud):** Đảm nhận tư duy vĩ mô: Quy hoạch kiến trúc, phản biện logic mã nguồn, viết prompt Gemini Omni, lập kế hoạch hành động.
    - **Claude Code (Local Mac M4):** Kỹ sư trưởng thực thi hiện trường: Chạy lệnh terminal, kích hoạt môi trường ảo Python `venv`, chạy script di chuyển file, gọi API.
    - **Antigravity (IDE Pair-Programmer):** Đồng hành cùng anh Kha tại IDE.
+
+4. **MỖI REPO MỘT PHIÊN THỰC THI:**
+   - Chỉ phiên **"Thực thi – Omni-Video"** được sửa code và commit trong repo này.
+   - Việc cần đụng repo khác (Auto-Video-Factory, Video-Post, HNC_Master) → nhắn phiên Thực thi của repo đó, không tự sửa chéo.
+
+5. **TRI THỨC BRAND — NGUỒN DUY NHẤT LÀ AUTO-VIDEO-FACTORY:**
+   - Tên chuẩn, mã brand, bí danh, luật brand (vd. cấm chữ "ASMR") chỉ lấy từ `Auto-Video-Factory/knowledge/brands/`. Cần gì về brand → hỏi/nhắn phiên Thực thi AVF.
+   - Sắp có tab Sheet `Brands_Registry` sinh từ nguồn đó; danh sách brand viết cứng trong repo này (`scripts/sheet_sync.py` `determine_default_brand`, `scripts/add_affiliate_deals.py`) sẽ chuyển sang đọc tab này khi có đặc tả. Không thêm brand viết cứng mới.
 
 ---
 
