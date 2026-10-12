@@ -280,3 +280,16 @@ class TestAntiRepetitionAndNoStaticExamples:
         assert "Món này tiện lợi cực kỳ luôn mọi người ơi" not in content
 
 
+
+
+def test_gemini_model_chain_order():
+    """3.8 -> 3.6 -> 3.7 -> lite -> 2.5; no gemini-3.5-flash (counted against 3.6 quota), no -preview."""
+    import generate_ugc_prompt
+    assert generate_ugc_prompt.PREFERRED_MODELS == [
+        "gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-3.5-flash-lite", "gemini-2.5-flash",
+    ]
+    qa_src = open(os.path.join(SCRIPTS_DIR, "video_qa_analyzer.py"), encoding="utf-8").read()
+    assert '["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-2.5-flash"]' in qa_src
+    for src in (qa_src, open(os.path.join(SCRIPTS_DIR, "generate_ugc_prompt.py"), encoding="utf-8").read()):
+        assert '"gemini-3.5-flash"' not in src
+        assert "-preview" not in src

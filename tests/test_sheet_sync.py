@@ -10,7 +10,11 @@ if PROJECT_DIR not in sys.path:
 if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
-from sheet_sync import determine_default_brand, sync_product_to_sheet, backfill_empty_brands_on_sheet
+import gspread
+from sheet_sync import (
+    determine_default_brand, sync_product_to_sheet, backfill_empty_brands_on_sheet,
+    get_all_product_statuses, update_status_by_item_id, write_changed_cells,
+)
 
 
 class TestSheetSyncBrands:
@@ -45,16 +49,13 @@ class TestSheetSyncBrands:
         success = sync_product_to_sheet(info, "12345")
         assert success is True
 
-        mock_ws.update.assert_called_once()
-        updated_values = mock_ws.update.call_args[1]["values"][0]
-
-        # Verify that brand fields were preserved from existing_row!
-        assert updated_values[5] == "Mua Chuẩn Xài Lâu"  # brand_fb
-        assert updated_values[6] == "Mua Chuẩn Xài Lâu"  # brand_yt
-        assert updated_values[7] == "Mua Chuẩn Xài Lâu"  # brand_ig
-        assert updated_values[8] == "Mua Chuẩn Xài Lâu"  # brand_tt
-        assert updated_values[9] == "Mua Chuẩn Xài Lâu"  # brand_shopee
-        assert updated_values[10] == "Mua Chuẩn Xài Lâu" # brand_zalo
+        # Only changed cells are written (title B2, price C2), never the whole row
+        mock_ws.update.assert_not_called()
+        mock_ws.batch_update.assert_called_once()
+        written = {u["range"]: u["values"][0][0] for u in mock_ws.batch_update.call_args[0][0]}
+        assert written == {"B2": "Máy Cạo Lông Xù V2", "C2": "150k"}
+        # Brand cells untouched
+        assert not any(r[0] in "FGHIJK" for r in written)
 
     @patch("sheet_sync.get_gspread_client")
     def test_sync_new_product_populates_default_brands(self, mock_get_client):
@@ -83,3 +84,70 @@ class TestSheetSyncBrands:
         # Verify that brand fields are populated with default brand
         assert appended_values[5] == "Mua Chuẩn Xài Lâu"
         assert appended_values[6] == "Mua Chuẩn Xài Lâu"
+
+
+class TestOmniTabGuard:
+    """Missing tab 'Omni-Video' must stop with an error, never fall back to tab 0 ('Status')."""
+
+    def _client_without_tab(self, mock_get_client):
+        mock_sh = MagicMock()
+        mock_sh.worksheet.side_effect = gspread.exceptions.WorksheetNotFound("Omni-Video")
+        mock_gc = MagicMock()
+        mock_gc.open_by_key.return_value = mock_sh
+        mock_get_client.return_value = mock_gc
+        return mock_sh
+
+    @patch("sheet_sync.get_gspread_client")
+    def test_sync_product_stops_when_tab_missing(self, mock_get_client):
+        mock_sh = self._client_without_tab(mock_get_client)
+        assert sync_product_to_sheet({"productName": "X"}, "1") is False
+        mock_sh.get_worksheet.assert_not_called()
+
+    @patch("sheet_sync.get_gspread_client")
+    def test_status_update_stops_when_tab_missing(self, mock_get_client):
+        mock_sh = self._client_without_tab(mock_get_client)
+        assert update_status_by_item_id("1", "Đã tạo Video") is False
+        assert get_all_product_statuses() == {}
+        assert backfill_empty_brands_on_sheet() == 0
+        mock_sh.get_worksheet.assert_not_called()
+
+    @patch("import_csv_to_gsheet.get_gspread_client")
+    def test_import_csv_stops_when_tab_missing(self, mock_get_client, tmp_path):
+        import import_csv_to_gsheet
+        mock_sh = self._client_without_tab(mock_get_client)
+        csv_file = tmp_path / "deals.csv"
+        csv_file.write_text("x", encoding="utf-8")
+        with patch.object(import_csv_to_gsheet, "parse_csv_file", return_value=[{"job_id": "1"}]), \
+             patch.object(import_csv_to_gsheet, "move_csv_to_data_folder") as mock_move, \
+             patch.object(import_csv_to_gsheet, "organize_all_root_csvs"):
+            import_csv_to_gsheet.upload_csv_to_gsheet(csv_file)
+        mock_sh.get_worksheet.assert_not_called()
+        mock_move.assert_not_called()
+
+
+class TestWriteChangedCells:
+    def test_writes_only_differing_cells(self):
+        ws = MagicMock()
+        n = write_changed_cells(ws, 7, ["a", "B", "c", "new"], ["a", "b", "c"])
+        assert n == 2
+        data = ws.batch_update.call_args[0][0]
+        assert data == [{"range": "B7", "values": [["B"]]}, {"range": "D7", "values": [["new"]]}]
+        assert ws.batch_update.call_args[1]["value_input_option"] == "USER_ENTERED"
+
+    def test_no_api_call_when_nothing_changed(self):
+        ws = MagicMock()
+        assert write_changed_cells(ws, 3, ["a", ""], ["a"]) == 0
+        ws.batch_update.assert_not_called()
+
+    @patch("sheet_sync.get_gspread_client")
+    def test_backfill_writes_only_empty_brand_cells(self, mock_get_client):
+        ws = MagicMock()
+        headers = ["job_id", "title", "price", "brand_fb", "brand_yt"]
+        ws.get_all_values.return_value = [headers, ["1", "Máy cạo lông", "=B2*2", "", "Hiệu giày Hải Nancy"]]
+        sh = MagicMock(); sh.worksheet.return_value = ws
+        gc = MagicMock(); gc.open_by_key.return_value = sh
+        mock_get_client.return_value = gc
+        assert backfill_empty_brands_on_sheet() == 1
+        ws.update.assert_not_called()
+        data = ws.batch_update.call_args[0][0]
+        assert data == [{"range": "D2", "values": [["Mua Chuẩn Xài Lâu"]]}]

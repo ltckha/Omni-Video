@@ -19,7 +19,7 @@ from typing import List, Dict, Any
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(PROJECT_DIR / "scripts"))
 
-from sheet_sync import get_gspread_client, SPREADSHEET_ID, FIELD_ALIASES, normalize_name, determine_default_brand
+from sheet_sync import get_gspread_client, get_omni_worksheet, SPREADSHEET_ID, FIELD_ALIASES, normalize_name, determine_default_brand
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s")
 logger = logging.getLogger(__name__)
@@ -118,10 +118,7 @@ def upload_csv_to_gsheet(csv_filepath: Path):
 
     try:
         sh = gc.open_by_key(SPREADSHEET_ID)
-        try:
-            ws = sh.worksheet("Omni-Video")
-        except Exception:
-            ws = sh.get_worksheet(0)
+        ws = get_omni_worksheet(sh)
 
         all_values = ws.get_all_values()
         if not all_values:

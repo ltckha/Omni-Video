@@ -22,6 +22,7 @@ SCOPES = [
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 SA_PATH = PROJECT_DIR / "config" / "service_account.json"
 SPREADSHEET_ID = "1Xg67qhp1J_Izt7v5uDKRgKjdEZapX9giKJ_ym0OMJN4"
+OMNI_TAB_NAME = "Omni-Video"
 
 FIELD_ALIASES = {
     "job_id": ["job_id", "itemid", "mã sản phẩm", "sku", "id", "product_id"],
@@ -46,6 +47,24 @@ FIELD_ALIASES = {
 def normalize_name(s: str) -> str:
     return "".join(c for c in str(s).lower() if c.isalnum())
 
+def get_omni_worksheet(sh: gspread.Spreadsheet) -> gspread.Worksheet:
+    """Returns Tab Omni-Video. Never falls back to another tab (tab 0 is 'Status') — raises instead."""
+    try:
+        return sh.worksheet(OMNI_TAB_NAME)
+    except gspread.exceptions.WorksheetNotFound:
+        raise RuntimeError(f"Không tìm thấy tab '{OMNI_TAB_NAME}' trên Google Sheet — dừng để tránh ghi nhầm tab khác.")
+
+def write_changed_cells(ws: gspread.Worksheet, row_number: int, new_values: List[str], old_values: List[str]) -> int:
+    """Writes only the cells whose value differs from old_values (keeps formulas / manual edits in other cells)."""
+    updates = []
+    for c_idx, val in enumerate(new_values):
+        old = old_values[c_idx] if c_idx < len(old_values) else ""
+        if str(val) != str(old):
+            updates.append({"range": gspread.utils.rowcol_to_a1(row_number, c_idx + 1), "values": [[val]]})
+    if updates:
+        ws.batch_update(updates, value_input_option="USER_ENTERED")
+    return len(updates)
+
 def get_gspread_client() -> Optional[gspread.Client]:
     if not SA_PATH.exists():
         logger.error(f"Service Account not found at {SA_PATH}")
@@ -66,10 +85,7 @@ def get_all_product_statuses() -> Dict[str, str]:
             return status_map
 
         sh = gc.open_by_key(SPREADSHEET_ID)
-        try:
-            ws = sh.worksheet("Omni-Video")
-        except Exception:
-            ws = sh.get_worksheet(0)
+        ws = get_omni_worksheet(sh)
 
         all_values = ws.get_all_values()
         if not all_values:
@@ -109,10 +125,7 @@ def update_status_by_item_id(item_id: str, new_status: str, video_path: Optional
             return False
 
         sh = gc.open_by_key(SPREADSHEET_ID)
-        try:
-            ws = sh.worksheet("Omni-Video")
-        except Exception:
-            ws = sh.get_worksheet(0)
+        ws = get_omni_worksheet(sh)
 
         all_values = ws.get_all_values()
         if not all_values:
@@ -167,10 +180,7 @@ def sync_product_to_sheet(info: Dict[str, Any], item_id: str) -> bool:
             return False
 
         sh = gc.open_by_key(SPREADSHEET_ID)
-        try:
-            ws = sh.worksheet("Omni-Video")
-        except Exception:
-            ws = sh.get_worksheet(0)
+        ws = get_omni_worksheet(sh)
 
         all_values = ws.get_all_values()
         if not all_values:
@@ -245,9 +255,9 @@ def sync_product_to_sheet(info: Dict[str, Any], item_id: str) -> bool:
             row_values.append(matched_val)
 
         if target_row_number > 0:
-            # Update existing row safely preserving old values
-            ws.update(values=[row_values], range_name=f"A{target_row_number}", value_input_option="USER_ENTERED")
-            logger.info(f"Updated product '{item_id}' at row {target_row_number} safely preserving brand channels.")
+            # Update existing row: write only changed cells
+            changed = write_changed_cells(ws, target_row_number, row_values, existing_row)
+            logger.info(f"Updated product '{item_id}' at row {target_row_number} ({changed} changed cells).")
         else:
             # Append new row with populated default brands
             ws.append_row(row_values, value_input_option="USER_ENTERED")
@@ -265,10 +275,7 @@ def backfill_empty_brands_on_sheet() -> int:
         if not gc:
             return 0
         sh = gc.open_by_key(SPREADSHEET_ID)
-        try:
-            ws = sh.worksheet("Omni-Video")
-        except Exception:
-            ws = sh.get_worksheet(0)
+        ws = get_omni_worksheet(sh)
 
         all_values = ws.get_all_values()
         if len(all_values) < 2:
@@ -309,7 +316,7 @@ def backfill_empty_brands_on_sheet() -> int:
                     row_needs_update = True
 
             if row_needs_update:
-                ws.update(values=[new_row], range_name=f"A{r_idx}", value_input_option="USER_ENTERED")
+                write_changed_cells(ws, r_idx, new_row, row)
                 updated_count += 1
                 logger.info(f"Restored brand columns for row {r_idx} (Mã: {row[0] if row else ''}).")
 

@@ -20,7 +20,8 @@
 
 ### 🧠 Chiến Lược Phân Bổ Mô Hình Gemini AI
 * **Sinh Kịch Bản UGC & Video QA Analysis:**
-  * Ưu tiên: `gemini-3.7-flash` ➔ `gemini-3.6-flash` ➔ `gemini-3.5-flash` ➔ `gemini-3.5-flash-lite` ➔ `gemini-2.5-flash`.
+  * Ưu tiên: `gemini-3.8-flash` ➔ `gemini-3.6-flash` ➔ `gemini-3.7-flash` ➔ `gemini-3.5-flash-lite` ➔ `gemini-2.5-flash` (Video QA không dùng lite).
+  * Không dùng `gemini-3.5-flash`: lượt bị đếm vào hạn mức của 3.6-flash.
   * Không sử dụng các model gắn hậu tố `-preview`.
 * **Sinh Video:** `gemini-omni-1.1-flash` (Interactions API), xuất `.mp4` dọc 9:16, có khóa PIN trước khi gọi API trả phí.
 

@@ -225,7 +225,7 @@ Return ONLY a valid JSON object matching this exact schema (do NOT copy any text
     }
 
     report_data = None
-    models_to_try = ["gemini-3.7-flash", "gemini-3.6-flash", "gemini-3.5-flash", "gemini-2.5-flash"]
+    models_to_try = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-2.5-flash"]
     for m in models_to_try:
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
         req = urllib.request.Request(
