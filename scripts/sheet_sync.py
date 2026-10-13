@@ -22,7 +22,8 @@ SCOPES = [
 PROJECT_DIR = Path(__file__).resolve().parent.parent
 SA_PATH = PROJECT_DIR / "config" / "service_account.json"
 SPREADSHEET_ID = "1Xg67qhp1J_Izt7v5uDKRgKjdEZapX9giKJ_ym0OMJN4"
-OMNI_TAB_NAME = "Omni-Video"
+# Tab names tried in order: new standard name first, legacy name as fallback.
+OMNI_TAB_NAMES = ("src_omni", "Omni-Video")
 
 FIELD_ALIASES = {
     "job_id": ["job_id", "itemid", "mã sản phẩm", "sku", "id", "product_id"],
@@ -48,11 +49,13 @@ def normalize_name(s: str) -> str:
     return "".join(c for c in str(s).lower() if c.isalnum())
 
 def get_omni_worksheet(sh: gspread.Spreadsheet) -> gspread.Worksheet:
-    """Returns Tab Omni-Video. Never falls back to another tab (tab 0 is 'Status') — raises instead."""
-    try:
-        return sh.worksheet(OMNI_TAB_NAME)
-    except gspread.exceptions.WorksheetNotFound:
-        raise RuntimeError(f"Không tìm thấy tab '{OMNI_TAB_NAME}' trên Google Sheet — dừng để tránh ghi nhầm tab khác.")
+    """Returns tab 'src_omni' (or legacy 'Omni-Video'). Never falls back to another tab (tab 0 is 'Status') — raises instead."""
+    for name in OMNI_TAB_NAMES:
+        try:
+            return sh.worksheet(name)
+        except gspread.exceptions.WorksheetNotFound:
+            continue
+    raise RuntimeError(f"Không tìm thấy tab {' / '.join(OMNI_TAB_NAMES)} trên Google Sheet — dừng để tránh ghi nhầm tab khác.")
 
 def write_changed_cells(ws: gspread.Worksheet, row_number: int, new_values: List[str], old_values: List[str]) -> int:
     """Writes only the cells whose value differs from old_values (keeps formulas / manual edits in other cells)."""

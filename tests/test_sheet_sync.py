@@ -13,7 +13,7 @@ if SCRIPTS_DIR not in sys.path:
 import gspread
 from sheet_sync import (
     determine_default_brand, sync_product_to_sheet, backfill_empty_brands_on_sheet,
-    get_all_product_statuses, update_status_by_item_id, write_changed_cells,
+    get_all_product_statuses, update_status_by_item_id, write_changed_cells, get_omni_worksheet,
 )
 
 
@@ -151,3 +151,31 @@ class TestWriteChangedCells:
         ws.update.assert_not_called()
         data = ws.batch_update.call_args[0][0]
         assert data == [{"range": "D2", "values": [["Mua Chuẩn Xài Lâu"]]}]
+
+
+class TestOmniTabName:
+    """Tab is being renamed 'Omni-Video' -> 'src_omni': prefer the new name, accept the legacy one."""
+
+    def _sheet_with_tabs(self, *names):
+        tabs = {n: MagicMock(name=n) for n in names}
+        sh = MagicMock()
+        def lookup(name):
+            if name in tabs:
+                return tabs[name]
+            raise gspread.exceptions.WorksheetNotFound(name)
+        sh.worksheet.side_effect = lookup
+        return sh, tabs
+
+    def test_prefers_src_omni(self):
+        sh, tabs = self._sheet_with_tabs("src_omni", "Omni-Video")
+        assert get_omni_worksheet(sh) is tabs["src_omni"]
+
+    def test_falls_back_to_legacy_name(self):
+        sh, tabs = self._sheet_with_tabs("Status", "Omni-Video")
+        assert get_omni_worksheet(sh) is tabs["Omni-Video"]
+
+    def test_raises_when_neither_exists(self):
+        sh, _ = self._sheet_with_tabs("Status")
+        with pytest.raises(RuntimeError):
+            get_omni_worksheet(sh)
+        sh.get_worksheet.assert_not_called()
