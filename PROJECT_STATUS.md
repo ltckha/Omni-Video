@@ -9,6 +9,7 @@
 ### 📊 Direct Google Sheets API v4 (100% Zero Google Apps Script)
 * **Kết nối:** Dùng trực tiếp Google Sheets API v4 qua thư viện `gspread` kết hợp khóa xác thực `config/service_account.json`.
 * **Spreadsheet ID:** `1Xg67qhp1J_Izt7v5uDKRgKjdEZapX9giKJ_ym0OMJN4` (tab `src_omni`, tên cũ `Omni-Video`; không có cả hai thì báo lỗi dừng).
+* **Cột `product_code`** (thêm 15/10/2026, cột cuối): mã mẫu HNC cho video làm hàng Hiệu giày Hải Nancy; hàng Shopee để trống. Video-Post chép sang master để nối video với web giayhainancy.vn.
 * **Không còn Webhook:** Đã gỡ toàn bộ URL Apps Script khỏi `scripts/` và `chrome-extension/` (popup chỉ còn hướng dẫn sử dụng).
 * **Module điều khiển:**
   * [`scripts/sheet_sync.py`](scripts/sheet_sync.py): Đồng bộ sản phẩm & trạng thái video, map cột theo tên header.
