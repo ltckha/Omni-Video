@@ -51,24 +51,8 @@ document.addEventListener("DOMContentLoaded", () => {
         });
       });
 
-      const btn = document.createElement("button");
-      btn.textContent = "Finder";
-      btn.title = "Dự phòng: mở Finder với 3 file để kéo thả tay";
-      btn.style.background = "#555";
-      btn.addEventListener("click", () => {
-        btn.disabled = true;
-        chrome.runtime.sendMessage({ action: "FLOW_PREPARE", itemId: item.itemId }, (r) => {
-          btn.disabled = false;
-          if (r && r.status === "success") {
-            chrome.storage.local.remove("flowLastResult", refreshStatus);
-          } else {
-            statusEl.textContent = `⚠️ ${r ? r.message : "Lỗi Native Host"}`;
-          }
-        });
-      });
       row.appendChild(label);
       row.appendChild(fillBtn);
-      row.appendChild(btn);
       listEl.appendChild(row);
     });
   });

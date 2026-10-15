@@ -25,17 +25,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_LIST" }, (resp) => {
       sendResponse(chrome.runtime.lastError ? { status: "error", message: chrome.runtime.lastError.message } : resp);
     });
-  } else if (message.action === "FLOW_PREPARE" && message.itemId) {
-    chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_PREPARE", itemId: message.itemId }, (resp) => {
-      if (chrome.runtime.lastError) {
-        sendResponse({ status: "error", message: chrome.runtime.lastError.message });
-        return;
-      }
-      if (resp && resp.status === "success") {
-        chrome.storage.local.set({ flowActiveItem: { itemId: message.itemId, since: Date.now() } });
-      }
-      sendResponse(resp);
-    });
   } else if (message.action === "FLOW_FILL" && message.itemId) {
     fillFlowTool(message.itemId).then(sendResponse);
   } else if (message.action === "FLOW_CLEAR") {

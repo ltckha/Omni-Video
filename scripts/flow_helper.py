@@ -3,8 +3,7 @@
 """
 Omni Video - Google Flow helper (bán tự động, anh Kha tự bấm Tạo / Tải trên Flow).
 1. list_pending_items(): sản phẩm đã có prompt <itemId>.txt nhưng chưa có <itemId>.mp4.
-2. prepare_flow_bundle(): copy 3 file (ảnh người mẫu, ảnh sản phẩm, kịch bản .txt) vào
-   ~/Downloads/Omni-Flow/<itemId>/ để kéo thả vào công cụ Omni-Studio Pro trên Flow.
+2. encode_flow_files(): 3 file (ảnh SP, ảnh người mẫu, kịch bản .txt) gửi cho extension dán vào Flow.
 3. collect_flow_video(): video tải về ~/Downloads/<itemId>.mp4 -> Product_Assets/<itemId>/<itemId>.mp4.
 Không gọi API, không đụng Google Sheet (Move.command cập nhật Sheet như cũ).
 """
@@ -21,7 +20,6 @@ from generate_omni_video import find_prompt_file, find_character_image, get_imag
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 DOWNLOADS_DIR = os.path.expanduser("~/Downloads")
-FLOW_STAGING_DIR = os.path.join(DOWNLOADS_DIR, "Omni-Flow")
 
 
 def _product_title(item_dir: str) -> str:
@@ -95,24 +93,8 @@ def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
     return [{"itemId": i["itemId"], "title": i["title"]} for i in items]
 
 
-def prepare_flow_bundle(item_id: str, assets_dir: str = ASSETS_DIR, staging_root: str = FLOW_STAGING_DIR) -> str:
-    """Copy ảnh người mẫu / ảnh SP / kịch bản vào thư mục tạm, đánh số theo thứ tự ô trong Omni-Studio Pro."""
-    assets = get_flow_assets(item_id, assets_dir)
-    character, product, prompt = assets["character"], assets["product"], assets["script"]
-
-    bundle_dir = os.path.join(staging_root, item_id)
-    if os.path.isdir(bundle_dir):
-        shutil.rmtree(bundle_dir)
-    os.makedirs(bundle_dir)
-    shutil.copy2(character, os.path.join(bundle_dir, f"1_nguoi_mau_{os.path.basename(character)}"))
-    shutil.copy2(product, os.path.join(bundle_dir, f"2_san_pham_{os.path.basename(product)}"))
-    shutil.copy2(prompt, os.path.join(bundle_dir, f"3_kich_ban_{item_id}.txt"))
-    return bundle_dir
-
-
-def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR,
-                       staging_root: str = FLOW_STAGING_DIR) -> Optional[str]:
-    """Chuyển ~/Downloads/<itemId>.mp4 vào Product_Assets/<itemId>/<itemId>.mp4 và xoá thư mục tạm."""
+def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) -> Optional[str]:
+    """Chuyển ~/Downloads/<itemId>.mp4 vào Product_Assets/<itemId>/<itemId>.mp4."""
     src = os.path.join(downloads_dir, f"{item_id}.mp4")
     item_dir = os.path.join(assets_dir, item_id)
     if not os.path.isfile(src) or not os.path.isdir(item_dir):
@@ -121,5 +103,4 @@ def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir
     if os.path.exists(dst):
         raise FileExistsError(f"Product_Assets/{item_id}/{item_id}.mp4 đã có — không ghi đè")
     shutil.move(src, dst)
-    shutil.rmtree(os.path.join(staging_root, item_id), ignore_errors=True)
     return dst

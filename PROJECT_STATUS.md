@@ -39,7 +39,7 @@
 |---|---|---|---|
 | 1 | `Import.command` | `auto_organize_downloads.py` ➔ `import_csv_to_gsheet.py` | Gom ảnh từ `~/Downloads` vào `Product_Assets/<itemId>/`, import CSV lên Sheet |
 | 2 | `Prompt.command` | `generate_ugc_prompt.py` | Sinh `<itemId>.txt` + copy ảnh nhân vật |
-| 3 | Popup extension → Google Flow (Omni-Studio Pro) | `flow_helper.py` qua native host | Gom 3 file để kéo thả; anh bấm Tạo/Tải trên Flow; video tự về `Product_Assets/<itemId>/<itemId>.mp4` (15 credit, 0 phí API) |
+| 3 | Popup extension → "Điền vào Flow" (dự án Flow) | `flow_page.js` + `flow_helper.py` qua native host | Dán ảnh SP + người mẫu + kịch bản vào ô câu lệnh; anh bấm Tạo → Phê duyệt (15 credit) → Tải (Save tên `<itemId>.mp4`); video về `Product_Assets/<itemId>/` (0 phí API) |
 | 3b | `Video.command` (dự phòng) | `generate_omni_video.py` | Sinh `<itemId>.mp4` bằng Gemini Omni API (tốn phí) |
 | 4 | `Move.command` | `archive_completed_videos.py` (+ `video_qa_analyzer.py` nếu chọn QA) | Dọn dẹp & chuyển thư mục có `.mp4` về `/Volumes/Media/Omni-Video/`, cập nhật Output File trên Sheet |
 

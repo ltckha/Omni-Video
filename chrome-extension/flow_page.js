@@ -64,7 +64,7 @@
     const byslot = Object.fromEntries(message.files.map((f) => [f.slot, f]));
     for (const slot of ["product", "character"]) {
       if (!(await pasteImage(box, byslot[slot]))) {
-        return { status: "error", message: `Flow không nhận ảnh ${slot === "product" ? "sản phẩm" : "người mẫu"} — anh thử lại hoặc dùng nút Finder.` };
+        return { status: "error", message: `Flow không nhận ảnh ${slot === "product" ? "sản phẩm" : "người mẫu"} — anh tải lại trang Flow rồi thử lại.` };
       }
     }
     const dt = new DataTransfer();

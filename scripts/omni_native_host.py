@@ -46,8 +46,7 @@ def send_message(message):
         pass
 
 def handle_flow_action(msg):
-    """Google Flow (bán tự động): liệt kê SP chờ video, gom 3 file để kéo thả, thu video đã tải về."""
-    import subprocess
+    """Google Flow (bán tự động): liệt kê SP chờ video, gửi 3 file cho extension, thu video đã tải về."""
     import flow_helper
 
     action = msg.get("action")
@@ -55,10 +54,6 @@ def handle_flow_action(msg):
     try:
         if action == "FLOW_LIST":
             send_message({"status": "success", "items": flow_helper.list_pending_items()})
-        elif action == "FLOW_PREPARE":
-            bundle_dir = flow_helper.prepare_flow_bundle(item_id)
-            subprocess.run(["open", bundle_dir], check=False)
-            send_message({"status": "success", "bundleDir": bundle_dir})
         elif action == "FLOW_FILES":
             # Dùng qua chrome.runtime.connectNative: gửi nhiều tin (meta + các mảnh base64 < 1 MB)
             for part in flow_helper.encode_flow_files(item_id):
