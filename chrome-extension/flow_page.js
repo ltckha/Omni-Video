@@ -38,12 +38,13 @@
     return false;
   }
 
-  async function pasteImage(box, file) {
+  // Dán cả 2 ảnh trong 1 lần (như anh Kha kéo thả 2 ảnh cùng lúc); thứ tự: ảnh SP (1) rồi người mẫu (2)
+  async function pasteImages(box, files) {
     const before = chipCount();
     const dt = new DataTransfer();
-    dt.items.add(new File([b64ToBytes(file.b64)], file.name, { type: file.mime }));
+    for (const file of files) dt.items.add(new File([b64ToBytes(file.b64)], file.name, { type: file.mime }));
     paste(box, dt);
-    return waitFor(() => chipCount() > before, 30000);
+    return waitFor(() => chipCount() >= before + files.length, 30000);
   }
 
   function showToast(msg, isError) {
@@ -63,10 +64,8 @@
       return { status: "error", message: "Ô câu lệnh đang có nội dung — anh xoá trống rồi bấm lại." };
     }
     const byslot = Object.fromEntries(message.files.map((f) => [f.slot, f]));
-    for (const slot of ["product", "character"]) {
-      if (!(await pasteImage(box, byslot[slot]))) {
-        return { status: "error", message: `Flow không nhận ảnh ${slot === "product" ? "sản phẩm" : "người mẫu"} — anh tải lại trang Flow rồi thử lại.` };
-      }
+    if (!(await pasteImages(box, [byslot.product, byslot.character]))) {
+      return { status: "error", message: `Flow chưa nhận đủ 2 ảnh (đang có ${chipCount()}) — anh tải lại trang Flow rồi thử lại.` };
     }
     const dt = new DataTransfer();
     dt.setData("text/plain", new TextDecoder().decode(b64ToBytes(byslot.script.b64)));
