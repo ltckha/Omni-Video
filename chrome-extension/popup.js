@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let lines = [];
     if (lastResult && lastResult.message) lines.push(lastResult.message);
     if (active && active.itemId) {
-      lines.push(`Đang làm mã <b>${active.itemId}</b>: kiểm tra Omni-Studio Pro → bấm Tạo Video → bấm Tải. Video sẽ tự lưu đúng thư mục.`);
+      lines.push(`Đang làm mã <b>${active.itemId}</b>: kiểm tra ô câu lệnh trên Flow → bấm Tạo (→) → Phê duyệt → bấm Tải. Video sẽ tự lưu đúng thư mục.`);
     }
     statusEl.innerHTML = lines.join("<br>") || "Chọn sản phẩm cần làm video.";
   }
@@ -37,7 +37,7 @@ document.addEventListener("DOMContentLoaded", () => {
       label.title = label.textContent;
       const fillBtn = document.createElement("button");
       fillBtn.textContent = "Điền vào Flow";
-      fillBtn.title = "Tự điền ảnh người mẫu, ảnh SP, kịch bản + giọng miền Nam vào Omni-Studio Pro đang mở";
+      fillBtn.title = "Tự dán ảnh SP, ảnh người mẫu, kịch bản vào ô câu lệnh của dự án Flow đang mở";
       fillBtn.addEventListener("click", () => {
         fillBtn.disabled = true;
         statusEl.textContent = `Đang điền mã ${item.itemId}…`;

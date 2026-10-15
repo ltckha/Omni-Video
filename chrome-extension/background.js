@@ -44,7 +44,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   return true;
 });
 
-// ===== Google Flow: tự điền 3 file vào Omni-Studio Pro (anh Kha tự bấm Tạo / Tải) =====
+// ===== Google Flow: tự điền ô câu lệnh dự án Flow (anh Kha tự bấm Tạo / Phê duyệt / Tải) =====
 function loadFlowFiles(itemId) {
   return new Promise((resolve) => {
     const port = chrome.runtime.connectNative(NATIVE_HOST_NAME);
@@ -70,44 +70,24 @@ function loadFlowFiles(itemId) {
   });
 }
 
-// Chẩn đoán: mỗi khung trong tab Flow có gì (để biết vì sao không điền được)
-async function diagnoseFlowFrames(tabId) {
-  try {
-    const results = await chrome.scripting.executeScript({
-      target: { tabId: tabId, allFrames: true },
-      func: () => {
-        const t = (document.body ? document.body.innerText : "").toUpperCase();
-        let host = location.protocol;
-        try { host = location.host || location.protocol; } catch (e) {}
-        return `${host.split(".").slice(-2).join(".")}[NM:${t.includes("NGƯỜI MẪU") ? 1 : 0} SP:${t.includes("SẢN PHẨM") ? 1 : 0} KB:${t.includes("KỊCH BẢN") ? 1 : 0} file:${document.querySelectorAll("input[type=file]").length} ta:${document.querySelectorAll("textarea").length} sel:${document.querySelectorAll("select").length} omni:${typeof window.__omniFlowFill}]`;
-      }
-    });
-    return results.map((r) => r.result).join(" | ");
-  } catch (e) {
-    return `không chạy được chẩn đoán (${e.message})`;
-  }
-}
-
 async function fillFlowTool(itemId) {
-  const tabs = await chrome.tabs.query({ url: "https://flow.google.com/*" });
-  const toolTab = tabs.find((t) => /\/tool\//.test(t.url || "")) || tabs[0];
-  if (!toolTab) {
-    return { status: "error", message: "Chưa mở Google Flow — anh mở công cụ Omni-Studio Pro trước." };
+  const tabs = await chrome.tabs.query({ url: "https://flow.google.com/project/*" });
+  const projectTab = tabs.find((t) => t.active) || tabs.find((t) => !/\/tool\//.test(t.url || "")) || tabs[0];
+  if (!projectTab) {
+    return { status: "error", message: "Chưa mở dự án Google Flow — anh mở dự án (vd Omni-Video) trước." };
   }
   const loaded = await loadFlowFiles(itemId);
   if (loaded.status !== "success") return loaded;
+  await chrome.tabs.update(projectTab.id, { active: true });
   let resp;
   try {
-    resp = await chrome.tabs.sendMessage(toolTab.id, { action: "FLOW_FILL", itemId: itemId, files: loaded.files });
+    resp = await chrome.tabs.sendMessage(projectTab.id, { action: "FLOW_FILL", itemId: itemId, files: loaded.files });
   } catch (e) {
-    resp = null;
+    resp = { status: "error", message: "Trang Flow chưa nạp extension — anh tải lại trang Flow (Cmd+R) rồi bấm lại." };
   }
-  if (!resp) {
-    const diag = await diagnoseFlowFrames(toolTab.id);
-    return { status: "error", message: `Không thấy các ô Người mẫu / Sản phẩm / Kịch bản — anh mở công cụ Omni-Studio Pro (tải lại trang nếu vừa cài extension). Chẩn đoán: ${diag}` };
+  if (resp && resp.status === "success") {
+    chrome.storage.local.set({ flowActiveItem: { itemId: itemId, since: Date.now() } });
   }
-  chrome.storage.local.set({ flowActiveItem: { itemId: itemId, since: Date.now() } });
-  await chrome.tabs.update(toolTab.id, { active: true });
   return resp;
 }
 
