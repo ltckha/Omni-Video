@@ -65,11 +65,11 @@ def backup_current_prompt(item_dir, score=None):
 
 def update_global_learned_rules(added_rules):
     """
-    Lưu trữ các bài học QA vào file hệ thống chung scripts/global_learned_rules.json
+    Lưu trữ các bài học QA vào file hệ thống chung config/global_learned_rules.json
     để tất cả các sản phẩm mới sau này tự động kế thừa.
     """
     project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-    global_file = os.path.join(project_dir, "scripts", "global_learned_rules.json")
+    global_file = os.path.join(project_dir, "config", "global_learned_rules.json")
     
     rules_data = []
     if os.path.exists(global_file):

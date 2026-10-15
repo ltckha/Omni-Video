@@ -305,3 +305,10 @@ def test_product_integrity_rules_loaded_and_gift_angle_has_no_handoff():
     src = open(os.path.join(SCRIPTS_DIR, "generate_ugc_prompt.py"), encoding="utf-8").read()
     assert "Tình huống trao tặng" not in src
     assert "không quay cảnh trao tay" in src
+
+
+def test_global_learned_rules_written_to_config(tmp_path, monkeypatch):
+    import prompt_evolution_engine as pee
+    src = open(os.path.join(SCRIPTS_DIR, "prompt_evolution_engine.py"), encoding="utf-8").read()
+    assert 'os.path.join(project_dir, "config", "global_learned_rules.json")' in src
+    assert os.path.exists(os.path.join(os.path.dirname(SCRIPTS_DIR), "config", "global_learned_rules.json"))
