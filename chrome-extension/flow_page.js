@@ -68,11 +68,20 @@
     if (!(await pasteImages(box, images))) {
       return { status: "error", message: `Flow chưa nhận đủ ${images.length} ảnh (đang có ${chipCount()}) — anh tải lại trang Flow rồi thử lại.` };
     }
-    const dt = new DataTransfer();
-    dt.setData("text/plain", new TextDecoder().decode(b64ToBytes(byslot.script.b64)));
-    paste(box, dt);
-    if (!(await waitFor(() => box.innerText.trim().length > 50, 3000))) {
-      return { status: "error", message: "Đã gắn 2 ảnh nhưng chưa dán được kịch bản — anh dán tay file .txt." };
+    // Flow vẽ lại ô câu lệnh khi gắn ảnh -> tìm lại ô mới trước khi dán kịch bản, thử tối đa 3 lần
+    const scriptText = new TextDecoder().decode(b64ToBytes(byslot.script.b64));
+    const hasScript = () => { const b = promptBox(); return b && b.innerText.trim().length > 50; };
+    for (let attempt = 0; attempt < 3 && !hasScript(); attempt++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      const current = promptBox();
+      if (!current) continue;
+      const dt = new DataTransfer();
+      dt.setData("text/plain", scriptText);
+      paste(current, dt);
+      await waitFor(hasScript, 3000);
+    }
+    if (!hasScript()) {
+      return { status: "error", message: `Đã gắn ${images.length} ảnh nhưng chưa dán được kịch bản — anh mở Product_Assets/${message.itemId}/${message.itemId}.txt dán tay rồi bấm Tạo.` };
     }
     return { status: "success" };
   }
