@@ -11,11 +11,10 @@
    - Trước khi sửa code, thêm module, đổi cấu hình, hay chạy lệnh, **bắt buộc phải trình bày giải pháp kỹ thuật chi tiết và được anh Kha đồng ý trước**.
    - Không tự ý suy đoán, không tự tiện thay đổi luồng dữ liệu.
 
-2. **GIT: CHỈ PUSH LÊN NHÁNH RIÊNG + MỞ PULL REQUEST:**
-   - Cấm push thẳng `main`. `main` chỉ thay đổi khi anh Kha bấm **Merge** trên GitHub (Merge = lệnh push của anh Kha).
-   - Khi được giao việc, được push lên nhánh riêng (vd. `claude/<mô-tả>`) và mở Pull Request để anh Kha duyệt.
-   - Trước khi push, kiểm tra không lọt `.env`, credentials, token, cookie vào các file được commit.
-   - Cấm `git commit -am` / `git add -A` / `git add .`. Luôn `git add` từng file cụ thể.
+2. **GIT — THEO LUẬT CHUNG (`~/Developer/Ecosystem-Hub/docs/LUAT_CHUNG.md` luật 1):**
+   - Chỉ commit trên máy (`main`); không nhánh riêng / Pull Request; không tự push.
+   - Anh Kha đẩy lúc 21:00 bằng `~/Developer/Ecosystem-Hub/commands/push_all.command`, hoặc nhắn **"đẩy"** → quét bí mật (`.env`, `config/service_account.json`, token, cookie) rồi push thẳng `main`. Ban ngày không hỏi / nhắc anh "đẩy".
+   - Cấm `git commit -am` / `git add -A` / `git add .`. Luôn `git add` từng file. Cuối mỗi việc không để file sửa dở chưa commit.
 
 3. **MÔ HÌNH PHỐI HỢP CẶP BÀI TRÙNG (DUAL-CLAUDE ARCHITECTURE):**
    - **Claude Cowork (Cloud):** Đảm nhận tư duy vĩ mô: Quy hoạch kiến trúc, phản biện logic mã nguồn, viết prompt Gemini Omni, lập kế hoạch hành động.
@@ -89,3 +88,19 @@ source venv/bin/activate
 - Luật prompt dùng chung: `config/prompt_rules.json` (nạp toàn bộ vào mọi prompt — không đặt luật riêng cho một kịch bản ở đây).
 - File Service Account: `config/service_account.json` (Google Sheets & Google Drive API).
 - Thư mục kho lưu trữ NAS: `/Volumes/Media/Omni-Video/`.
+
+---
+
+## 🔁 4. QUY TRÌNH 1-CLICK HẰNG NGÀY
+
+| Bước | Anh bấm | Script | Việc làm |
+|---|---|---|---|
+| 1 | `Import.command` | `auto_organize_downloads.py` ➔ `import_csv_to_gsheet.py` ➔ `fill_aff_links.py --apply` | Gom ảnh từ `~/Downloads` vào `Product_Assets/<Mã_SP>/`, nhập CSV Shopee lên tab `src_omni`, tự điền link s.shopee.vn từ `aff_links` |
+| 2 | `Prompt.command` | `generate_ugc_prompt.py` | Sinh `<Mã_SP>.txt` + copy ảnh nhân vật |
+| 3 | Extension → **Tạo video** (dự án Flow đang mở) | `flow_page.js` + `flow_helper.py` qua native host | Dán ảnh + kịch bản, tự bấm Tạo → Phê duyệt 15 credit → chờ → Tải `<Mã_SP>.mp4` vào `Product_Assets/<Mã_SP>/` |
+| 3b | `Video.command` (dự phòng) | `generate_omni_video.py` | Sinh video bằng Gemini Omni API (trả phí, có PIN) |
+| 4 | `Move.command` (sau khi anh xem video) | `archive_completed_videos.py` | Dọn thư mục có `.mp4`, chuyển về `/Volumes/Media/Omni-Video/`, cập nhật Sheet |
+
+- **Lấy sản phẩm:** trên Shopee rê chuột lên ảnh nét nhất, bấm `Alt+S` (hoặc chuột phải "Lưu ảnh SP cho Omni UGC") → extension tải ảnh, native host (`com.omni.video.curator`) chuyển vào `Product_Assets/<Mã_SP>/`, lưu `info.json`, ghi dòng lên `src_omni`.
+- **Kiểm thử:** `python -m pytest tests/` (0 mạng, 0 Gemini) — bắt buộc sau mỗi lần sửa code.
+- **Luật Antigravity:** `.agents/rules/` (thảo luận trước khi làm, git, Spark qua Drive API v3, map cột theo header).
