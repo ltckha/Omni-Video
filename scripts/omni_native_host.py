@@ -45,9 +45,40 @@ def send_message(message):
     except Exception:
         pass
 
+def handle_flow_action(msg):
+    """Google Flow (bán tự động): liệt kê SP chờ video, gom 3 file để kéo thả, thu video đã tải về."""
+    import subprocess
+    import flow_helper
+
+    action = msg.get("action")
+    item_id = str(msg.get("itemId", "")).strip()
+    try:
+        if action == "FLOW_LIST":
+            send_message({"status": "success", "items": flow_helper.list_pending_items()})
+        elif action == "FLOW_PREPARE":
+            bundle_dir = flow_helper.prepare_flow_bundle(item_id)
+            subprocess.run(["open", bundle_dir], check=False)
+            send_message({"status": "success", "bundleDir": bundle_dir})
+        elif action == "FLOW_COLLECT":
+            for _ in range(40):
+                moved = flow_helper.collect_flow_video(item_id)
+                if moved:
+                    send_message({"status": "success", "movedTo": moved})
+                    return
+                time.sleep(0.25)
+            send_message({"status": "error", "message": f"Không thấy {item_id}.mp4 trong Downloads"})
+        else:
+            send_message({"status": "error", "message": f"Lệnh không hỗ trợ: {action}"})
+    except Exception as e:
+        send_message({"status": "error", "message": str(e)})
+
 def main():
     msg = read_message()
     if not msg:
+        sys.exit(0)
+
+    if str(msg.get("action", "")).startswith("FLOW_"):
+        handle_flow_action(msg)
         sys.exit(0)
 
     item_id = str(msg.get("itemId", "")).strip()

@@ -21,8 +21,64 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     let tabId = sender.tab ? sender.tab.id : null;
     processSaveWorkflow(message.payload, tabId);
     sendResponse({ status: "processing" });
+  } else if (message.action === "FLOW_LIST") {
+    chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_LIST" }, (resp) => {
+      sendResponse(chrome.runtime.lastError ? { status: "error", message: chrome.runtime.lastError.message } : resp);
+    });
+  } else if (message.action === "FLOW_PREPARE" && message.itemId) {
+    chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_PREPARE", itemId: message.itemId }, (resp) => {
+      if (chrome.runtime.lastError) {
+        sendResponse({ status: "error", message: chrome.runtime.lastError.message });
+        return;
+      }
+      if (resp && resp.status === "success") {
+        chrome.storage.local.set({ flowActiveItem: { itemId: message.itemId, since: Date.now() } });
+      }
+      sendResponse(resp);
+    });
+  } else if (message.action === "FLOW_CLEAR") {
+    chrome.storage.local.remove("flowActiveItem", () => sendResponse({ status: "success" }));
   }
   return true;
+});
+
+// ===== Google Flow (bán tự động): video tải từ Flow -> <itemId>.mp4 -> Product_Assets/<itemId>/ =====
+const FLOW_ACTIVE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
+const FLOW_SOURCE_PATTERN = /flow\.google\.com|labs\.google|usercontent\.goog|googleusercontent\.com|storage\.googleapis\.com/;
+const flowDownloads = {};  // downloadId -> itemId
+
+function isFlowVideoDownload(item) {
+  const isVideo = (item.mime || "").startsWith("video/") || /\.mp4$/i.test(item.filename || "");
+  const fromFlow = FLOW_SOURCE_PATTERN.test(`${item.referrer || ""} ${item.url || ""} ${item.finalUrl || ""}`);
+  return isVideo && fromFlow;
+}
+
+chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
+  chrome.storage.local.get(["flowActiveItem"], (stored) => {
+    const active = stored.flowActiveItem;
+    if (active && Date.now() - active.since < FLOW_ACTIVE_MAX_AGE_MS && isFlowVideoDownload(item)) {
+      flowDownloads[item.id] = active.itemId;
+      chrome.storage.local.remove("flowActiveItem");
+      suggest({ filename: `${active.itemId}.mp4`, conflictAction: "uniquify" });
+    } else {
+      suggest();
+    }
+  });
+  return true;
+});
+
+chrome.downloads.onChanged.addListener((delta) => {
+  const itemId = flowDownloads[delta.id];
+  if (!itemId || !delta.state || delta.state.current !== "complete") return;
+  delete flowDownloads[delta.id];
+  chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_COLLECT", itemId: itemId }, (resp) => {
+    const ok = !chrome.runtime.lastError && resp && resp.status === "success";
+    const detail = chrome.runtime.lastError ? chrome.runtime.lastError.message : (resp && resp.message) || "";
+    const message = ok ? `✅ Đã lưu video vào Product_Assets/${itemId}/${itemId}.mp4` : `⚠️ Chưa chuyển được video ${itemId}: ${detail}`;
+    chrome.storage.local.set({ flowLastResult: { ok: ok, message: message, at: Date.now() } });
+    chrome.action.setBadgeBackgroundColor({ color: ok ? "#2e7d32" : "#d32f2f" });
+    chrome.action.setBadgeText({ text: ok ? "OK" : "!" });
+  });
 });
 
 async function processSaveWorkflow(payloadData, tabId) {
