@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Omni Video - Shopee Image Curator",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Lựa chọn ảnh sản phẩm Shopee HD, tải về máy và tự động ghi nhận vào Google Sheet.",
   "permissions": [
     "downloads",
@@ -38,6 +38,8 @@
       "matches": ["https://*.usercontent.goog/*"],
       "js": ["flow_fill.js"],
       "all_frames": true,
+      "match_about_blank": true,
+      "match_origin_as_fallback": true,
       "run_at": "document_idle"
     }
   ],

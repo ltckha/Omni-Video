@@ -3,6 +3,7 @@
 // Không tự bấm Tạo, không chạy lô.
 
 (function () {
+  window.__omniFlowFill = true;  // đánh dấu cho chẩn đoán
   const SLOT_LABELS = {
     character: ["NGƯỜI MẪU", "NGUOI MAU"],
     product: ["SẢN PHẨM", "SAN PHAM"],
