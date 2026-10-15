@@ -1,5 +1,5 @@
 // Omni Video - 1 cú bấm / 1 video trên dự án Google Flow (anh Kha chọn 15/10/2026):
-// dán ảnh sản phẩm (Input Image 1) -> ảnh người mẫu (Input Image 2) -> kịch bản .txt (Flow tự tải ảnh khi dán)
+// dán 1 lần mọi ảnh trong thư mục SP (1 = ảnh SP chính, 2 = người mẫu, 3.. = ảnh SP còn lại, tối đa 7) -> kịch bản .txt
 // -> bấm Tạo -> Phê duyệt 15 credit -> chờ video xong -> Tải 720p (background đặt tên <itemId>.mp4) -> Xong.
 // Mỗi lần chỉ 1 sản phẩm do anh Kha chọn; không chạy lô. Bước nào quá hạn thì dừng, báo để anh làm tay.
 
@@ -64,8 +64,9 @@
       return { status: "error", message: "Ô câu lệnh đang có nội dung — anh xoá trống rồi bấm lại." };
     }
     const byslot = Object.fromEntries(message.files.map((f) => [f.slot, f]));
-    if (!(await pasteImages(box, [byslot.product, byslot.character]))) {
-      return { status: "error", message: `Flow chưa nhận đủ 2 ảnh (đang có ${chipCount()}) — anh tải lại trang Flow rồi thử lại.` };
+    const images = message.files.filter((f) => f.slot !== "script");  // đã xếp: SP chính, người mẫu, SP còn lại
+    if (!(await pasteImages(box, images))) {
+      return { status: "error", message: `Flow chưa nhận đủ ${images.length} ảnh (đang có ${chipCount()}) — anh tải lại trang Flow rồi thử lại.` };
     }
     const dt = new DataTransfer();
     dt.setData("text/plain", new TextDecoder().decode(b64ToBytes(byslot.script.b64)));
@@ -134,7 +135,7 @@
     const before = { approvals: approveRadios().length, videos: videoCards().length };
     fill(message).then((resp) => {
       showToast(resp.status === "success"
-        ? `✅ Đã điền mã ${message.itemId}: ảnh SP (1) + người mẫu (2) + kịch bản. Đang tự bấm Tạo…`
+        ? `✅ Đã điền mã ${message.itemId}: ${message.files.length - 1} ảnh + kịch bản. Đang tự bấm Tạo…`
         : `⚠️ ${resp.message}`, resp.status !== "success");
       sendResponse(resp);
       if (resp.status === "success" && message.autoRun) autoRun(message.itemId, before);

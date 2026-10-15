@@ -88,7 +88,7 @@ def test_encode_flow_files_chunks_reassemble(tmp_path):
     msgs = encode_flow_files("111", str(assets), chunk_size=1000)
     meta = msgs[0]
     assert meta["type"] == "meta"
-    assert [f["slot"] for f in meta["files"]] == ["character", "product", "script"]
+    assert [f["slot"] for f in meta["files"]] == ["product", "character", "script"]
     char = next(f for f in meta["files"] if f["slot"] == "character")
     parts = [m for m in msgs[1:] if m["slot"] == "character"]
     assert len(parts) == char["chunks"] > 1
@@ -110,3 +110,18 @@ def test_large_character_image_is_shrunk_to_jpeg(tmp_path):
     assert char["name"] == "Nu-25t.jpg" and char["mime"] == "image/jpeg"
     data = base64.b64decode("".join(m["data"] for m in msgs[1:] if m["slot"] == "character"))
     assert data[:3] == b"\xff\xd8\xff" and len(data) < 2_000_000
+
+
+def test_all_product_images_ordered_and_capped(tmp_path):
+    from flow_helper import encode_flow_files
+    assets = tmp_path / "Product_Assets"
+    d = _make_item(assets, "111")  # 111_1.webp (3 bytes) + Nu-25t.png
+    for i in range(2, 10):  # 8 more product images, bigger index = bigger file
+        (d / f"111_{i}.jpeg").write_bytes(b"x" * (100 * i))
+    meta = encode_flow_files("111", str(assets))[0]
+    slots = [f["slot"] for f in meta["files"]]
+    names = [f["name"] for f in meta["files"]]
+    assert slots[:2] == ["product", "character"] and slots[-1] == "script"
+    assert len(slots) - 1 == 7  # Flow max 7 images
+    assert names[0] == "111_9.jpeg" and names[1] == "Nu-25t.png"
+    assert names[2:7] == ["111_8.jpeg", "111_7.jpeg", "111_6.jpeg", "111_5.jpeg", "111_4.jpeg"]

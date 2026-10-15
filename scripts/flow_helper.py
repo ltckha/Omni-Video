@@ -34,15 +34,21 @@ def _product_title(item_dir: str) -> str:
         return ""
 
 
-def find_best_product_image(item_dir: str) -> Optional[str]:
-    """Ảnh sản phẩm lớn nhất (nét nhất) trong thư mục, bỏ ảnh nhân vật."""
+def find_product_images(item_dir: str) -> List[str]:
+    """Mọi ảnh sản phẩm trong thư mục (bỏ ảnh nhân vật), lớn nhất (nét nhất) trước."""
     candidates = []
     for ext in ("*.webp", "*.jpg", "*.jpeg", "*.png"):
         for f in glob.glob(os.path.join(item_dir, ext)):
             fname = os.path.basename(f).lower()
             if not fname.startswith("nu-") and not fname.startswith("nam-") and "character" not in fname:
                 candidates.append(f)
-    return max(candidates, key=os.path.getsize) if candidates else None
+    return sorted(candidates, key=os.path.getsize, reverse=True)
+
+
+def find_best_product_image(item_dir: str) -> Optional[str]:
+    """Ảnh sản phẩm lớn nhất (nét nhất) trong thư mục, bỏ ảnh nhân vật."""
+    images = find_product_images(item_dir)
+    return images[0] if images else None
 
 
 def get_flow_assets(item_id: str, assets_dir: str = ASSETS_DIR) -> Dict[str, str]:
@@ -50,9 +56,10 @@ def get_flow_assets(item_id: str, assets_dir: str = ASSETS_DIR) -> Dict[str, str
     item_dir = os.path.join(assets_dir, item_id)
     if not os.path.isdir(item_dir):
         raise FileNotFoundError(f"Không có thư mục Product_Assets/{item_id}")
+    products = find_product_images(item_dir)
     assets = {
         "character": find_character_image(item_dir),
-        "product": find_best_product_image(item_dir),
+        "product": products[0] if products else None,
         "script": find_prompt_file(item_dir, item_id),
     }
     labels = {"script": "kịch bản .txt", "product": "ảnh sản phẩm", "character": "ảnh người mẫu"}
@@ -62,6 +69,7 @@ def get_flow_assets(item_id: str, assets_dir: str = ASSETS_DIR) -> Dict[str, str
     return assets
 
 
+MAX_FLOW_IMAGES = 7  # Flow nhận tối đa 7 ảnh tham chiếu
 PASTE_MAX_BYTES = 2_000_000  # Flow không nhận ảnh dán vào khi quá nặng (ảnh người mẫu PNG ~7 MB bị từ chối)
 
 
@@ -82,8 +90,13 @@ def shrink_for_paste(path: str, max_bytes: int = PASTE_MAX_BYTES) -> bytes:
 def encode_flow_files(item_id: str, assets_dir: str = ASSETS_DIR, chunk_size: int = 700_000) -> List[Dict]:
     """Native messaging giới hạn 1 MB/tin -> mã base64 rồi chia nhỏ. Trả danh sách tin: 1 tin meta + các tin chunk."""
     assets = get_flow_assets(item_id, assets_dir)
+    # Thứ tự dán = thứ tự Input Image trên Flow: 1 = ảnh SP chính, 2 = người mẫu (khớp kịch bản), 3.. = ảnh SP còn lại
+    extras = find_product_images(os.path.join(assets_dir, item_id))[1:MAX_FLOW_IMAGES - 1]
+    ordered = [("product", assets["product"]), ("character", assets["character"])]
+    ordered += [(f"product_{i}", path) for i, path in enumerate(extras, start=2)]
+    ordered.append(("script", assets["script"]))
     files, chunks = [], []
-    for slot, path in assets.items():
+    for slot, path in ordered:
         if slot == "script":
             with open(path, "rb") as f:
                 data = f.read()
