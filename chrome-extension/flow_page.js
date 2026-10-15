@@ -1,6 +1,7 @@
-// Omni Video - Tự điền ô câu lệnh của dự án Google Flow (đã thử thật 15/10/2026 trên dự án Test Omni):
-// dán ảnh sản phẩm (Input Image 1) -> ảnh người mẫu (Input Image 2) -> kịch bản .txt.
-// Flow tự tải ảnh lên khi dán. Anh Kha tự bấm Tạo (→) và Phê duyệt 15 credit. Không tự bấm Tạo, không chạy lô.
+// Omni Video - 1 cú bấm / 1 video trên dự án Google Flow (anh Kha chọn 15/10/2026):
+// dán ảnh sản phẩm (Input Image 1) -> ảnh người mẫu (Input Image 2) -> kịch bản .txt (Flow tự tải ảnh khi dán)
+// -> bấm Tạo -> Phê duyệt 15 credit -> chờ video xong -> Tải 720p (background đặt tên <itemId>.mp4) -> Xong.
+// Mỗi lần chỉ 1 sản phẩm do anh Kha chọn; không chạy lô. Bước nào quá hạn thì dừng, báo để anh làm tay.
 
 (function () {
   const CHIP_LABEL = "Thành phần";
@@ -76,13 +77,68 @@
     return { status: "success" };
   }
 
+  // ===== Tự chạy các bước sau khi điền =====
+  const visible = (el) => el && el.offsetParent !== null;
+  const byLabel = (label) => [...document.querySelectorAll(`button[aria-label="${label}"]`)].filter(visible);
+  const approveRadios = () => [...document.querySelectorAll("[role=radio]")].filter((r) => r.textContent.trim().endsWith("Phê duyệt") && !r.textContent.includes("Luôn"));
+  const videoCards = () => [...document.querySelectorAll("div.video-container.clickable")].filter((d) => {
+    const img = d.querySelector("img");
+    return img && /flow-content\.google/.test(img.src || "");
+  });
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  async function step(name, check, timeoutMs) {
+    const el = await new Promise(async (resolve) => {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        const found = check();
+        if (found) return resolve(found);
+        await sleep(1000);
+      }
+      resolve(null);
+    });
+    if (!el) throw new Error(`quá hạn ở bước "${name}" — anh làm tay tiếp giúp em`);
+    return el;
+  }
+
+  async function autoRun(itemId, before) {
+    try {
+      const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled).pop(), 60000);
+      await sleep(1500);
+      submit.click();
+      showToast(`⏳ Mã ${itemId}: đã bấm Tạo, chờ Flow hỏi phê duyệt…`);
+
+      const radio = await step("Phê duyệt", () => approveRadios().length > before.approvals && approveRadios().pop(), 90000);
+      radio.click();
+      showToast(`⏳ Mã ${itemId}: đã Phê duyệt 15 credit, đang tạo video (vài phút)…`);
+
+      const card = await step("chờ video xong", () => videoCards().length > before.videos && videoCards().pop(), 15 * 60000);
+      await sleep(2000);
+      card.click();
+
+      const dl = await step("mở Tải xuống", () => byLabel("Tải nội dung nghe nhìn xuống")[0], 30000);
+      dl.click();
+      const item720 = await step("chọn 720p", () => [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.includes("720p")), 10000);
+      item720.click();
+      showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${itemId}.mp4 (Chrome hỏi Save thì anh bấm Save).`);
+
+      await sleep(4000);
+      const done = byLabel("Đã chỉnh sửa xong cảnh")[0];
+      if (done) done.click();
+    } catch (e) {
+      showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
+    }
+  }
+
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== "FLOW_FILL") return false;
+    const before = { approvals: approveRadios().length, videos: videoCards().length };
     fill(message).then((resp) => {
       showToast(resp.status === "success"
-        ? `✅ Đã điền mã ${message.itemId}: ảnh SP (1) + người mẫu (2) + kịch bản. Anh kiểm tra rồi bấm Tạo (→) và Phê duyệt.`
+        ? `✅ Đã điền mã ${message.itemId}: ảnh SP (1) + người mẫu (2) + kịch bản. Đang tự bấm Tạo…`
         : `⚠️ ${resp.message}`, resp.status !== "success");
       sendResponse(resp);
+      if (resp.status === "success" && message.autoRun) autoRun(message.itemId, before);
     });
     return true;
   });

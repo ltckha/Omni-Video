@@ -70,12 +70,14 @@ async function fillFlowTool(itemId) {
   await chrome.tabs.update(projectTab.id, { active: true });
   let resp;
   try {
-    resp = await chrome.tabs.sendMessage(projectTab.id, { action: "FLOW_FILL", itemId: itemId, files: loaded.files });
+    // Đặt trước để tên file tải về là <itemId>.mp4 (content script tự chạy tới bước Tải)
+    await chrome.storage.local.set({ flowActiveItem: { itemId: itemId, since: Date.now() } });
+    resp = await chrome.tabs.sendMessage(projectTab.id, { action: "FLOW_FILL", itemId: itemId, files: loaded.files, autoRun: true });
   } catch (e) {
     resp = { status: "error", message: "Trang Flow chưa nạp extension — anh tải lại trang Flow (Cmd+R) rồi bấm lại." };
   }
-  if (resp && resp.status === "success") {
-    chrome.storage.local.set({ flowActiveItem: { itemId: itemId, since: Date.now() } });
+  if (!resp || resp.status !== "success") {
+    await chrome.storage.local.remove("flowActiveItem");
   }
   return resp;
 }

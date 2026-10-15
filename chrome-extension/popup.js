@@ -10,7 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
     let lines = [];
     if (lastResult && lastResult.message) lines.push(lastResult.message);
     if (active && active.itemId) {
-      lines.push(`Đang làm mã <b>${active.itemId}</b>: kiểm tra ô câu lệnh trên Flow → bấm Tạo (→) → Phê duyệt → bấm Tải. Video sẽ tự lưu đúng thư mục.`);
+      lines.push(`Đang làm mã <b>${active.itemId}</b>: extension đang tự Tạo → Phê duyệt → chờ → Tải trên tab Flow (để tab Flow mở). Chrome hỏi Save thì anh bấm Save.`);
     }
     statusEl.innerHTML = lines.join("<br>") || "Chọn sản phẩm cần làm video.";
   }
@@ -36,11 +36,11 @@ document.addEventListener("DOMContentLoaded", () => {
       label.textContent = `${item.itemId} ${item.title || ""}`;
       label.title = label.textContent;
       const fillBtn = document.createElement("button");
-      fillBtn.textContent = "Điền vào Flow";
-      fillBtn.title = "Tự dán ảnh SP, ảnh người mẫu, kịch bản vào ô câu lệnh của dự án Flow đang mở";
+      fillBtn.textContent = "Tạo video";
+      fillBtn.title = "Tự điền + bấm Tạo + Phê duyệt 15 credit + tải <mã>.mp4 trên dự án Flow đang mở";
       fillBtn.addEventListener("click", () => {
         fillBtn.disabled = true;
-        statusEl.textContent = `Đang điền mã ${item.itemId}…`;
+        statusEl.textContent = `Đang làm mã ${item.itemId}…`;
         chrome.runtime.sendMessage({ action: "FLOW_FILL", itemId: item.itemId }, (r) => {
           fillBtn.disabled = false;
           if (r && r.status === "success") {
