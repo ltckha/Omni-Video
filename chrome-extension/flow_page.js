@@ -110,44 +110,56 @@
     return el;
   }
 
-  async function autoRun(itemId, before) {
+  // Chỉ nhận nút Phê duyệt / video XUẤT HIỆN SAU khi bấm Tạo: chụp danh sách phần tử cũ ngay trước khi bấm,
+  // phần tử mới phải không nằm trong danh sách cũ và đứng sau tin nhắn cũ cuối cùng (khung trò chuyện có đồ của phiên trước).
+  const isNew = (el, oldSet) => !oldSet.has(el);
+  const after = (el, ref) => !ref || (ref.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+  async function autoRun(itemId) {
     try {
       const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled).pop(), 60000);
-      await sleep(1500);
+      await sleep(3000);  // chờ ảnh tải lên xong
+      const oldRadios = new Set(approveRadios());
+      const oldCards = new Set(videoCards());
       submit.click();
       showToast(`⏳ Mã ${itemId}: đã bấm Tạo, chờ Flow hỏi phê duyệt…`);
 
-      const radio = await step("Phê duyệt", () => approveRadios().length > before.approvals && approveRadios().pop(), 90000);
+      const radio = await step("Phê duyệt", () => approveRadios().filter((r) => isNew(r, oldRadios) && r.getAttribute("aria-checked") !== "true").pop(), 120000);
+      await sleep(1000);
       radio.click();
-      showToast(`⏳ Mã ${itemId}: đã Phê duyệt 15 credit, đang tạo video (vài phút)…`);
+      const approvedAt = Date.now();
+      showToast(`⏳ Mã ${itemId}: đã Phê duyệt 15 credit, đang tạo video (vài phút) — để tab này mở…`);
 
-      const card = await step("chờ video xong", () => videoCards().length > before.videos && videoCards().pop(), 15 * 60000);
-      await sleep(2000);
+      // Video mới: không có trong danh sách cũ, nằm sau nút Phê duyệt vừa bấm, và ít nhất 60 giây sau khi phê duyệt
+      const card = await step("chờ video xong", () => Date.now() - approvedAt > 60000 &&
+        videoCards().filter((c) => isNew(c, oldCards) && after(c, radio)).pop(), 15 * 60000);
+      await sleep(3000);
       card.click();
 
       const dl = await step("mở Tải xuống", () => byLabel("Tải nội dung nghe nhìn xuống")[0], 30000);
+      await sleep(1000);
       dl.click();
       const item720 = await step("chọn 720p", () => [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.includes("720p")), 10000);
       item720.click();
       showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${itemId}.mp4 (Chrome hỏi Save thì anh bấm Save).`);
 
-      await sleep(4000);
+      await sleep(5000);
       const done = byLabel("Đã chỉnh sửa xong cảnh")[0];
       if (done) done.click();
     } catch (e) {
       showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
+      chrome.storage.local.remove("flowActiveItem");
     }
   }
 
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== "FLOW_FILL") return false;
-    const before = { approvals: approveRadios().length, videos: videoCards().length };
     fill(message).then((resp) => {
       showToast(resp.status === "success"
         ? `✅ Đã điền mã ${message.itemId}: ${message.files.length - 1} ảnh + kịch bản. Đang tự bấm Tạo…`
         : `⚠️ ${resp.message}`, resp.status !== "success");
       sendResponse(resp);
-      if (resp.status === "success" && message.autoRun) autoRun(message.itemId, before);
+      if (resp.status === "success" && message.autoRun) autoRun(message.itemId);
     });
     return true;
   });
