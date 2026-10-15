@@ -30,6 +30,10 @@ echo ""
 $PYTHON_EXEC scripts/import_csv_to_gsheet.py
 
 echo ""
+# 3. Tự điền link TTLK s.shopee.vn từ bảng chung aff_links (chỉ ô trống / chưa phải s.shopee.vn)
+$PYTHON_EXEC scripts/fill_aff_links.py --apply
+
+echo ""
 echo "============================================================"
 echo "✅ HOÀN TẤT! Nhấn phím Enter để đóng cửa sổ này."
 echo "============================================================"
