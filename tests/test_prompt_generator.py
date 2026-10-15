@@ -293,3 +293,15 @@ def test_gemini_model_chain_order():
     for src in (qa_src, open(os.path.join(SCRIPTS_DIR, "generate_ugc_prompt.py"), encoding="utf-8").read()):
         assert '"gemini-3.5-flash"' not in src
         assert "-preview" not in src
+
+
+def test_product_integrity_rules_loaded_and_gift_angle_has_no_handoff():
+    """Video 27958810119: nắp hũ nến tách ra khi cảnh trao tay -> cấm trao tay / tháo nắp, SP cầm sẵn từ khung đầu."""
+    import generate_ugc_prompt
+    rules = generate_ugc_prompt.load_central_prompt_rules()
+    assert "PRODUCT ALREADY IN HAND FROM FRAME 0" in rules
+    assert "ONE RIGID, FULLY ASSEMBLED HERO OBJECT" in rules
+    assert "MAIN PRODUCT ONLY" in rules
+    src = open(os.path.join(SCRIPTS_DIR, "generate_ugc_prompt.py"), encoding="utf-8").read()
+    assert "Tình huống trao tặng" not in src
+    assert "không quay cảnh trao tay" in src

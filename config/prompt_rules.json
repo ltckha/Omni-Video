@@ -21,5 +21,10 @@
   ],
   "SINGLE_CONTINUOUS_ONE_TAKE_STANDARDS": [
     "ZERO MULTI-BEAT FRAGMENTATION & ZERO JUMP-CUTS: Strictly forbid dividing a 10s video into fragmented beats, separate time-stamps (e.g. 0-3s, 3-6s), whip-pans, or multi-scene cuts inside the prompt. The entire 10-second video MUST be described as ONE single continuous, seamless cinematic camera take (One-Take Continuous Flow) to prevent AI morphing and preserve 100% lip-sync stability."
+  ],
+  "PRODUCT_INTEGRITY_AND_HANDLING": [
+    "PRODUCT ALREADY IN HAND FROM FRAME 0: The presenter is already holding the product at chest level in the very first frame. Strictly forbid hand-offs, giving/receiving actions, a second person's hands, or the product entering the frame mid-shot.",
+    "ONE RIGID, FULLY ASSEMBLED HERO OBJECT: Describe and render the product as a single closed, assembled object exactly as in Input Image 1. Never describe its parts separately (lids, caps, pumps, inserts, accessories) and never open, close, twist, unbox or detach any lid, cap or packaging on camera; lids and caps stay attached for the full 10 seconds.",
+    "MAIN PRODUCT ONLY: Describe only the main product item. Ignore promotional props, extra packaging, gift boxes, coasters, decorations and backgrounds that appear in the Shopee listing photos unless they are the product itself."
   ]
 }

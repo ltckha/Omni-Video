@@ -285,7 +285,7 @@ def select_story_angle(product_name: str):
 
     ugc_angles = [
         ("SURPRISE GIFT & HIGH-EQ MOMENT (MÓN QUÀ BẤT NGỜ & TÌNH CẢM TINH TẾ)",
-         "Tình huống trao tặng món quà bất ngờ trong bối cảnh đời thường tự nhiên (văn phòng, bàn làm việc, quán cafe, phòng khách...), người nhận đón nhận với sự xúc động chân thành, nâng niu sản phẩm và dành lời khen ngợi tinh tế đúng vào đặc tính sản phẩm."),
+         "Khoảnh khắc vừa nhận được món quà bất ngờ trong bối cảnh đời thường tự nhiên (văn phòng, bàn làm việc, quán cafe, phòng khách...): nhân vật ĐÃ cầm sẵn món quà trên tay ngay từ khung hình đầu (không quay cảnh trao tay, không mở hộp/nắp), xúc động chân thành, nâng niu sản phẩm và dành lời khen ngợi tinh tế đúng vào đặc tính sản phẩm."),
         ("REVERSE EXPECTATION (TƯỞNG KHÔNG NGON MÀ NGON KHÔNG TƯỞNG)",
          "Đảo ngược kỳ vọng ban đầu: Nghĩ là món đồ bình thường/mua thử cho vui ai ngờ mê luôn vì tiện lợi và chất lượng bất ngờ."),
         ("EXTREME STRESS TEST (THỬ THÁCH THỰC TẾ CỰC HẠN)",
