@@ -17,14 +17,58 @@ from sheet_sync import (
 )
 
 
-class TestSheetSyncBrands:
-    def test_determine_default_brand_footwear_nancy(self):
-        assert determine_default_brand("Giày da nam cao cấp", "Hiệu Giày Hải Nancy") == "Hiệu giày Hải Nancy"
-        assert determine_default_brand("Dép da nam xịn", "Shop NancyShoes") == "Hiệu giày Hải Nancy"
+import sheet_sync
 
-    def test_determine_default_brand_general_product(self):
-        assert determine_default_brand("Máy cạo lông xù", "Shop Gia Dụng") == "Mua Chuẩn Xài Lâu"
-        assert determine_default_brand("Lồng đèn Capybara", "Đồ chơi trẻ em") == "Mua Chuẩn Xài Lâu"
+_real_get_brand_official_name = sheet_sync.get_brand_official_name
+
+
+@pytest.fixture(autouse=True)
+def fake_brands_tab():
+    """No network: the 'brands' tab lookup returns the official name of yenyen_deals."""
+    sheet_sync._brand_name_cache.clear()
+    with patch("sheet_sync.get_brand_official_name", side_effect=lambda bid: {"yenyen_deals": "YenYen Deals"}.get(bid, "")):
+        yield
+    sheet_sync._brand_name_cache.clear()
+
+
+def _client_with_brands(records):
+    brands_ws = MagicMock()
+    brands_ws.get_all_records.return_value = records
+    sh = MagicMock()
+    sh.worksheet.side_effect = lambda name: brands_ws if name == "brands" else MagicMock()
+    gc = MagicMock()
+    gc.open_by_key.return_value = sh
+    return gc, sh
+
+
+class TestSheetSyncBrands:
+    def test_default_brand_is_yenyen_deals_for_any_product(self):
+        assert determine_default_brand("Giày da nam cao cấp", "Hiệu Giày Hải Nancy") == "YenYen Deals"
+        assert determine_default_brand("Máy cạo lông xù", "Shop Gia Dụng") == "YenYen Deals"
+
+    @patch("sheet_sync.get_gspread_client")
+    def test_official_name_read_by_header_and_cached(self, mock_get_client):
+        gc, sh = _client_with_brands([
+            {"brand_id": "mua_chuan_xai_lau", "official_name": "Mua Chuẩn Xài Lâu"},
+            {"brand_id": "yenyen_deals", "official_name": "YenYen Deals"},
+        ])
+        mock_get_client.return_value = gc
+        assert _real_get_brand_official_name("yenyen_deals") == "YenYen Deals"
+        assert _real_get_brand_official_name("yenyen_deals") == "YenYen Deals"
+        sh.worksheet.assert_called_once_with("brands")
+
+    @patch("sheet_sync.get_gspread_client")
+    def test_official_name_empty_when_tab_unreadable(self, mock_get_client):
+        gc = MagicMock()
+        gc.open_by_key.return_value.worksheet.side_effect = gspread.exceptions.WorksheetNotFound("brands")
+        mock_get_client.return_value = gc
+        assert _real_get_brand_official_name("yenyen_deals") == ""
+
+    @patch("sheet_sync.get_gspread_client")
+    def test_official_name_empty_when_brand_missing(self, mock_get_client):
+        gc, _ = _client_with_brands([{"brand_id": "mua_chuan_xai_lau", "official_name": "Mua Chuẩn Xài Lâu"}])
+        mock_get_client.return_value = gc
+        assert _real_get_brand_official_name("yenyen_deals") == ""
 
     @patch("sheet_sync.get_gspread_client")
     def test_sync_product_preserves_existing_brands(self, mock_get_client):
@@ -82,8 +126,8 @@ class TestSheetSyncBrands:
         appended_values = mock_ws.append_row.call_args[0][0]
 
         # Verify that brand fields are populated with default brand
-        assert appended_values[5] == "Mua Chuẩn Xài Lâu"
-        assert appended_values[6] == "Mua Chuẩn Xài Lâu"
+        assert appended_values[5] == "YenYen Deals"
+        assert appended_values[6] == "YenYen Deals"
 
 
 class TestOmniTabGuard:
@@ -150,7 +194,7 @@ class TestWriteChangedCells:
         assert backfill_empty_brands_on_sheet() == 1
         ws.update.assert_not_called()
         data = ws.batch_update.call_args[0][0]
-        assert data == [{"range": "D2", "values": [["Mua Chuẩn Xài Lâu"]]}]
+        assert data == [{"range": "D2", "values": [["YenYen Deals"]]}]
 
 
 class TestOmniTabName:

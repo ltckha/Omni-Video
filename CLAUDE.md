@@ -28,7 +28,7 @@
 
 5. **TRI THỨC BRAND — NGUỒN DUY NHẤT LÀ AUTO-VIDEO-FACTORY:**
    - Tên chuẩn, mã brand, bí danh, luật brand (vd. cấm chữ "ASMR") chỉ lấy từ `Auto-Video-Factory/knowledge/brands/`. Cần gì về brand → hỏi/nhắn phiên Thực thi AVF.
-   - Sắp có tab Sheet `Brands_Registry` sinh từ nguồn đó; danh sách brand viết cứng trong repo này (`scripts/sheet_sync.py` `determine_default_brand`) sẽ chuyển sang đọc tab này khi có đặc tả. Không thêm brand viết cứng mới.
+   - Tab Sheet `brands` sinh từ nguồn đó; repo này chỉ đọc. Video Omni (video AI) mặc định đăng **YenYen Deals** (anh Kha chốt 15/10/2026): `determine_default_brand` trả `official_name` của `yenyen_deals` đọc từ tab `brands` theo tên cột; đọc lỗi thì để trống + ghi log. Không thêm brand viết cứng.
 
 ---
 

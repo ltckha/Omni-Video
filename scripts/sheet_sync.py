@@ -24,6 +24,9 @@ SA_PATH = PROJECT_DIR / "config" / "service_account.json"
 SPREADSHEET_ID = "1Xg67qhp1J_Izt7v5uDKRgKjdEZapX9giKJ_ym0OMJN4"
 # Tab names tried in order: new standard name first, legacy name as fallback.
 OMNI_TAB_NAMES = ("src_omni", "Omni-Video")
+BRANDS_TAB_NAME = "brands"
+# Brand knowledge lives in Auto-Video-Factory (tab "brands"); only the brand_id is kept here.
+OMNI_DEFAULT_BRAND_ID = "yenyen_deals"
 
 FIELD_ALIASES = {
     "job_id": ["job_id", "itemid", "mã sản phẩm", "sku", "id", "product_id"],
@@ -166,12 +169,32 @@ def update_status_by_item_id(item_id: str, new_status: str, video_path: Optional
         logger.error(f"Error updating status for '{item_id}': {e}")
         return False
 
+_brand_name_cache: Dict[str, str] = {}
+
+def get_brand_official_name(brand_id: str) -> str:
+    """Reads official_name for brand_id from tab 'brands' (by header name, cached per run). Returns '' on any error."""
+    if brand_id in _brand_name_cache:
+        return _brand_name_cache[brand_id]
+    name = ""
+    try:
+        gc = get_gspread_client()
+        if gc:
+            records = gc.open_by_key(SPREADSHEET_ID).worksheet(BRANDS_TAB_NAME).get_all_records()
+            for rec in records:
+                if str(rec.get("brand_id", "")).strip() == brand_id:
+                    name = str(rec.get("official_name", "")).strip()
+                    break
+        if not name:
+            logger.error(f"Brand '{brand_id}' has no official_name in tab '{BRANDS_TAB_NAME}' — leaving brand empty.")
+    except Exception as e:
+        logger.error(f"Cannot read tab '{BRANDS_TAB_NAME}': {e} — leaving brand empty.")
+    if name:
+        _brand_name_cache[brand_id] = name
+    return name
+
 def determine_default_brand(title: str = "", shop_name: str = "") -> str:
-    """Returns 'Hiệu giày Hải Nancy' if footwear/nancy keywords match, else 'Mua Chuẩn Xài Lâu'."""
-    text = f"{title} {shop_name}".lower()
-    if any(k in text for k in ["hải nancy", "hai nancy", "nancyshoes", "giày da nam", "dép da nam"]):
-        return "Hiệu giày Hải Nancy"
-    return "Mua Chuẩn Xài Lâu"
+    """Omni (AI) videos are posted on YenYen Deals (decided 15/10/2026). Name comes from tab 'brands'; '' if unavailable."""
+    return get_brand_official_name(OMNI_DEFAULT_BRAND_ID)
 
 def sync_product_to_sheet(info: Dict[str, Any], item_id: str) -> bool:
     """Appends or updates product data dynamically mapped to the Column Header names in Row 1.
@@ -308,6 +331,8 @@ def backfill_empty_brands_on_sheet() -> int:
             title = row[title_idx] if title_idx != -1 and title_idx < len(row) else ""
             shop = row[shop_idx] if shop_idx != -1 and shop_idx < len(row) else ""
             default_brand = determine_default_brand(title, shop)
+            if not default_brand:
+                return updated_count
             row_needs_update = False
             new_row = list(row)
             while len(new_row) < len(headers):
