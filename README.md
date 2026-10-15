@@ -1,76 +1,57 @@
-# 🎬 Omni Video - Shopee Asset Curator & UGC Prompt Generator
+# 🎬 Omni Video — Sản phẩm Shopee → video UGC 10 giây
 
-Hệ thống tự động hóa toàn diện quy trình thu thập nguyên liệu sản phẩm từ Shopee, lưu trữ phân loại theo mã sản phẩm, đồng bộ Google Sheets, sinh **Master Prompt Video UGC 10 giây** cho **Gemini Omni** và tự động lưu trữ video hoàn thành về ổ đĩa Media.
+Lấy ảnh + thông tin sản phẩm Shopee, ghi lên Google Sheet (tab `src_omni`), sinh kịch bản (Master Prompt) bằng Gemini, tạo video dọc 9:16 trên **Google Flow** (Omni 1.1 Flash) rồi cất thành phẩm về ổ NAS. Video Omni đăng trang **YenYen Deals**.
 
----
-
-## 📌 Tính Năng Nổi Bật
-
-1. **Chrome Extension Curator (1-Click Shortcut `Alt + S`):**
-   - Di chuột lên ảnh sản phẩm HD trên Shopee và nhấn `Alt + S`.
-   - Tự động bóc tách **Mã sản phẩm (itemId)**, **Tên sản phẩm**, **Giá**, **Doanh thu / Đã bán** và **Tên cửa hàng (Shop)**.
-   - Tải ảnh HD nguyên bản (`.webp` / `.png` / `.jpg`) về máy.
-
-2. **Native Messaging Host (macOS 0.1s Auto-Move):**
-   - Kích hoạt tiến trình Python siêu nhẹ bật lên đúng 0.1s để di chuyển file ảnh vào đúng thư mục dự án: `Product_Assets/<Mã_SP>/`.
-
-3. **Google Sheets Sync & Lọc Trùng Sâu:**
-   - Bảo toàn dữ liệu 9 cột gốc từ CSV. Tự động cập nhật `Link ảnh CDN chọn lọc` (Cột 10), `File ảnh lưu local` (Cột 11), trạng thái `Đã tạo Video` (Cột 12) và đường dẫn file video hoàn thành `Output File` (Cột 13).
-
-4. **Gemini AI UGC Master Prompt Generator (`scripts/generate_ugc_prompt.py`):**
-   - Tự động nhìn ảnh Multimodal + Tên sản phẩm để sinh Master Prompt 10s chuẩn theo `omni-ugc-creator.md`.
-   - Tự động chọn nhân vật Nam/Nữ phù hợp và copy ảnh nhân vật vào thư mục sản phẩm.
-
-5. **1-Click Clean & Move Completed Video Folders (`Move.command`):**
-   - Tự động quét các thư mục sản phẩm đã tạo xong video `.mp4`.
-   - Tự động dọn dẹp sạch sẽ: xóa file ảnh nhân vật mẫu và file `info.json`.
-    - Di chuyển toàn bộ thư mục sản phẩm hoàn thành về lưu trữ tại `/Volumes/Media/Omni-Video/`.
-    - Tự động cập nhật đường dẫn tuyệt đối của file video hoàn thành vào cột **`Output File` (Cột 13)** trên Google Sheets.
+> Luật làm việc, kiến trúc chi tiết và lệnh dòng lệnh: xem [CLAUDE.md](CLAUDE.md).
 
 ---
 
-## 📁 Cấu Trúc Dự Án (Project Structure)
+## 🚀 Dùng hằng ngày
+
+| Bước | Anh làm | Kết quả |
+|---|---|---|
+| 0. Lấy sản phẩm | Trên trang Shopee, rê chuột lên ảnh nét nhất, bấm **`Alt + S`** | Ảnh + `info.json` vào `Product_Assets/<Mã_SP>/`, dòng mới trên tab `src_omni` |
+| 1. Nhập liệu | Nhấp đúp **`Import.command`** | Gom ảnh từ Tải xuống, nhập CSV Shopee Affiliate (`data/`), tự điền link `s.shopee.vn` từ bảng chung `aff_links` (chỉ ô trống) |
+| 2. Kịch bản | Nhấp đúp **`Prompt.command`** | `Product_Assets/<Mã_SP>/<Mã_SP>.txt` + ảnh nhân vật (1 lượt Gemini / SP) |
+| 3. Video | Mở dự án Flow (vd **Omni-Video**), ô câu lệnh trống → bấm extension → **Tạo video** ở 1 sản phẩm | Extension dán ảnh + kịch bản, bấm Tạo, Phê duyệt **15 credit**, chờ, tải `<Mã_SP>.mp4` về `Product_Assets/<Mã_SP>/` (Chrome hỏi Save thì bấm Save) |
+| 4. Cất | Xem video, ổn thì nhấp đúp **`Move.command`** | Thư mục SP chuyển về `/Volumes/Media/Omni-Video/<Mã_SP>/`, Sheet ghi "Đã tạo Video" + đường dẫn |
+
+- Mỗi lần **Tạo video** chỉ làm 1 sản phẩm; để tab Flow mở đến khi tải xong. Bước nào kẹt thì Flow hiện thông báo đỏ — làm tay tiếp từ bước đó.
+- **Dự phòng:** `Video.command` sinh video bằng Gemini Omni API (trả phí, hỏi PIN `OMNI_SECURITY_PIN`).
+- Video lỗi: xoá / đổi tên file `.mp4` trong thư mục SP trước khi Move, sinh lại kịch bản bằng `python scripts/generate_ugc_prompt.py <Mã_SP>` nếu cần.
+
+## 🧩 Cài extension Chrome (1 lần)
+
+1. `chrome://extensions` → bật **Developer mode** → **Load unpacked** → chọn thư mục `chrome-extension/`.
+2. Native host `com.omni.video.curator` (`~/Library/Application Support/Google/Chrome/NativeMessagingHosts/`) trỏ tới `scripts/omni_native_host.py`.
+3. Sau mỗi lần cập nhật code extension: bấm **Reload** ở `chrome://extensions` rồi tải lại trang Flow.
+
+## ⚙️ Cấu hình
+
+- `.env` (không commit, mẫu ở `.env.example`): `GEMINI_API_KEY`, `GEMINI_OMNI_API_KEY`, `OMNI_SECURITY_PIN`.
+- `config/service_account.json` (không commit): Google Sheets + Drive API.
+- `config/prompt_rules.json`: luật chung nạp vào mọi kịch bản (one-take 10s, sản phẩm cầm sẵn từ đầu, không chữ / logo, giọng miền Nam…).
+
+## 📁 Cấu trúc
 
 ```text
 Omni-Video/
-├── omni-ugc-creator.md          # Quy chuẩn Master Prompt UGC 10s cho Gemini Omni
-├── README.md                    # Tài liệu hướng dẫn hệ thống
-├── .env.example                 # File mẫu cấu hình biến môi trường
-├── Import.command              # 🚀 File 1-Click Import CSV & đồng bộ dữ liệu
-├── Prompt.command              # 🎬 File 1-Click sinh Master Prompt hàng loạt bằng Gemini AI
-├── Video.command               # 🎥 File 1-Click sinh video 9:16 bằng Gemini Omni (scripts/generate_omni_video.py)
-├── Move.command                # 🚚 File 1-Click dọn dẹp & di chuyển SP đã tạo xong MP4 về ổ đĩa Media
-├── characters/                  # 👤 Thư mục chứa hình ảnh nhân vật/KOLs mẫu (Nam, Nữ)
-├── data/                        # 📊 Thư mục chứa các file dữ liệu CSV xuất từ Shopee Affiliate
-├── scripts/                     # ⚙️ Thư mục chứa toàn bộ mã nguồn xử lý & backend
-│   ├── sheet_sync.py            # Module đồng bộ Google Sheets API v4 (gspread, map cột theo header)
-│   ├── drive_sync.py            # Module đồng bộ Google Drive API v3 với Spark
-│   ├── import_csv_to_gsheet.py  # Script Python import file CSV & lọc trùng sâu
-│   ├── generate_ugc_prompt.py   # Script Gemini AI Multimodal sinh Master Prompt 10s
-│   ├── generate_omni_video.py   # Script gọi Gemini Omni (gemini-omni-1.1-flash) sinh video <Mã_SP>.mp4
-│   ├── archive_completed_videos.py # Script tự động dọn dẹp & di chuyển SP có MP4 về /Volumes/Media/...
-│   ├── auto_organize_downloads.py # Script tự động di chuyển ảnh vào Product_Assets/<Mã_SP>/
-│   ├── omni_native_host.py      # Native Messaging Host Python (Di chuyển ảnh 0.1s)
-│   └── run_native_host.sh       # Shell script wrapper khởi chạy Native Host trên macOS
-├── chrome-extension/            # 🧩 Tiện ích mở rộng Chrome
-└── Product_Assets/              # 📦 Thư mục lưu trữ ảnh/video nguyên liệu sản phẩm
+├── Import.command / Prompt.command / Move.command / Video.command   # 1-Click macOS
+├── chrome-extension/      # Alt+S lấy ảnh Shopee; popup "Tạo video" + flow_page.js cho Google Flow
+├── scripts/
+│   ├── omni_native_host.py        # Native host: nhận ảnh, gửi file cho Flow, thu video tải về
+│   ├── sheet_sync.py              # Google Sheets API v4 (tab src_omni, đọc/ghi theo tên cột)
+│   ├── import_csv_to_gsheet.py    # Nhập CSV Shopee Affiliate
+│   ├── auto_organize_downloads.py # Gom ảnh Tải xuống vào Product_Assets
+│   ├── fill_aff_links.py          # Điền link s.shopee.vn từ tab aff_links
+│   ├── generate_ugc_prompt.py     # Sinh Master Prompt (Gemini)
+│   ├── flow_helper.py             # Chọn / gửi ảnh + kịch bản cho Flow, thu video
+│   ├── generate_omni_video.py     # Sinh video bằng API (dự phòng)
+│   ├── archive_completed_videos.py, video_qa_analyzer.py, prompt_evolution_engine.py  # Move + QA
+│   └── drive_sync.py              # Trao đổi file với Spark qua Drive API v3
+├── config/                # prompt_rules.json, global_learned_rules.json (bài học QA), service_account.json
+├── characters/            # Ảnh nhân vật Nu-25t, Nu-23t, Nam-25t (không commit)
+├── data/                  # CSV Shopee Affiliate (không commit)
+├── Product_Assets/        # Nguyên liệu từng SP (không commit)
+└── tests/                 # pytest — chạy: python -m pytest tests/
 ```
-
----
-
-## 🚀 Quy Trình Sử Dụng 4 Bước Nhanh Gọn
-
-1. **Nhấp đúp `Import.command`:** Đồng bộ file CSV và chuyển toàn bộ ảnh từ Downloads về `Product_Assets/<Mã_SP>/`.
-2. **Nhấp đúp `Prompt.command`:** Gemini AI tự động soi ảnh + thông tin SP để tạo Master Prompt 10s tại `Product_Assets/<Mã_SP>/<Mã_SP>.txt` và copy ảnh nhân vật vào.
-3. **Nhấp đúp `Video.command`:** Gọi Gemini Omni (`scripts/generate_omni_video.py`) dùng prompt + ảnh sản phẩm + ảnh nhân vật để sinh `Product_Assets/<Mã_SP>/<Mã_SP>.mp4` dọc 9:16 (API trả phí, cần nhập PIN `OMNI_SECURITY_PIN`).
-4. **Nhấp đúp `Move.command`:** Sau khi có file `.mp4` trong thư mục sản phẩm, nhấp đúp `Move.command` để tự động xóa ảnh nhân vật, xóa `info.json` và di chuyển thư mục về `/Volumes/Media/Omni-Video/`.
-
----
-
-## 💡 Roadmap & Ý Tưởng Phát Triển Tương Lai
-
-1. **Hệ Thống Tự Đánh Giá, Tự Học & Nâng Cấp Prompt Video Vòng Lặp Đóng (Closed-Loop Video QA & Prompt Self-Evolution Engine):**
-   - **Đánh giá chất lượng Video (Video QA):** Đưa video `.mp4` sau khi khởi tạo qua Gemini Vision API để AI tự động thẩm định, phát hiện các lỗi dị dạng, méo sản phẩm, rác điểm ảnh (morphing) hoặc sai nhận diện nhân vật.
-   - **Tự học & Tiến hóa Prompt (Prompt Self-Evolution):** Phân tích các kết quả QA video để tự động đúc kết bài học kinh nghiệm, liên tục tinh chỉnh và nâng cấp cấu trúc Prompt theo thời gian mà không cần con người can thiệp.
-   - **Kịch bản liền mạch tự nhiên (Seamless Single-Shot Narrative):** Tích hợp phong cách kể chuyện liền mạch, trôi chảy từ đầu đến cuối vào hệ thống tự học (thay vì gượng ép chia cứng các khối Hook / Solution thô cứng), giúp video UGC sinh ra vừa chuẩn đẹp, vừa đạt độ hoàn thiện cao nhất.
-   - **Cơ chế Sao Lưu & Dự Phòng Prompt (Prompt Backup & Version Control):** Tự động lưu trữ bản sao dự phòng (Backup) của tất cả các phiên bản Prompt trước đó. Nếu phiên bản Prompt nâng cấp mới sinh ra video chưa đạt chất lượng QA, hệ thống sẽ tự động khôi phục (Rollback) về phiên bản Prompt Backup ổn định nhất.
