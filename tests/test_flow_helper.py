@@ -80,3 +80,32 @@ def test_collect_never_overwrites_existing_video(tmp_path):
     with pytest.raises(FileExistsError):
         collect_flow_video("111", str(assets), str(downloads), str(tmp_path / "Omni-Flow"))
     assert (assets / "111" / "111.mp4").read_bytes() == b"mp4"
+
+
+def test_best_product_image_is_largest_non_character(tmp_path):
+    from flow_helper import find_best_product_image
+    d = tmp_path / "111"
+    d.mkdir()
+    (d / "111_small.webp").write_bytes(b"x" * 10)
+    (d / "111_big.jpeg").write_bytes(b"x" * 1000)
+    (d / "Nu-25t.png").write_bytes(b"x" * 5000)
+    assert find_best_product_image(str(d)).endswith("111_big.jpeg")
+
+
+def test_encode_flow_files_chunks_reassemble(tmp_path):
+    import base64
+    from flow_helper import encode_flow_files
+    assets = tmp_path / "Product_Assets"
+    d = _make_item(assets, "111")
+    (d / "Nu-25t.png").write_bytes(bytes(range(256)) * 40)  # 10 KB
+    msgs = encode_flow_files("111", str(assets), chunk_size=1000)
+    meta = msgs[0]
+    assert meta["type"] == "meta"
+    assert [f["slot"] for f in meta["files"]] == ["character", "product", "script"]
+    char = next(f for f in meta["files"] if f["slot"] == "character")
+    parts = [m for m in msgs[1:] if m["slot"] == "character"]
+    assert len(parts) == char["chunks"] > 1
+    assert all(len(m["data"]) <= 1000 for m in msgs[1:])
+    assert base64.b64decode("".join(m["data"] for m in parts)) == (d / "Nu-25t.png").read_bytes()
+    script = next(f for f in meta["files"] if f["slot"] == "script")
+    assert script["name"] == "111.txt" and script["mime"] == "text/plain"

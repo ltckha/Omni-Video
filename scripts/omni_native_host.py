@@ -59,6 +59,11 @@ def handle_flow_action(msg):
             bundle_dir = flow_helper.prepare_flow_bundle(item_id)
             subprocess.run(["open", bundle_dir], check=False)
             send_message({"status": "success", "bundleDir": bundle_dir})
+        elif action == "FLOW_FILES":
+            # Dùng qua chrome.runtime.connectNative: gửi nhiều tin (meta + các mảnh base64 < 1 MB)
+            for part in flow_helper.encode_flow_files(item_id):
+                send_message(part)
+            send_message({"type": "done"})
         elif action == "FLOW_COLLECT":
             for _ in range(40):
                 moved = flow_helper.collect_flow_video(item_id)
@@ -70,7 +75,7 @@ def handle_flow_action(msg):
         else:
             send_message({"status": "error", "message": f"Lệnh không hỗ trợ: {action}"})
     except Exception as e:
-        send_message({"status": "error", "message": str(e)})
+        send_message({"status": "error", "type": "error", "message": str(e)})
 
 def main():
     msg = read_message()

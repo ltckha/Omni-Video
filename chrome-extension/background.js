@@ -36,11 +36,61 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       sendResponse(resp);
     });
+  } else if (message.action === "FLOW_FILL" && message.itemId) {
+    fillFlowTool(message.itemId).then(sendResponse);
   } else if (message.action === "FLOW_CLEAR") {
     chrome.storage.local.remove("flowActiveItem", () => sendResponse({ status: "success" }));
   }
   return true;
 });
+
+// ===== Google Flow: tự điền 3 file vào Omni-Studio Pro (anh Kha tự bấm Tạo / Tải) =====
+function loadFlowFiles(itemId) {
+  return new Promise((resolve) => {
+    const port = chrome.runtime.connectNative(NATIVE_HOST_NAME);
+    let meta = null;
+    const parts = {};
+    let finished = false;
+    const finish = (result) => { if (!finished) { finished = true; resolve(result); try { port.disconnect(); } catch (e) {} } };
+    port.onMessage.addListener((msg) => {
+      if (msg.type === "meta") {
+        meta = msg;
+      } else if (msg.type === "chunk") {
+        (parts[msg.slot] = parts[msg.slot] || [])[msg.index] = msg.data;
+      } else if (msg.type === "done" && meta) {
+        finish({ status: "success", files: meta.files.map((f) => ({ ...f, b64: (parts[f.slot] || []).join("") })) });
+      } else if (msg.status === "error") {
+        finish({ status: "error", message: msg.message });
+      }
+    });
+    port.onDisconnect.addListener(() => {
+      finish({ status: "error", message: chrome.runtime.lastError ? chrome.runtime.lastError.message : "Native Host ngắt kết nối" });
+    });
+    port.postMessage({ action: "FLOW_FILES", itemId: itemId });
+  });
+}
+
+async function fillFlowTool(itemId) {
+  const tabs = await chrome.tabs.query({ url: "https://flow.google.com/*" });
+  const toolTab = tabs.find((t) => /\/tool\//.test(t.url || "")) || tabs[0];
+  if (!toolTab) {
+    return { status: "error", message: "Chưa mở Google Flow — anh mở công cụ Omni-Studio Pro trước." };
+  }
+  const loaded = await loadFlowFiles(itemId);
+  if (loaded.status !== "success") return loaded;
+  let resp;
+  try {
+    resp = await chrome.tabs.sendMessage(toolTab.id, { action: "FLOW_FILL", itemId: itemId, files: loaded.files });
+  } catch (e) {
+    resp = null;
+  }
+  if (!resp) {
+    return { status: "error", message: "Không thấy các ô Người mẫu / Sản phẩm / Kịch bản — anh mở công cụ Omni-Studio Pro (tải lại trang nếu vừa cài extension)." };
+  }
+  chrome.storage.local.set({ flowActiveItem: { itemId: itemId, since: Date.now() } });
+  await chrome.tabs.update(toolTab.id, { active: true });
+  return resp;
+}
 
 // ===== Google Flow (bán tự động): video tải từ Flow -> <itemId>.mp4 -> Product_Assets/<itemId>/ =====
 const FLOW_ACTIVE_MAX_AGE_MS = 6 * 60 * 60 * 1000;

@@ -12,10 +12,11 @@ Không gọi API, không đụng Google Sheet (Move.command cập nhật Sheet n
 import os
 import json
 import glob
+import base64
 import shutil
 from typing import Optional, List, Dict
 
-from generate_omni_video import find_prompt_file, find_product_image, find_character_image
+from generate_omni_video import find_prompt_file, find_character_image, get_image_mime_type
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
@@ -31,6 +32,49 @@ def _product_title(item_dir: str) -> str:
         return str(info.get("productName") or info.get("title") or "").strip()
     except Exception:
         return ""
+
+
+def find_best_product_image(item_dir: str) -> Optional[str]:
+    """Ảnh sản phẩm lớn nhất (nét nhất) trong thư mục, bỏ ảnh nhân vật."""
+    candidates = []
+    for ext in ("*.webp", "*.jpg", "*.jpeg", "*.png"):
+        for f in glob.glob(os.path.join(item_dir, ext)):
+            fname = os.path.basename(f).lower()
+            if not fname.startswith("nu-") and not fname.startswith("nam-") and "character" not in fname:
+                candidates.append(f)
+    return max(candidates, key=os.path.getsize) if candidates else None
+
+
+def get_flow_assets(item_id: str, assets_dir: str = ASSETS_DIR) -> Dict[str, str]:
+    """Đường dẫn 3 file cho Omni-Studio Pro: character / product / script. Thiếu file nào thì báo lỗi."""
+    item_dir = os.path.join(assets_dir, item_id)
+    if not os.path.isdir(item_dir):
+        raise FileNotFoundError(f"Không có thư mục Product_Assets/{item_id}")
+    assets = {
+        "character": find_character_image(item_dir),
+        "product": find_best_product_image(item_dir),
+        "script": find_prompt_file(item_dir, item_id),
+    }
+    labels = {"script": "kịch bản .txt", "product": "ảnh sản phẩm", "character": "ảnh người mẫu"}
+    missing = [labels[k] for k in ("script", "product", "character") if not assets[k]]
+    if missing:
+        raise FileNotFoundError(f"Mã {item_id} thiếu: {', '.join(missing)}")
+    return assets
+
+
+def encode_flow_files(item_id: str, assets_dir: str = ASSETS_DIR, chunk_size: int = 700_000) -> List[Dict]:
+    """Native messaging giới hạn 1 MB/tin -> mã base64 rồi chia nhỏ. Trả danh sách tin: 1 tin meta + các tin chunk."""
+    assets = get_flow_assets(item_id, assets_dir)
+    files, chunks = [], []
+    for slot, path in assets.items():
+        with open(path, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode("ascii")
+        parts = [b64[i:i + chunk_size] for i in range(0, len(b64), chunk_size)] or [""]
+        mime = "text/plain" if slot == "script" else get_image_mime_type(path)
+        name = f"{item_id}.txt" if slot == "script" else os.path.basename(path)
+        files.append({"slot": slot, "name": name, "mime": mime, "chunks": len(parts)})
+        chunks += [{"type": "chunk", "slot": slot, "index": i, "data": part} for i, part in enumerate(parts)]
+    return [{"type": "meta", "itemId": item_id, "files": files}] + chunks
 
 
 def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
@@ -53,15 +97,8 @@ def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
 
 def prepare_flow_bundle(item_id: str, assets_dir: str = ASSETS_DIR, staging_root: str = FLOW_STAGING_DIR) -> str:
     """Copy ảnh người mẫu / ảnh SP / kịch bản vào thư mục tạm, đánh số theo thứ tự ô trong Omni-Studio Pro."""
-    item_dir = os.path.join(assets_dir, item_id)
-    if not os.path.isdir(item_dir):
-        raise FileNotFoundError(f"Không có thư mục Product_Assets/{item_id}")
-    prompt = find_prompt_file(item_dir, item_id)
-    product = find_product_image(item_dir)
-    character = find_character_image(item_dir)
-    missing = [name for name, path in (("kịch bản .txt", prompt), ("ảnh sản phẩm", product), ("ảnh người mẫu", character)) if not path]
-    if missing:
-        raise FileNotFoundError(f"Mã {item_id} thiếu: {', '.join(missing)}")
+    assets = get_flow_assets(item_id, assets_dir)
+    character, product, prompt = assets["character"], assets["product"], assets["script"]
 
     bundle_dir = os.path.join(staging_root, item_id)
     if os.path.isdir(bundle_dir):
