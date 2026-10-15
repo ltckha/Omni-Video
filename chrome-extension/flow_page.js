@@ -43,7 +43,7 @@
     const dt = new DataTransfer();
     dt.items.add(new File([b64ToBytes(file.b64)], file.name, { type: file.mime }));
     paste(box, dt);
-    return waitFor(() => chipCount() > before, 15000);
+    return waitFor(() => chipCount() > before, 30000);
   }
 
   function showToast(msg, isError) {

@@ -96,3 +96,17 @@ def test_encode_flow_files_chunks_reassemble(tmp_path):
     assert base64.b64decode("".join(m["data"] for m in parts)) == (d / "Nu-25t.png").read_bytes()
     script = next(f for f in meta["files"] if f["slot"] == "script")
     assert script["name"] == "111.txt" and script["mime"] == "text/plain"
+
+
+@pytest.mark.skipif(not os.path.exists(os.path.join(PROJECT_DIR, "characters", "Nu-25t.png")), reason="ảnh nhân vật không có trong git")
+def test_large_character_image_is_shrunk_to_jpeg(tmp_path):
+    import base64, shutil
+    from flow_helper import encode_flow_files
+    assets = tmp_path / "Product_Assets"
+    d = _make_item(assets, "111")
+    shutil.copy(os.path.join(PROJECT_DIR, "characters", "Nu-25t.png"), d / "Nu-25t.png")  # ~7 MB
+    msgs = encode_flow_files("111", str(assets))
+    char = next(f for f in msgs[0]["files"] if f["slot"] == "character")
+    assert char["name"] == "Nu-25t.jpg" and char["mime"] == "image/jpeg"
+    data = base64.b64decode("".join(m["data"] for m in msgs[1:] if m["slot"] == "character"))
+    assert data[:3] == b"\xff\xd8\xff" and len(data) < 2_000_000

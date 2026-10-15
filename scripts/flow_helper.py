@@ -13,6 +13,8 @@ import json
 import glob
 import base64
 import shutil
+import subprocess
+import tempfile
 from typing import Optional, List, Dict
 
 from generate_omni_video import find_prompt_file, find_character_image, get_image_mime_type
@@ -60,16 +62,39 @@ def get_flow_assets(item_id: str, assets_dir: str = ASSETS_DIR) -> Dict[str, str
     return assets
 
 
+PASTE_MAX_BYTES = 2_000_000  # Flow không nhận ảnh dán vào khi quá nặng (ảnh người mẫu PNG ~7 MB bị từ chối)
+
+
+def shrink_for_paste(path: str, max_bytes: int = PASTE_MAX_BYTES) -> bytes:
+    """Ảnh > max_bytes -> JPEG cạnh dài 2048 px, chất lượng 90 bằng `sips` có sẵn của macOS (không cần cài thêm)."""
+    with open(path, "rb") as f:
+        data = f.read()
+    if len(data) <= max_bytes:
+        return data
+    with tempfile.TemporaryDirectory() as tmp:
+        out = os.path.join(tmp, "shrunk.jpg")
+        subprocess.run(["sips", "-s", "format", "jpeg", "-s", "formatOptions", "90", "-Z", "2048", path, "--out", out],
+                       check=True, capture_output=True)
+        with open(out, "rb") as f:
+            return f.read()
+
+
 def encode_flow_files(item_id: str, assets_dir: str = ASSETS_DIR, chunk_size: int = 700_000) -> List[Dict]:
     """Native messaging giới hạn 1 MB/tin -> mã base64 rồi chia nhỏ. Trả danh sách tin: 1 tin meta + các tin chunk."""
     assets = get_flow_assets(item_id, assets_dir)
     files, chunks = [], []
     for slot, path in assets.items():
-        with open(path, "rb") as f:
-            b64 = base64.b64encode(f.read()).decode("ascii")
+        if slot == "script":
+            with open(path, "rb") as f:
+                data = f.read()
+            mime, name = "text/plain", f"{item_id}.txt"
+        else:
+            data = shrink_for_paste(path)
+            shrunk = data[:3] == b"\xff\xd8\xff" and not path.lower().endswith((".jpg", ".jpeg"))
+            mime = "image/jpeg" if shrunk else get_image_mime_type(path)
+            name = os.path.splitext(os.path.basename(path))[0] + ".jpg" if shrunk else os.path.basename(path)
+        b64 = base64.b64encode(data).decode("ascii")
         parts = [b64[i:i + chunk_size] for i in range(0, len(b64), chunk_size)] or [""]
-        mime = "text/plain" if slot == "script" else get_image_mime_type(path)
-        name = f"{item_id}.txt" if slot == "script" else os.path.basename(path)
         files.append({"slot": slot, "name": name, "mime": mime, "chunks": len(parts)})
         chunks += [{"type": "chunk", "slot": slot, "index": i, "data": part} for i, part in enumerate(parts)]
     return [{"type": "meta", "itemId": item_id, "files": files}] + chunks
