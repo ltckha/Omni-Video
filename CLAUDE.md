@@ -13,7 +13,7 @@
 
 2. **GIT — THEO LUẬT CHUNG (`~/Developer/Ecosystem-Hub/docs/LUAT_CHUNG.md` luật 1):**
    - Chỉ commit trên máy (`main`); không nhánh riêng / Pull Request; không tự push.
-   - Anh Kha đẩy lúc 21:00 bằng `~/Developer/Ecosystem-Hub/commands/push_all.command`, hoặc nhắn **"đẩy"** → quét bí mật (`.env`, `config/service_account.json`, token, cookie) rồi push thẳng `main`. Ban ngày không hỏi / nhắc anh "đẩy".
+   - Máy tự đẩy lúc 2:30 sáng (launchd `vn.giayhainancy.daygit` chạy `~/Developer/Ecosystem-Hub/commands/push_all.command --tu-dong`; repo còn file sửa dở / lệch origin / nghi bí mật thì bị bỏ qua, 8:00 báo anh), hoặc anh nhắn **"đẩy"** → quét bí mật (`.env`, `config/service_account.json`, token, cookie) rồi push thẳng `main`. Ban ngày không hỏi / nhắc anh "đẩy".
    - Cấm `git commit -am` / `git add -A` / `git add .`. Luôn `git add` từng file. Cuối mỗi việc không để file sửa dở chưa commit.
 
 3. **MÔ HÌNH PHỐI HỢP CẶP BÀI TRÙNG (DUAL-CLAUDE ARCHITECTURE):**

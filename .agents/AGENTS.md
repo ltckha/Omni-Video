@@ -5,7 +5,7 @@
   - Tuyệt đối KHÔNG tự ý chỉnh sửa code hoặc thực thi lệnh thay đổi dự án khi chưa nhận được sự xác nhận và đồng ý từ người dùng.
 
 - **GIT (luật chung LUAT_CHUNG luật 1)**:
-  - Chỉ commit trên máy (`main`), không nhánh / PR, không tự push; anh Kha đẩy lúc 21:00 bằng `push_all.command` hoặc nhắn "đẩy".
+  - Chỉ commit trên máy (`main`), không nhánh / PR, không tự push; máy tự đẩy lúc 2:30 sáng (launchd chạy `push_all.command --tu-dong`; repo còn file sửa dở / lệch origin / nghi bí mật thì bị bỏ qua) hoặc anh nhắn "đẩy". Cuối mỗi việc commit gọn.
   - Cấm `git commit -am` / `git add -A` / `git add .`; chỉ phiên "Thực thi – Omni-Video" được commit.
   - Chi tiết: `.agents/rules/git_push_rule.md`.
 
