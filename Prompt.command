@@ -9,13 +9,14 @@ echo "============================================================"
 echo ""
 
 # Sourcing biến môi trường từ .env của project (ưu tiên) hoặc ~/.zshrc / ~/.zshenv
+source ~/.zshrc 2>/dev/null
+source ~/.zshenv 2>/dev/null
+# .env của Omni nạp SAU để thắng biến chung trong ~/.zshrc (khoá Gemini riêng của Omni)
 if [ -f .env ]; then
   set -a
   source .env
   set +a
 fi
-source ~/.zshrc 2>/dev/null
-source ~/.zshenv 2>/dev/null
 
 PYTHON_EXEC="python3"
 if [ -f "./venv/bin/python3" ]; then

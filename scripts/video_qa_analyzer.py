@@ -41,7 +41,8 @@ def _load_env_file():
 _load_env_file()
 
 def get_api_key():
-    return os.environ.get("GEMINI_API_KEY", "")
+    from omni_env import gemini_api_key
+    return gemini_api_key()  # khoá riêng của Omni (.env thắng ~/.zshrc)
 
 def get_ssl_context():
     ctx = ssl.create_default_context()

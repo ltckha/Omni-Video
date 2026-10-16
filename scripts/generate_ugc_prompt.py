@@ -36,7 +36,8 @@ def load_env_if_needed():
 
 load_env_if_needed()
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+from omni_env import gemini_api_key
+GEMINI_API_KEY = gemini_api_key()  # khoá riêng của Omni (.env thắng ~/.zshrc)
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 DATA_DIR = os.path.join(PROJECT_DIR, "data")

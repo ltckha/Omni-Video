@@ -49,18 +49,9 @@ def load_env():
 load_env()
 
 def get_omni_api_key() -> str:
-    """
-    Ưu tiên lấy API key chuyên dụng cho video:
-    1. GEMINI_OMNI_API_KEY
-    2. GEMINI_VIDEO_API_KEY
-    3. GEMINI_API_KEY
-    """
-    return (
-        os.environ.get("GEMINI_OMNI_API_KEY") or
-        os.environ.get("GEMINI_VIDEO_API_KEY") or
-        os.environ.get("GEMINI_API_KEY") or
-        ""
-    ).strip()
+    """Khoá riêng của Omni: .env thắng biến môi trường; GEMINI_OMNI_API_KEY trước GEMINI_API_KEY."""
+    from omni_env import gemini_api_key
+    return gemini_api_key()
 
 def verify_security_pin(max_attempts: int = 3) -> bool:
     """

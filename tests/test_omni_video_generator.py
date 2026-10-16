@@ -22,6 +22,11 @@ from generate_omni_video import (
 )
 
 class TestOmniApiKeyResolution:
+    @pytest.fixture(autouse=True)
+    def no_env_file(self, monkeypatch):
+        import omni_env
+        monkeypatch.setattr(omni_env, "read_env_file", lambda *a, **k: {})
+
     def test_prefers_gemini_omni_api_key(self, monkeypatch):
         monkeypatch.setenv("GEMINI_OMNI_API_KEY", "key_omni_123")
         monkeypatch.setenv("GEMINI_VIDEO_API_KEY", "key_video_456")
@@ -159,3 +164,31 @@ class TestVerifySecurityPin:
         monkeypatch.setattr("builtins.input", lambda prompt="": "0000")
         monkeypatch.setattr("getpass.getpass", lambda prompt="": "0000")
         assert verify_security_pin(max_attempts=1) is False
+
+
+class TestOmniEnvFileWins:
+    """.env của Omni thắng ~/.zshrc (khoá chung các repo) — anh Kha chốt 16/10/2026."""
+
+    def test_env_file_omni_key_beats_shell_key(self, monkeypatch):
+        import omni_env
+        monkeypatch.setenv("GEMINI_API_KEY", "shared_zshrc_key")
+        monkeypatch.delenv("GEMINI_OMNI_API_KEY", raising=False)
+        assert omni_env.gemini_api_key({"GEMINI_OMNI_API_KEY": "omni_file_key", "GEMINI_API_KEY": "x"}) == "omni_file_key"
+
+    def test_env_file_generic_key_beats_shell_key(self, monkeypatch):
+        import omni_env
+        monkeypatch.setenv("GEMINI_OMNI_API_KEY", "shell_omni")
+        assert omni_env.gemini_api_key({"GEMINI_API_KEY": "file_generic"}) == "file_generic"
+
+    def test_falls_back_to_shell_when_env_file_empty(self, monkeypatch):
+        import omni_env
+        monkeypatch.delenv("GEMINI_OMNI_API_KEY", raising=False)
+        monkeypatch.delenv("GEMINI_VIDEO_API_KEY", raising=False)
+        monkeypatch.setenv("GEMINI_API_KEY", "shell_key")
+        assert omni_env.gemini_api_key({}) == "shell_key"
+
+    def test_read_env_file_parses_export_and_quotes(self, tmp_path):
+        import omni_env
+        f = tmp_path / ".env"
+        f.write_text('# c\nexport GEMINI_OMNI_API_KEY="abc"\nGEMINI_API_KEY=\nX=1\n', encoding="utf-8")
+        assert omni_env.read_env_file(str(f)) == {"GEMINI_OMNI_API_KEY": "abc", "X": "1"}

@@ -84,7 +84,7 @@ source venv/bin/activate
   ```
 
 ### 3. Cấu hình & Biến môi trường:
-- File cấu hình: `.env` (`GEMINI_API_KEY`, `GEMINI_OMNI_API_KEY`, `OMNI_SECURITY_PIN`, ...).
+- File cấu hình: `.env` (`GEMINI_OMNI_API_KEY`, `GEMINI_API_KEY`, `OMNI_SECURITY_PIN`, ...). **Khoá Gemini riêng của Omni** (anh Kha chốt 16/10/2026): mọi lệnh gọi Gemini (sinh kịch bản, QA, video API) lấy khoá qua `scripts/omni_env.py` — `.env` thắng `~/.zshrc` (khoá chung của repo khác), ưu tiên `GEMINI_OMNI_API_KEY` rồi mới `GEMINI_API_KEY`. Các file `.command` nạp `~/.zshrc` trước, `.env` sau.
 - Luật prompt dùng chung: `config/prompt_rules.json` (nạp toàn bộ vào mọi prompt — không đặt luật riêng cho một kịch bản ở đây).
 - File Service Account: `config/service_account.json` (Google Sheets & Google Drive API).
 - Thư mục kho lưu trữ NAS: `/Volumes/Media/Omni-Video/`.
