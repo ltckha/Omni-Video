@@ -278,7 +278,7 @@ def is_footwear_product(product_name: str) -> bool:
     ]
     return any(kw in name_lower for kw in footwear_keywords)
 
-def select_story_angle(product_name: str):
+def select_story_angle(product_name: str, exclude=()):
     """Lựa chọn góc tiếp cận sáng tạo phù hợp cho sản phẩm, linh hoạt giữa quà tặng và các góc review thực chiến."""
     p_lower = (product_name or "").lower()
     gift_keywords = ["quà", "gift", "set quà", "combo quà", "tặng người yêu", "tặng bạn", "tặng mẹ", "20/10", "8/3", "valentine"]
@@ -306,11 +306,28 @@ def select_story_angle(product_name: str):
     ]
 
     import random
-    if is_gift_related and random.random() < 0.7:
+    # P6 (17/10): nhiều kịch bản / SP -> bỏ các góc đã dùng (hết góc thì dùng lại cả 9)
+    choices = [a for a in ugc_angles if a[0] not in set(exclude)] or ugc_angles
+    if is_gift_related and choices[0] is ugc_angles[0] and random.random() < 0.7:
         return ugc_angles[0]
-    return random.choice(ugc_angles)
+    return random.choice(choices)
 
-def generate_prompt_for_item(item_id, item_dir):
+def save_story_angle(item_dir, angle_name):
+    """Ghi góc đã dùng vào info.json (P6: bản kịch bản sau tránh trùng góc)."""
+    info_path = os.path.join(item_dir, "info.json")
+    if not os.path.exists(info_path):
+        return
+    try:
+        with open(info_path, "r", encoding="utf-8") as f:
+            info = json.load(f)
+        info["story_angle"] = angle_name
+        with open(info_path, "w", encoding="utf-8") as f:
+            json.dump(info, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+def generate_prompt_for_item(item_id, item_dir, exclude_angles=()):
+    """Sinh <item_id>.txt. Trả về tên góc sáng tạo đã dùng (truthy) hoặc False."""
     print(f"\n🎬 Đang xử lý sinh Master Prompt UGC cho Mã SP: {item_id}...")
     
     images = []
@@ -340,7 +357,7 @@ def generate_prompt_for_item(item_id, item_dir):
         anti_repetition_text = "\n[CRITICAL ANTI-REPETITION CONSTRAINT]:\nDO NOT reuse or closely resemble any of these recent voiceovers:\n" + "\n".join(f"- \"{vo}\"" for vo in recent_vos) + "\n"
 
     # Lựa chọn góc sáng tạo đa dạng
-    suggested_angle_name, suggested_angle_desc = select_story_angle(raw_product_name)
+    suggested_angle_name, suggested_angle_desc = select_story_angle(raw_product_name, exclude=exclude_angles)
     print(f"💡 Góc sáng tạo: {suggested_angle_name}")
 
     # Phân loại ngữ cảnh: Chỉ áp dụng luật đối xứng giày khi sản phẩm thực sự là giày dép mang vào chân
@@ -434,7 +451,8 @@ Generate ONLY the clean markdown block above. Do not include any explanations.""
         print(clean_text[:550] + "...\n---------------------------------------")
         
         update_google_sheet_status(item_id)
-        return True
+        save_story_angle(item_dir, suggested_angle_name)
+        return suggested_angle_name
     return False
 
 def prompt_user_continue_with_timeout(current, total, timeout=10):

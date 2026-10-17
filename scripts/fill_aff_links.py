@@ -13,6 +13,7 @@ Dùng: python scripts/fill_aff_links.py            # chạy thử, chỉ báo s�
       python scripts/fill_aff_links.py --apply    # ghi thật (Import.command gọi ở cuối)
 """
 
+import re
 import sys
 import logging
 from typing import Dict, List, Tuple
@@ -26,6 +27,11 @@ logger = logging.getLogger(__name__)
 AFF_LINKS_TAB = "aff_links"
 AFFILIATE_HOST = "s.shopee.vn"
 ACTIVE_VALUES = {"yes", "y", "true", "1", "có", "x"}
+
+
+def base_item_id(job_id: str) -> str:
+    """P6: job_id <itemId>-N (bản kịch bản thứ N) dùng link / thông tin của mã gốc khi chưa có riêng."""
+    return re.sub(r"-\d+$", "", str(job_id or "").strip())
 
 
 def is_affiliate_link(link: str) -> bool:
@@ -91,12 +97,13 @@ def plan_info_writes(omni_values: List[List[str]], info: Dict[str, Dict[str, str
     writes = []
     for r, row in enumerate(omni_values[1:], start=2):
         job_id = str(row[id_i]).strip() if id_i < len(row) else ""
+        key = job_id if job_id in info else base_item_id(job_id)
         for dst, src in INFO_FIELDS.items():
-            if dst not in headers or src not in info.get(job_id, {}):
+            if dst not in headers or src not in info.get(key, {}):
                 continue
             c = headers.index(dst)
             if not (str(row[c]).strip() if c < len(row) else ""):
-                writes.append((r, c + 1, job_id, info[job_id][src]))
+                writes.append((r, c + 1, job_id, info[key][src]))
     return writes
 
 
@@ -113,8 +120,9 @@ def plan_writes(omni_values: List[List[str]], links: Dict[str, str]) -> List[Tup
     for r, row in enumerate(omni_values[1:], start=2):
         job_id = str(row[id_i]).strip() if id_i < len(row) else ""
         current = str(row[link_i]).strip() if link_i < len(row) else ""
-        if job_id in links and not is_affiliate_link(current):
-            writes.append((r, link_i + 1, job_id, links[job_id]))
+        key = job_id if job_id in links else base_item_id(job_id)
+        if key in links and not is_affiliate_link(current):
+            writes.append((r, link_i + 1, job_id, links[key]))
     return writes
 
 
