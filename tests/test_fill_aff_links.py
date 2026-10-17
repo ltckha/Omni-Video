@@ -28,7 +28,7 @@ def test_load_only_active_affiliate_links():
                             aff_row("2", "https://s.shopee.vn/b", active="no"),
                             aff_row("3", "https://shopee.vn/product/1/3"),
                             aff_row("", "https://s.shopee.vn/c")])
-    assert links == {"1": "https://s.shopee.vn/a"}
+    assert links == {("1", ""): "https://s.shopee.vn/a"}
 
 
 def test_empty_table_and_missing_columns_do_nothing():
@@ -43,13 +43,13 @@ def test_plan_fills_empty_or_plain_links_never_overwrites_affiliate():
             ["2", "B", "https://shopee.vn/product/9/2", "YenYen Deals"],  # link thường -> điền
             ["3", "C", "https://s.shopee.vn/old", "YenYen Deals"],        # đã có TTLK -> giữ
             ["4", "D", "", "YenYen Deals"]]                               # không có trong aff_links
-    links = {"1": "https://s.shopee.vn/n1", "2": "https://s.shopee.vn/n2", "3": "https://s.shopee.vn/n3"}
+    links = {("1", ""): "https://s.shopee.vn/n1", ("2", ""): "https://s.shopee.vn/n2", ("3", ""): "https://s.shopee.vn/n3"}
     assert plan_writes(omni, links) == [(2, 3, "1", "https://s.shopee.vn/n1"), (3, 3, "2", "https://s.shopee.vn/n2")]
 
 
 def test_plan_handles_short_rows_and_column_order():
     omni = [["shopee_link", "x", "job_id"], ["", "", "7"], [""]]
-    assert plan_writes(omni, {"7": "https://s.shopee.vn/z"}) == [(2, 1, "7", "https://s.shopee.vn/z")]
+    assert plan_writes(omni, {("7", ""): "https://s.shopee.vn/z"}) == [(2, 1, "7", "https://s.shopee.vn/z")]
 
 
 def _client(aff_values, omni_values):
@@ -98,3 +98,20 @@ def test_info_writes_fill_only_empty_price_rate_shop():
             ["1", "", "10%", ""],     # giá + shop trống -> điền; % hoa hồng đã có -> giữ
             ["2", "", "", ""]]        # không có trong aff_links
     assert plan_info_writes(omni, info) == [(2, 2, "1", "₫99.000"), (2, 4, "1", "Shop A")]
+
+
+def test_sub_id_rows_give_each_variant_its_own_link():
+    from fill_aff_links import load_aff_links, plan_writes
+    hdr = ["aff_id", "sub_id", "link", "active"]
+    links = load_aff_links([hdr,
+                            ["123", "", "https://s.shopee.vn/goc", "yes"],
+                            ["123", "123-2", "https://s.shopee.vn/ban2", "yes"],
+                            ["123", "123-3", "https://s.shopee.vn/ban3", "no"],
+                            ["456", "456", "https://s.shopee.vn/sp456", "yes"]])
+    omni = [["job_id", "shopee_link"], ["123", ""], ["123-2", ""], ["123-3", ""], ["456-2", ""], ["789", ""]]
+    assert plan_writes(omni, links) == [
+        (2, 2, "123", "https://s.shopee.vn/goc"),     # không có sub_id = 123 -> link gốc
+        (3, 2, "123-2", "https://s.shopee.vn/ban2"),  # đúng Sub_id
+        (4, 2, "123-3", "https://s.shopee.vn/goc"),   # link riêng tắt -> link gốc
+        (5, 2, "456-2", "https://s.shopee.vn/sp456"), # chỉ có link Sub_id = itemId -> dùng tạm
+    ]

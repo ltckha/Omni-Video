@@ -38,8 +38,9 @@ def is_affiliate_link(link: str) -> bool:
     return AFFILIATE_HOST in str(link or "").lower()
 
 
-def load_aff_links(values: List[List[str]]) -> Dict[str, str]:
-    """aff_id -> link, chỉ dòng active và link s.shopee.vn. values = mọi ô của tab aff_links (hàng 1 là tiêu đề)."""
+def load_aff_links(values: List[List[str]]) -> Dict[Tuple[str, str], str]:
+    """(aff_id, sub_id) -> link, chỉ dòng active và link s.shopee.vn. Tab chưa có cột sub_id thì sub_id = "".
+    AVF 17/10: khoá dòng aff_links = aff_id + sub_id; sub_id trống = link gốc; sub_id = job_id src_omni (itemId hoặc <itemId>-N)."""
     if not values:
         return {}
     headers = [str(h).strip().lower() for h in values[0]]
@@ -48,13 +49,23 @@ def load_aff_links(values: List[List[str]]) -> Dict[str, str]:
     except ValueError:
         logger.error(f"Tab {AFF_LINKS_TAB} thiếu cột aff_id / link / active — bỏ qua.")
         return {}
-    cell = lambda row, i: str(row[i]).strip() if i < len(row) else ""
+    sub_i = headers.index("sub_id") if "sub_id" in headers else -1
+    cell = lambda row, i: str(row[i]).strip() if 0 <= i < len(row) else ""
     links = {}
     for row in values[1:]:
         aff_id, link = cell(row, id_i), cell(row, link_i)
         if aff_id and is_affiliate_link(link) and cell(row, active_i).lower() in ACTIVE_VALUES:
-            links[aff_id] = link
+            links[(aff_id, cell(row, sub_i))] = link
     return links
+
+
+def find_link(links: Dict, job_id: str) -> str:
+    """Link cho 1 dòng src_omni: đúng Sub_id = job_id → link gốc (sub_id trống) → link của bản gốc (Sub_id = itemId)."""
+    item = base_item_id(job_id)
+    for key in ((item, job_id), (item, ""), (item, item)):
+        if key in links:
+            return links[key]
+    return ""
 
 
 # P3 (17/10): ô src_omni đang trống thì lấy thêm từ aff_links (cột src_omni -> cột aff_links)
@@ -107,7 +118,7 @@ def plan_info_writes(omni_values: List[List[str]], info: Dict[str, Dict[str, str
     return writes
 
 
-def plan_writes(omni_values: List[List[str]], links: Dict[str, str]) -> List[Tuple[int, int, str, str]]:
+def plan_writes(omni_values: List[List[str]], links: Dict[Tuple[str, str], str]) -> List[Tuple[int, int, str, str]]:
     """Các ô cần ghi: (số dòng sheet, số cột sheet, job_id, link). Chỉ ô shopee_link trống / chưa phải s.shopee.vn."""
     if not omni_values or not links:
         return []
@@ -120,9 +131,9 @@ def plan_writes(omni_values: List[List[str]], links: Dict[str, str]) -> List[Tup
     for r, row in enumerate(omni_values[1:], start=2):
         job_id = str(row[id_i]).strip() if id_i < len(row) else ""
         current = str(row[link_i]).strip() if link_i < len(row) else ""
-        key = job_id if job_id in links else base_item_id(job_id)
-        if key in links and not is_affiliate_link(current):
-            writes.append((r, link_i + 1, job_id, links[key]))
+        link = find_link(links, job_id)
+        if link and not is_affiliate_link(current):
+            writes.append((r, link_i + 1, job_id, link))
     return writes
 
 

@@ -37,7 +37,7 @@ def test_prepare_variant_dir_copies_product_images_and_info_only(tmp_path):
 def test_variant_rows_fall_back_to_base_affiliate_link():
     assert base_item_id("123-2") == "123" and base_item_id("123") == "123"
     omni = [["job_id", "shopee_link"], ["123", ""], ["123-2", ""], ["123-3", "https://s.shopee.vn/own"]]
-    assert plan_writes(omni, {"123": "https://s.shopee.vn/base"}) == [
+    assert plan_writes(omni, {("123", ""): "https://s.shopee.vn/base"}) == [
         (2, 2, "123", "https://s.shopee.vn/base"), (3, 2, "123-2", "https://s.shopee.vn/base")]
 
 
