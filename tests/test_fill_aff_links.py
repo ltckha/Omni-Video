@@ -87,3 +87,14 @@ def test_run_with_empty_aff_links_table(mock_client):
     mock_client.return_value = gc
     assert run(apply=True) == 0
     omni_ws.batch_update.assert_not_called()
+
+
+def test_info_writes_fill_only_empty_price_rate_shop():
+    from fill_aff_links import load_aff_info, plan_info_writes
+    aff = [AFF_HDR, aff_row("1", "https://s.shopee.vn/a")]
+    aff[1][4], aff[1][5], aff[1][6] = "12%", "₫99.000", "Shop A"  # commission_rate, price, shop
+    info = load_aff_info(aff)
+    omni = [["job_id", "price", "commission_rate", "shop_name"],
+            ["1", "", "10%", ""],     # giá + shop trống -> điền; % hoa hồng đã có -> giữ
+            ["2", "", "", ""]]        # không có trong aff_links
+    assert plan_info_writes(omni, info) == [(2, 2, "1", "₫99.000"), (2, 4, "1", "Shop A")]

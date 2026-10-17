@@ -140,12 +140,15 @@ function getShopeeProductInfo() {
     price = priceEl.content || priceEl.innerText || "";
     price = price.replace(/\n/g, " ").trim();
   }
+  if (!price) price = findPriceByText();  // P3 (17/10): tên class Shopee đổi liên tục -> đọc theo chữ "₫"
 
   let salesEl = document.querySelector("div.e222fZ, div.rP3t22, div._22oTVb, div.A3T5L-, div.rcP-2H");
   let salesCount = salesEl ? salesEl.innerText.trim() : "";
+  if (!salesCount) salesCount = findSoldByText();
 
   let shopEl = document.querySelector("div._2m-i93, div.page-product__shop, a._26s_c2, div.shop-page-shop-name, div.P2r3+g");
   let shopName = shopEl ? shopEl.innerText.trim() : "";
+  if (!shopName) shopName = findShopByText();
 
   return {
     itemId: itemId || ("SP_" + new Date().getTime()),
@@ -197,3 +200,40 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   }
   return true;
 });
+
+// ===== P3: đọc giá / lượt bán / tên shop theo chữ hiển thị (không phụ thuộc tên class Shopee) =====
+// Giá chính: ô chỉ chứa "₫123.000" (hoặc khoảng "₫a - ₫b") có cỡ chữ lớn nhất trong nửa trên trang.
+function findPriceByText() {
+  const re = /^\s*₫\s?[\d.]+(\s?-\s?₫\s?[\d.]+)?\s*$/;
+  let best = null, bestSize = 0;
+  for (const el of document.querySelectorAll("div, span")) {
+    if (el.children.length > 2) continue;
+    const text = (el.innerText || "").trim();
+    if (!re.test(text)) continue;
+    const rect = el.getBoundingClientRect();
+    if (rect.top > window.innerHeight * 1.5) continue;
+    const size = parseFloat(getComputedStyle(el).fontSize) || 0;
+    if (size > bestSize) { best = text; bestSize = size; }
+  }
+  return best ? best.replace(/\s+/g, " ") : "";
+}
+
+// Lượt bán: "Đã bán 10k+" hoặc "10k+ Đã Bán"
+function findSoldByText() {
+  const text = document.body.innerText || "";
+  const m = text.match(/Đã bán\s*([\d.,]+\s?(?:k|tr)?\+?)/i) || text.match(/([\d.,]+\s?(?:k|tr)?\+?)\s*Đã bán/i);
+  return m ? m[1].replace(/\s+/g, "") : "";
+}
+
+// Tên shop: khối chứa nút "Xem Shop" -> dòng chữ đầu tiên của khối đó
+function findShopByText() {
+  const btn = [...document.querySelectorAll("a, button")].find((b) => /^\s*Xem Shop\s*$/i.test(b.innerText || ""));
+  let box = btn;
+  for (let i = 0; i < 5 && box; i++) {
+    box = box.parentElement;
+    const lines = (box && box.innerText ? box.innerText : "").split("\n").map((l) => l.trim()).filter(Boolean);
+    const name = lines.find((l) => !/Xem Shop|Chat Ngay|Online|Đánh Giá|Sản Phẩm|Tỉ Lệ|Thời Gian|Tham Gia|Người Theo Dõi|Yêu thích|Mall/i.test(l) && l.length < 60);
+    if (name) return name;
+  }
+  return "";
+}

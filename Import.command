@@ -35,6 +35,10 @@ echo ""
 $PYTHON_EXEC scripts/fill_aff_links.py --apply
 
 echo ""
+# 4. Gợi ý nên làm video sản phẩm nào trước (hoa hồng × lượt bán) — chỉ đọc
+$PYTHON_EXEC scripts/rank_products.py
+
+echo ""
 echo "============================================================"
 echo "✅ HOÀN TẤT! Nhấn phím Enter để đóng cửa sổ này."
 echo "============================================================"
