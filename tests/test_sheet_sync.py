@@ -223,3 +223,27 @@ class TestOmniTabName:
         with pytest.raises(RuntimeError):
             get_omni_worksheet(sh)
         sh.get_worksheet.assert_not_called()
+
+
+@patch("sheet_sync.get_gspread_client")
+def test_alt_s_again_keeps_existing_status(mock_get_client):
+    """P7: bấm Alt+S lại trên SP đã có video không được đặt status về "Đã chọn ảnh"."""
+    ws = MagicMock()
+    headers = ["job_id", "title", "status", "video_path"]
+    ws.get_all_values.return_value = [headers, ["555", "Đèn học", "Đã tạo Video", "/Volumes/Media/Omni-Video/555/555.mp4"]]
+    sh = MagicMock(); sh.worksheet.return_value = ws
+    gc = MagicMock(); gc.open_by_key.return_value = sh
+    mock_get_client.return_value = gc
+    assert sync_product_to_sheet({"productName": "Đèn học"}, "555") is True
+    ws.batch_update.assert_not_called()  # không có ô nào đổi
+
+
+@patch("sheet_sync.get_gspread_client")
+def test_new_row_still_gets_default_status(mock_get_client):
+    ws = MagicMock()
+    ws.get_all_values.return_value = [["job_id", "title", "status"]]
+    sh = MagicMock(); sh.worksheet.return_value = ws
+    gc = MagicMock(); gc.open_by_key.return_value = sh
+    mock_get_client.return_value = gc
+    assert sync_product_to_sheet({"productName": "Ô gấp"}, "777") is True
+    assert ws.append_row.call_args[0][0][2] == "Đã chọn ảnh"

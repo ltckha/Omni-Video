@@ -245,7 +245,8 @@ def sync_product_to_sheet(info: Dict[str, Any], item_id: str) -> bool:
             "shopee_link": info.get("shopeeLink") or info.get("shopee_link") or "",
             "cdn_url": info.get("cdnUrl") or info.get("cdn_url") or "",
             "local_path": info.get("localPath") or f"Product_Assets/{item_id}/",
-            "status": info.get("status") or "Đã chọn ảnh",
+            # Dòng đã có: không đặt lại status (bấm Alt+S lại từng đưa "Đã tạo Video" về "Đã chọn ảnh")
+            "status": info.get("status") or ("Đã chọn ảnh" if target_row_number <= 0 else ""),
             "video_path": info.get("videoPath") or info.get("video_path") or "",
             "brand_fb": info.get("brand_fb") or (default_brand if target_row_number <= 0 else ""),
             "brand_yt": info.get("brand_yt") or (default_brand if target_row_number <= 0 else ""),
