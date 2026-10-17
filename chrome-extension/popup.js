@@ -21,6 +21,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   chrome.runtime.sendMessage({ action: "FLOW_LIST" }, (resp) => {
     refreshStatus();
+    if (resp && resp.seasons && resp.seasons.length) {
+      const box = document.createElement("div");
+      box.className = "flow-status";
+      box.textContent = resp.seasons.join("\n");
+      box.style.whiteSpace = "pre-line";
+      statusEl.parentNode.insertBefore(box, statusEl);
+    }
     if (!resp || resp.status !== "success") {
       listEl.textContent = `⚠️ ${resp ? resp.message : "Không kết nối được Native Host"}`;
       return;

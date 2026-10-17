@@ -1,0 +1,18 @@
+{
+  "_ghi_chu": "P4 lịch mùa (anh Kha 17/10/2026). start/end dạng MM-DD lặp mỗi năm (end < start = vắt qua năm mới); mùa đổi ngày theo năm dùng windows [YYYY-MM-DD, YYYY-MM-DD]. keywords so với tên SP đã bỏ dấu, theo nguyên cụm từ.",
+  "remind_days_before": 14,
+  "seasons": [
+    {"id": "valentine", "name": "Valentine 14/2", "start": "02-01", "end": "02-14", "keywords": ["valentine", "14/2", "le tinh nhan"]},
+    {"id": "quoc_te_phu_nu_8_3", "name": "Quốc tế Phụ nữ 8/3", "start": "02-25", "end": "03-08", "keywords": ["8/3", "8-3", "quoc te phu nu"]},
+    {"id": "mua_mua", "name": "Mùa mưa (miền Nam)", "start": "05-01", "end": "10-31", "keywords": ["di mua", "ao mua", "ung cao su", "ung boc", "boc giay", "o gap", "o du", "du che mua"]},
+    {"id": "thieu_nhi_1_6", "name": "Quốc tế Thiếu nhi 1/6", "start": "05-20", "end": "06-01", "keywords": ["1/6", "quoc te thieu nhi"]},
+    {"id": "tuu_truong", "name": "Mùa tựu trường", "start": "08-01", "end": "09-10", "keywords": ["tuu truong", "back to school", "balo hoc sinh", "do dung hoc tap"]},
+    {"id": "trung_thu", "name": "Trung thu", "windows": [["2026-09-10", "2026-09-25"], ["2027-09-01", "2027-09-15"], ["2028-09-18", "2028-10-03"]], "keywords": ["trung thu", "long den", "banh trung thu"]},
+    {"id": "phu_nu_vn_20_10", "name": "Phụ nữ Việt Nam 20/10", "start": "10-01", "end": "10-20", "keywords": ["20/10", "20-10", "phu nu viet nam", "ngay phu nu"]},
+    {"id": "sale_11_11", "name": "Siêu sale 11/11", "start": "11-01", "end": "11-11", "keywords": ["11/11", "11.11"]},
+    {"id": "black_friday", "name": "Black Friday", "windows": [["2026-11-20", "2026-11-30"], ["2027-11-19", "2027-11-29"], ["2028-11-17", "2028-11-27"]], "keywords": ["black friday"]},
+    {"id": "sale_12_12", "name": "Siêu sale 12/12", "start": "12-01", "end": "12-12", "keywords": ["12/12", "12.12"]},
+    {"id": "giang_sinh", "name": "Giáng sinh", "start": "12-01", "end": "12-25", "keywords": ["giang sinh", "noel", "christmas"]},
+    {"id": "tet", "name": "Tết Nguyên đán", "windows": [["2027-01-05", "2027-02-06"], ["2027-12-22", "2028-01-26"]], "keywords": ["tet", "li xi", "nam moi", "bao li xi"]}
+  ]
+}

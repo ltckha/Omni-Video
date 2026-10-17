@@ -35,7 +35,11 @@ echo ""
 $PYTHON_EXEC scripts/fill_aff_links.py --apply
 
 echo ""
-# 4. Gợi ý nên làm video sản phẩm nào trước (hoa hồng × lượt bán) — chỉ đọc
+# 4. Lịch mùa: gắn mùa, đổi "Hết mùa" / trả lại (đổi > 10 dòng thì dừng chờ anh Kha), nhắc mùa sắp tới
+$PYTHON_EXEC scripts/season.py --apply
+
+echo ""
+# 5. Gợi ý nên làm video sản phẩm nào trước (hoa hồng × lượt bán) — chỉ đọc
 $PYTHON_EXEC scripts/rank_products.py
 
 echo ""

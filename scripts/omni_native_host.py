@@ -53,7 +53,14 @@ def handle_flow_action(msg):
     item_id = str(msg.get("itemId", "")).strip()
     try:
         if action == "FLOW_LIST":
-            send_message({"status": "success", "items": flow_helper.list_pending_items()})
+            reminders = []
+            try:  # P4: nhắc mùa đang diễn ra / sắp tới (config/mua_vu.json), không đọc Sheet
+                from datetime import date
+                import season
+                reminders = season.reminders(season.load_config(), date.today())
+            except Exception:
+                pass
+            send_message({"status": "success", "items": flow_helper.list_pending_items(), "seasons": reminders})
         elif action == "FLOW_FILES":
             # Dùng qua chrome.runtime.connectNative: gửi nhiều tin (meta + các mảnh base64 < 1 MB)
             for part in flow_helper.encode_flow_files(item_id):
