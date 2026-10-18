@@ -153,28 +153,26 @@ def build_omni_payload(
     # Đính kèm ảnh sản phẩm
     if product_image_path and os.path.exists(product_image_path):
         try:
-            with open(product_image_path, "rb") as f:
-                b64_data = base64.b64encode(f.read()).decode("utf-8")
-                mime_type = get_image_mime_type(product_image_path)
-                inputs.append({
-                    "type": "image",
-                    "data": b64_data,
-                    "mime_type": mime_type
-                })
+            from omni_env import image_for_ai
+            img_bytes, mime_type = image_for_ai(product_image_path)  # cạnh dài ≤ 1600 px, JPEG 85; file gốc giữ nguyên
+            inputs.append({
+                "type": "image",
+                "data": base64.b64encode(img_bytes).decode("utf-8"),
+                "mime_type": mime_type
+            })
         except Exception as e:
             print(f"  ⚠️ Không thể đọc ảnh sản phẩm {product_image_path}: {e}")
 
     # Đính kèm ảnh nhân vật
     if character_image_path and os.path.exists(character_image_path):
         try:
-            with open(character_image_path, "rb") as f:
-                b64_data = base64.b64encode(f.read()).decode("utf-8")
-                mime_type = get_image_mime_type(character_image_path)
-                inputs.append({
-                    "type": "image",
-                    "data": b64_data,
-                    "mime_type": mime_type
-                })
+            from omni_env import image_for_ai
+            img_bytes, mime_type = image_for_ai(character_image_path)  # cạnh dài ≤ 1600 px, JPEG 85; file gốc giữ nguyên
+            inputs.append({
+                "type": "image",
+                "data": base64.b64encode(img_bytes).decode("utf-8"),
+                "mime_type": mime_type
+            })
         except Exception as e:
             print(f"  ⚠️ Không thể đọc ảnh nhân vật {character_image_path}: {e}")
 
@@ -218,20 +216,12 @@ def extract_video_data_from_response(response_data: Dict[str, Any]) -> Optional[
 
 def call_omni_video_api(payload: Dict[str, Any], api_key: str, max_retries: int = 2) -> Optional[bytes]:
     """Gửi yêu cầu tạo video tới Gemini Omni Flash API qua REST Interactions Endpoint."""
-    url = f"https://generativelanguage.googleapis.com/v1beta/interactions?key={api_key}"
-    
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    from omni_env import google_ssl_context, gemini_headers
+    url = "https://generativelanguage.googleapis.com/v1beta/interactions"  # khoá đi trong header, không nằm trong URL
+    ctx = google_ssl_context()  # kiểm chứng chỉ SSL đầy đủ
 
     data_bytes = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=data_bytes,
-        headers={
-            "Content-Type": "application/json"
-        }
-    )
+    req = urllib.request.Request(url, data=data_bytes, headers=gemini_headers(api_key))
 
     for attempt in range(1, max_retries + 1):
         try:

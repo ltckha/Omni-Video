@@ -156,23 +156,21 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
         print("❌ Lỗi: Không tìm thấy GEMINI_API_KEY trong biến môi trường!")
         return None
 
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    from omni_env import google_ssl_context, gemini_headers, image_for_ai
+    ctx = google_ssl_context()  # kiểm chứng chỉ SSL đầy đủ
 
     parts = []
     if image_filepath and os.path.exists(image_filepath):
         try:
-            with open(image_filepath, "rb") as img_file:
-                img_b64 = base64.b64encode(img_file.read()).decode("utf-8")
-                mime_type = get_image_mime_type(image_filepath)
-                parts.append({
-                    "inline_data": {
-                        "mime_type": mime_type,
-                        "data": img_b64
-                    }
-                })
-                print(f"📸 Đã đính kèm ảnh Multimodal ({mime_type}) vào Gemini AI...")
+            img_bytes, mime_type = image_for_ai(image_filepath)  # cạnh dài ≤ 1600 px, JPEG 85; file gốc giữ nguyên
+            img_b64 = base64.b64encode(img_bytes).decode("utf-8")
+            parts.append({
+                "inline_data": {
+                    "mime_type": mime_type,
+                    "data": img_b64
+                }
+            })
+            print(f"📸 Đã đính kèm ảnh Multimodal ({mime_type}, {len(img_bytes) // 1024} KB) vào Gemini AI...")
         except Exception as e:
             print("⚠️ Không thể đọc file ảnh:", e)
 
@@ -186,11 +184,11 @@ def call_gemini_multimodal_api(prompt_text, image_filepath=None):
     }
 
     for model_name in PREFERRED_MODELS:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent"
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"}
+            headers=gemini_headers(GEMINI_API_KEY)
         )
         
         for attempt in range(2):

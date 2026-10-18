@@ -45,9 +45,8 @@ def get_api_key():
     return gemini_api_key()  # khoá riêng của Omni (.env thắng ~/.zshrc)
 
 def get_ssl_context():
-    ctx = ssl.create_default_context()
-    ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    from omni_env import google_ssl_context
+    ctx = google_ssl_context()  # kiểm chứng chỉ SSL đầy đủ
     return ctx
 
 def upload_video_to_gemini_files(video_path):
@@ -117,11 +116,11 @@ def upload_video_to_gemini_files(video_path):
 
     # Bước 3: Polling trạng thái cho tới khi ACTIVE
     print(f"⏳ Đang chờ Gemini xử lý video ({file_display_name})...")
-    status_url = f"https://generativelanguage.googleapis.com/v1beta/{file_name}?key={get_api_key()}"
+    status_url = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
 
     max_attempts = 30
     for attempt in range(max_attempts):
-        req_status = urllib.request.Request(status_url)
+        req_status = urllib.request.Request(status_url, headers={"x-goog-api-key": get_api_key()})
         try:
             with urllib.request.urlopen(req_status, context=ctx) as resp:
                 status_data = json.loads(resp.read().decode("utf-8"))
@@ -145,8 +144,8 @@ def delete_gemini_file(file_name):
     """
     if not file_name:
         return
-    url = f"https://generativelanguage.googleapis.com/v1beta/{file_name}?key={get_api_key()}"
-    req = urllib.request.Request(url, method="DELETE")
+    url = f"https://generativelanguage.googleapis.com/v1beta/{file_name}"
+    req = urllib.request.Request(url, method="DELETE", headers={"x-goog-api-key": get_api_key()})
     ctx = get_ssl_context()
     try:
         with urllib.request.urlopen(req, context=ctx) as resp:
@@ -228,11 +227,11 @@ Return ONLY a valid JSON object matching this exact schema (do NOT copy any text
     report_data = None
     models_to_try = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-3.7-flash", "gemini-2.5-flash"]
     for m in models_to_try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent?key={api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{m}:generateContent"
         req = urllib.request.Request(
             url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={"Content-Type": "application/json"}
+            headers={"Content-Type": "application/json", "x-goog-api-key": api_key}
         )
         try:
             with urllib.request.urlopen(req, context=ctx) as resp:
