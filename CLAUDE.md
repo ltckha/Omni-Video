@@ -1,6 +1,6 @@
 # 📜 CLAUDE.md - SỔ TAY VẬN HÀNH DỰ ÁN OMNI-VIDEO
 
-> **Chào Claude, bạn đang cùng Kha Lưu (Project Owner) và Antigravity vận hành hệ thống Omni-Video.**  
+> **Chào Claude, bạn đang cùng Kha Lưu (Project Owner) vận hành hệ thống Omni-Video.**  
 > Tài liệu này là **Hiến pháp tối cao** bắt buộc bạn phải đọc và tuân thủ 100% trong suốt quá trình làm việc trong repository này.
 
 ---
@@ -16,10 +16,9 @@
    - Máy tự đẩy lúc 2:30 sáng (launchd `vn.giayhainancy.daygit` chạy `~/Developer/Ecosystem-Hub/commands/push_all.command --tu-dong`; repo còn file sửa dở / lệch origin / nghi bí mật thì bị bỏ qua, 8:00 báo anh), hoặc anh nhắn **"đẩy"** → quét bí mật (`.env`, `config/service_account.json`, token, cookie) rồi push thẳng `main`. Ban ngày không hỏi / nhắc anh "đẩy".
    - Cấm `git commit -am` / `git add -A` / `git add .`. Luôn `git add` từng file. Cuối mỗi việc không để file sửa dở chưa commit.
 
-3. **MÔ HÌNH PHỐI HỢP CẶP BÀI TRÙNG (DUAL-CLAUDE ARCHITECTURE):**
+3. **MÔ HÌNH PHỐI HỢP:**
    - **Claude Cowork (Cloud):** Đảm nhận tư duy vĩ mô: Quy hoạch kiến trúc, phản biện logic mã nguồn, viết prompt Gemini Omni, lập kế hoạch hành động.
    - **Claude Code (Local Mac M4):** Kỹ sư trưởng thực thi hiện trường: Chạy lệnh terminal, kích hoạt môi trường ảo Python `venv`, chạy script di chuyển file, gọi API.
-   - **Antigravity (IDE Pair-Programmer):** Đồng hành cùng anh Kha tại IDE.
 
 4. **MỖI REPO MỘT PHIÊN THỰC THI:**
    - Chỉ phiên **"Thực thi – Omni-Video"** được sửa code và commit trong repo này.
@@ -42,7 +41,7 @@ Hệ thống tự động hóa thu thập nguyên liệu sản phẩm Shopee, đ
 5. **Sinh Video trên Google Flow (bán tự động, ưu tiên — 15 credit/video, 0 phí API):** popup extension liệt kê SP có prompt chưa có video → "Tạo video" (1 cú bấm / 1 video, anh Kha chọn 15/10/2026): `chrome-extension/flow_page.js` dán 1 lần mọi ảnh trong thư mục SP vào ô câu lệnh của dự án Flow đang mở (1 = ảnh SP lớn nhất, 2 = người mẫu — khớp Input Image 1/2 trong kịch bản, 3.. = ảnh SP còn lại, tối đa 7; ảnh > 2 MB tự thu nhỏ bằng `sips`) rồi dán kịch bản `.txt`, rồi tự bấm Tạo → Phê duyệt 15 credit → chờ video → Tải 720p (tên `<Mã_SP>.mp4`, Chrome hỏi Save thì anh bấm Save) → native host chuyển vào `Product_Assets/<Mã_SP>/` (`scripts/flow_helper.py`); Move.command vẫn tự gom `~/Downloads/<Mã_SP>.mp4`. Dự án Flow đặt sẵn video 9:16, x1, Omni 1.1 Flash. Mỗi lần 1 SP do anh chọn, không chạy lô; bước nào quá hạn thì dừng báo anh làm tay; gặp CAPTCHA thì dừng.
 5b. **Sinh Video bằng API (dự phòng) (`Video.command` / `scripts/generate_omni_video.py`):** Gọi `gemini-omni-1.1-flash` với prompt `.txt` + ảnh sản phẩm + ảnh nhân vật, xuất `<Mã_SP>.mp4` dọc 9:16. API trả phí, có khóa PIN (`OMNI_SECURITY_PIN`).
 6. **Clean & Move Completed Videos (`Move.command` / `scripts/archive_completed_videos.py`):** Quét các thư mục đã có video `.mp4` (cả trong `~/Downloads`), tùy chọn chạy QA (`video_qa_analyzer.py`), dọn file thừa và di chuyển thư mục về `/Volumes/Media/Omni-Video/`. Cập nhật cột Output File trên Sheet.
-7. **Spark Sync (`scripts/drive_sync.py`):** Trao đổi `anti-spark_omni.md`, `IDEAS.md` với Spark 100% qua Google Drive API v3, không dùng đường dẫn CloudStorage cục bộ.
+7. **Spark Sync (`scripts/drive_sync.py`):** Trao đổi `anti-spark_omni.md`, `IDEAS.md` với Spark 100% qua Google Drive API v3 (Service Account, scope `drive`), không dùng đường dẫn CloudStorage cục bộ (`~/Library/CloudStorage/...`). Hàm: `read_drive_file(filename)`, `write_drive_file(filename, content)`, `append_to_anti_spark_log(log_entry)`.
 
 ---
 
@@ -105,4 +104,4 @@ source venv/bin/activate
 
 - **Lấy sản phẩm:** trên Shopee rê chuột lên ảnh nét nhất, bấm `Alt+S` (hoặc chuột phải "Lưu ảnh SP cho Omni UGC") → extension tải ảnh, native host (`com.omni.video.curator`) chuyển vào `Product_Assets/<Mã_SP>/`, lưu `info.json`, ghi dòng lên `src_omni`.
 - **Kiểm thử:** `python -m pytest tests/` (0 mạng, 0 Gemini) — bắt buộc sau mỗi lần sửa code.
-- **Luật Antigravity:** `.agents/rules/` (thảo luận trước khi làm, git, Spark qua Drive API v3, map cột theo header).
+- **Thay đổi giao diện / khung hình / phụ đề / hiệu ứng thị giác:** tạo ảnh xem trước cho anh duyệt trước khi áp dụng.
