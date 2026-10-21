@@ -7,19 +7,6 @@ echo "============================================================"
 echo "🚚 OMNI VIDEO - DI CHUYỂN THƯ MỤC VIDEO HOÀN THÀNH VỀ Ổ MEDIA"
 echo "============================================================"
 echo ""
-echo "Vui lòng chọn chế độ di chuyển:"
-echo "  [1] Move thẳng luôn - Siêu tốc (MẶC ĐỊNH - TỰ ĐỘNG CHẠY SAU 10 GIÂY)"
-echo "  [2] Kiểm tra QA chất lượng video trước khi Move"
-echo ""
-
-# Đếm ngược 10s timeout read: Không thao tác gì sẽ tự động chọn [1]
-choice=""
-read -t 10 -p "👉 Nhập lựa chọn (1 hoặc 2, tự động chọn [1] sau 10s): " choice || choice="1"
-
-if [ -z "$choice" ]; then
-  choice="1"
-fi
-
 # Sourcing biến môi trường nếu cần
 source ~/.zshrc 2>/dev/null
 source ~/.zshenv 2>/dev/null
@@ -36,13 +23,7 @@ if [ -f "./venv/bin/python3" ]; then
 fi
 
 echo ""
-if [ "$choice" = "2" ]; then
-  echo "🔍 Đã chọn: [2] Kiểm tra QA chất lượng video rồi mới Move..."
-  $PYTHON_EXEC scripts/archive_completed_videos.py
-else
-  echo "⚡ Đã chọn: [1] Move thẳng luôn (Bỏ qua kiểm tra QA - Siêu tốc)..."
-  $PYTHON_EXEC scripts/archive_completed_videos.py --skip-qa
-fi
+$PYTHON_EXEC scripts/archive_completed_videos.py
 
 echo ""
 echo "============================================================"

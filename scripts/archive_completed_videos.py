@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 """
-Omni Video - Archive & Clean Completed Product Videos with QA & Prompt Evolution
-Tự động quét các thư mục sản phẩm trong Product_Assets/:
-1. Nếu đã có file video .mp4 -> Phân tích chất lượng QA bằng Gemini Video Understanding API.
-2. Tự động Sao Lưu (Backup) & Tinh chỉnh Nâng Cấp Master Prompt theo bài học QA.
-3. Xóa ảnh character và file info.json.
-4. Di chuyển toàn bộ thư mục sản phẩm hoàn thành về /Volumes/Media/Omni-Video/Product_Assets/
-5. Cập nhật trạng thái Master Prompt trên Google Sheet thành "Đã tạo Video".
+Omni Video - Archive & Clean Completed Product Videos
+Tự động quét các thư mục sản phẩm trong Product_Assets/ (và ~/Downloads/<Mã_SP>.mp4):
+1. Thư mục đã có video .mp4 -> xoá ảnh character, info.json, prompt_backups/.
+2. Di chuyển toàn bộ thư mục sản phẩm hoàn thành về /Volumes/Media/Omni-Video/<Mã_SP>/
+3. Cập nhật trạng thái trên Google Sheet thành "Đã tạo Video" + video_path.
+(Chế độ QA Gemini + tự học prompt đã chuyển vào archive/ ngày 21/10/2026.)
 """
 
 import os
@@ -17,8 +16,6 @@ import json
 import urllib.request
 import ssl
 
-from video_qa_analyzer import analyze_video_quality
-from prompt_evolution_engine import backup_current_prompt, evolve_prompt_from_qa
 
 def _load_env_file():
     project_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -131,7 +128,7 @@ def safe_move_path(src_path: str, dst_path: str):
         except Exception:
             pass
 
-def archive_completed_folders(skip_qa=False):
+def archive_completed_folders():
     if not os.path.exists(ASSETS_DIR):
         print(f"❌ Thư mục {ASSETS_DIR} không tồn tại!")
         return 0
@@ -158,31 +155,6 @@ def archive_completed_folders(skip_qa=False):
             print(f"\n🎬 Phát hiện video MP4 tại Downloads: {os.path.basename(video_file)} (Mã SP: {item_id})")
         else:
             print(f"\n🎬 Phát hiện video MP4 hoàn thành tại mã SP: {item_id}")
-
-        if not skip_qa:
-            # 1. Chạy phân tích QA video bằng Gemini Video Understanding API
-            qa_report = analyze_video_quality(video_file, item_path)
-
-            qa_score = 100
-            if qa_report:
-                qa_score = qa_report.get("total_score", 100)
-
-            # 🛑 CHỐT CHẶN CHẤT LƯỢNG (QA GATE): Nếu video dưới 70 điểm -> GIỮ NGUYÊN KHÔNG MOVE & TẠO BACKUP LỜI LỖI
-            if qa_score < 70:
-                if qa_report:
-                    evolve_prompt_from_qa(item_path, qa_report, create_backup=True)
-                else:
-                    backup_current_prompt(item_path)
-                print(f"🛑 CHÚ Ý: VideoSP {item_id} chưa đạt chuẩn QA (Điểm: {qa_score}/100 < 70 điểm tối thiểu).")
-                print(f"   👉 Giữ nguyên thư mục tại Product_Assets/{item_id}/ để anh/chị xem lỗi và làm lại video!")
-                print(f"   💡 Prompt đã được AI tự nâng cấp bài học để sửa lỗi cho lần sinh tiếp theo.")
-                continue
-
-            # 2. Nếu video đã ĐẠT CHUẨN (>= 70 điểm): Cập nhật bài học hệ thống chung (không cần tạo backup folder)
-            if qa_report:
-                evolve_prompt_from_qa(item_path, qa_report, create_backup=False)
-        else:
-            print("  ⚡ Chế độ BỎ QUA QA: Di chuyển siêu tốc thẳng về ổ Media...")
 
         # 3. Xóa thư mục prompt_backups nếu có (vì sản phẩm đã thành công)
         backups_dir = os.path.join(item_path, "prompt_backups")
@@ -252,15 +224,12 @@ def archive_completed_folders(skip_qa=False):
     return archived_count
 
 if __name__ == "__main__":
-    skip_qa = "--skip-qa" in sys.argv or "--direct" in sys.argv or "-s" in sys.argv
-    mode_str = "BỎ QUA QA - MOVE SIÊU TỐC" if skip_qa else "CHẨN ĐOÁN QA & NÂNG CẤP PROMPT"
-
     print("============================================================")
-    print(f"🚀 OMNI VIDEO - DI CHUYỂN VIDEO VỀ Ổ MEDIA ({mode_str})")
+    print("🚀 OMNI VIDEO - DI CHUYỂN VIDEO VỀ Ổ MEDIA")
     print("============================================================")
     print(f"📁 Thư mục đích: {TARGET_MEDIA_DIR}\n")
     
-    count = archive_completed_folders(skip_qa=skip_qa)
+    count = archive_completed_folders()
     print("\n============================================================")
     if count > 0:
         print(f"✅ HOÀN TẤT! Đã di chuyển và cập nhật Google Sheet cho {count} sản phẩm.")

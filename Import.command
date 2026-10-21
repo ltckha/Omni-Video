@@ -35,6 +35,11 @@ echo ""
 $PYTHON_EXEC scripts/fill_aff_links.py --apply
 
 echo ""
+# 3b. Còn SP chưa có link s.shopee.vn -> tạo file Batch Custom Links trong Tải về (gộp Links.command 21/10)
+$PYTHON_EXEC scripts/make_batch_links.py && NEW_BATCH="$(ls -t ~/Downloads/Omni_BatchCustomLinks_*.xlsx 2>/dev/null | head -1)"
+if [ -n "$NEW_BATCH" ] && [ "$(find "$NEW_BATCH" -mmin -2 2>/dev/null)" ]; then open -R "$NEW_BATCH"; fi
+
+echo ""
 # 4. Lịch mùa: gắn mùa, đổi "Hết mùa" / trả lại (đổi > 10 dòng thì dừng chờ anh Kha), nhắc mùa sắp tới
 $PYTHON_EXEC scripts/season.py --apply
 

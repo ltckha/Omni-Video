@@ -17,11 +17,40 @@ import subprocess
 import tempfile
 from typing import Optional, List, Dict
 
-from generate_omni_video import find_prompt_file, find_character_image, get_image_mime_type
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
 DOWNLOADS_DIR = os.path.expanduser("~/Downloads")
+
+
+def get_image_mime_type(filepath: str) -> str:
+    ext = os.path.splitext(filepath)[1].lower()
+    return {".webp": "image/webp", ".png": "image/png"}.get(ext, "image/jpeg")
+
+
+def find_prompt_file(item_dir: str, item_id: str) -> Optional[str]:
+    """<itemId>.txt, hoặc master_prompt.txt (cũ), hoặc file .txt bất kỳ (trừ prompt_backups)."""
+    for name in (f"{item_id}.txt", "master_prompt.txt"):
+        path = os.path.join(item_dir, name)
+        if os.path.exists(path):
+            return path
+    txts = [f for f in glob.glob(os.path.join(item_dir, "*.txt")) if "prompt_backups" not in f]
+    return txts[0] if txts else None
+
+
+def find_character_image(item_dir: str) -> Optional[str]:
+    """Ảnh nhân vật (Nu-* / Nam-* / *character*) trong thư mục SP, không có thì lấy ảnh đầu trong characters/."""
+    for ext in ("*.png", "*.jpg", "*.jpeg", "*.webp"):
+        for f in glob.glob(os.path.join(item_dir, ext)):
+            name = os.path.basename(f).lower()
+            if name.startswith("nu-") or name.startswith("nam-") or "character" in name:
+                return f
+    for ext in ("*.png", "*.jpg", "*.jpeg", "*.webp"):
+        chars = sorted(glob.glob(os.path.join(CHARACTERS_DIR, ext)))
+        if chars:
+            return chars[0]
+    return None
 
 
 def _product_title(item_dir: str) -> str:
