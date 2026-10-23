@@ -11,6 +11,7 @@ import os
 import glob
 import csv
 import shutil
+import json
 import logging
 from pathlib import Path
 from typing import List, Dict, Any
@@ -191,13 +192,71 @@ def upload_csv_to_gsheet(csv_filepath: Path):
 
         # Di chuyển file CSV đã xử lý vào data/
         move_csv_to_data_folder(csv_filepath)
+        ok = True
 
     except Exception as e:
         print(f"❌ Lỗi khi đồng bộ lên Google Sheets: {e}")
+        ok = False
 
     organize_all_root_csvs()
+    return ok
+
+# ===== N29 (bản nháp 23/10, chưa bật trong Import.command): nhập MỌI file CSV chưa nhập =====
+# Lỗi cũ: mỗi lần chỉ nhập 1 file mới nhất, rồi organize_all_root_csvs() chuyển cả file CHƯA nhập vào data/
+# → lần sau lại chọn file mới nhất, file cũ hơn không bao giờ lên Sheet.
+# Sổ data/.imported_csv.json ghi tên file đã nhập; lần đầu chạy ghi sẵn mọi file đang có trong data/ là "đã nhập"
+# (không nhập lại, để dòng anh Kha đã xoá tay không quay lại). Muốn nhập lại 1 file cũ: chạy với đường dẫn file đó.
+IMPORTED_LEDGER = DATA_DIR / ".imported_csv.json"
+
+
+def load_ledger(path: Path = None) -> Dict[str, str]:
+    path = path or IMPORTED_LEDGER
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def save_ledger(ledger: Dict[str, str], path: Path = None) -> None:
+    path = path or IMPORTED_LEDGER
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(ledger, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def pending_csvs(ledger: Dict[str, str], project_dir: Path = None, data_dir: Path = None) -> List[Path]:
+    """File CSV ở gốc repo + data/ chưa có trong sổ, cũ trước mới sau."""
+    project_dir, data_dir = project_dir or PROJECT_DIR, data_dir or DATA_DIR
+    files = [f for f in list(project_dir.glob("*.csv")) + list(data_dir.glob("*.csv")) if f.name not in ledger]
+    return sorted(files, key=lambda f: f.stat().st_mtime)
+
+
+def import_all_new() -> int:
+    from datetime import datetime
+    first_run = not IMPORTED_LEDGER.exists()
+    ledger = load_ledger()
+    if first_run:
+        for f in DATA_DIR.glob("*.csv"):
+            ledger[f.name] = "có sẵn trước khi có sổ"
+        save_ledger(ledger)
+    todo = pending_csvs(ledger)
+    if not todo:
+        print("ℹ️ Không có file CSV mới nào để import.")
+        return 0
+    done = 0
+    for f in todo:
+        name = f.name
+        if upload_csv_to_gsheet(f):
+            ledger[name] = datetime.now().strftime("%Y-%m-%d %H:%M")
+            save_ledger(ledger)
+            done += 1
+    print(f"📚 Đã nhập {done}/{len(todo)} file CSV mới.")
+    return done
+
 
 if __name__ == "__main__":
+    if "--all-new" in sys.argv:
+        import_all_new()
+        sys.exit(0)
     target_csv = None
     if len(sys.argv) > 1:
         target_csv = Path(sys.argv[1])
