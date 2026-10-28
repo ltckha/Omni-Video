@@ -1,5 +1,5 @@
 # Kiến trúc & quy trình — Omni-Video
-Cập nhật 21/10/2026 (Thực thi – Omni-Video). **Nguồn duy nhất** tả quy trình / kiến trúc: đổi cấu trúc thì sửa file này (cả sơ đồ) trong cùng commit. Luật: `CLAUDE.md`. Cài đặt: `README.md`.
+Cập nhật 28/10/2026 (Thực thi · Video AI). **Nguồn duy nhất** tả quy trình / kiến trúc: đổi cấu trúc thì sửa file này (cả sơ đồ) trong cùng commit. Luật: `CLAUDE.md`. Cài đặt: `README.md`.
 
 ## Sơ đồ tổng thể
 
@@ -50,11 +50,11 @@ flowchart LR
 | Bước | Anh làm | Script | Kết quả |
 |---|---|---|---|
 | 0 | `Alt+S` trên trang SP Shopee | `content.js` → `omni_native_host.py` → `sheet_sync.py` | Ảnh + `info.json` vào `Product_Assets/<Mã_SP>/`; dòng `src_omni` (giá / lượt bán / shop đọc theo chữ trên trang); bấm lại không đổi status |
-| 1 | `Import.command` | `auto_organize_downloads` → `import_csv_to_gsheet` → `fill_aff_links --apply` → `make_batch_links` → `season --apply` → `rank_products` | Gom ảnh; nhập CSV Shopee Affiliate (`data/`); điền `shopee_link` (+ giá / % hoa hồng / shop ô trống) từ `aff_links`; còn dòng thiếu link thì tạo `~/Downloads/Omni_BatchCustomLinks_<giờ>.xlsx` (Sub_id1 = job_id) để anh tải lên Shopee Affiliate, file kết quả thả `~/agent_mailbox/auto-video-factory/affiliate/links/`; gắn mùa / "Hết mùa" (> 10 dòng thì dừng hỏi); in gợi ý SP theo hoa hồng (đ) × lượt bán |
+| 1 | `Import.command` | `auto_organize_downloads` → `import_csv_to_gsheet --all-new` → `fill_aff_links --apply` → `make_batch_links` → `season --apply` → `rank_products` | Gom ảnh; nhập mọi CSV Shopee Affiliate chưa nhập (sổ `data/.imported_csv.json`; file đã nhập không nhập lại → dòng anh xoá tay không quay lại); điền `shopee_link` (+ giá / % hoa hồng / shop ô trống) từ `aff_links`; còn dòng thiếu link thì tạo `~/Downloads/Omni_BatchCustomLinks_<giờ>.xlsx` (Sub_id1 = job_id) để anh tải lên Shopee Affiliate, file kết quả thả `~/agent_mailbox/auto-video-factory/affiliate/links/`; gắn mùa / "Hết mùa" (> 10 dòng thì dừng hỏi); in gợi ý SP theo hoa hồng (đ) × lượt bán |
 | 2 | `Prompt.command` | `generate_ugc_prompt.py` | `<Mã_SP>.txt` + ảnh nhân vật (1 lượt Gemini / SP) |
 | 2b | `python scripts/make_variants.py <Mã_SP> --count 3` (khi cần) | `make_variants.py` | Thư mục + dòng `src_omni` `<Mã_SP>-2`, `-3`, kịch bản khác góc |
 | 3 | Mở dự án Flow (ô câu lệnh trống) → extension → **Tạo video** | `flow_page.js` + `flow_helper.py` | Dán ảnh (1 = SP lớn nhất, 2 = người mẫu, 3.. = SP còn lại, ≤ 7) + kịch bản → Tạo → Phê duyệt → chờ → Tải 720p `<Mã_SP>.mp4` (Chrome hỏi Save thì bấm Save) → vào `Product_Assets/<Mã_SP>/` |
-| 4 | Xem video, ổn thì `Move.command` | `archive_completed_videos.py` | Xoá `info.json` + ảnh nhân vật, chuyển thư mục về NAS, Sheet "Đã tạo Video" + `video_path` |
+| 4 | `Move.command` | `archive_completed_videos.py` + `contact_sheet.py` | Mỗi video mở tờ ảnh 10 khung `<Mã_SP>_xem.jpg` (ffmpeg, 0 Gemini): Enter = Move, `b` = bỏ qua (xoá tờ ảnh, thư mục giữ nguyên để làm lại). Move: xoá `info.json` + ảnh nhân vật, chuyển thư mục về NAS, Sheet "Đã tạo Video" + `video_path` |
 
 Không có cron / LaunchAgent / n8n của Omni — mọi bước chỉ chạy khi anh bấm.
 

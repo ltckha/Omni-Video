@@ -46,3 +46,46 @@ def test_safe_move_path():
         assert os.path.exists(os.path.join(dst_folder, "prompt.txt"))
         with open(os.path.join(dst_folder, "prompt.txt"), "r", encoding="utf-8") as f:
             assert f.read() == "test prompt content"
+
+
+def _fake_sheet(video, out):
+    Path(out).write_bytes(b"jpg")
+    return out
+
+
+def test_review_video_enter_moves_and_keeps_sheet(tmp_path, monkeypatch):
+    import contact_sheet
+    from archive_completed_videos import review_video
+    monkeypatch.setattr(contact_sheet, "make_sheet", _fake_sheet)
+    shown = []
+    assert review_video("123", str(tmp_path), str(tmp_path / "123.mp4"), ask=lambda _: "", show=shown.append)
+    assert shown == [str(tmp_path / "123_xem.jpg")] and (tmp_path / "123_xem.jpg").exists()
+
+
+def test_review_video_b_skips_and_removes_sheet(tmp_path, monkeypatch):
+    import contact_sheet
+    from archive_completed_videos import review_video
+    monkeypatch.setattr(contact_sheet, "make_sheet", _fake_sheet)
+    assert not review_video("123", str(tmp_path), str(tmp_path / "123.mp4"), ask=lambda _: "B", show=lambda p: None)
+    assert not (tmp_path / "123_xem.jpg").exists()
+
+
+def test_review_video_still_asks_when_sheet_fails(tmp_path, monkeypatch):
+    import contact_sheet
+    from archive_completed_videos import review_video
+
+    def boom(video, out):
+        raise RuntimeError("Chưa có ffmpeg trên máy.")
+    monkeypatch.setattr(contact_sheet, "make_sheet", boom)
+    assert review_video("123", str(tmp_path), str(tmp_path / "123.mp4"), ask=lambda _: "", show=lambda p: None)
+
+
+def test_archive_skips_item_when_review_says_no(tmp_path, monkeypatch):
+    import archive_completed_videos as acv
+    item = tmp_path / "assets" / "123"
+    item.mkdir(parents=True)
+    (item / "123.mp4").write_bytes(b"v")
+    monkeypatch.setattr(acv, "ASSETS_DIR", str(tmp_path / "assets"))
+    monkeypatch.setattr(acv, "TARGET_MEDIA_DIR", str(tmp_path / "nas"))
+    assert acv.archive_completed_folders(review=lambda *a: False) == 0
+    assert (item / "123.mp4").exists() and not (tmp_path / "nas").exists()

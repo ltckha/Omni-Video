@@ -21,6 +21,7 @@ Product_Assets/
 .env
 .env.local
 data/*.csv
+data/.imported_csv.json
 *service*.json
 config/*service*.json
 

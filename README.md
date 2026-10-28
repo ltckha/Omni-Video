@@ -7,7 +7,7 @@ Chi tiết quy trình, sơ đồ, đọc / ghi gì: [`docs/KIEN_TRUC.md`](docs/K
 2. **`Import.command`:** gom ảnh, nhập CSV Shopee Affiliate, điền link tiếp thị, gắn mùa, in gợi ý SP nên làm. Còn SP thiếu link thì Finder mở sẵn file `Omni_BatchCustomLinks_….xlsx` → tải lên affiliate.shopee.vn (Custom Link hàng loạt) → thả file kết quả vào `~/agent_mailbox/auto-video-factory/affiliate/links/`.
 3. **`Prompt.command`:** sinh kịch bản `<Mã_SP>.txt`.
 4. **Tạo video:** mở dự án Flow (ô câu lệnh trống) → bấm extension → **Tạo video** ở 1 SP → Chrome hỏi Save thì bấm Save. Mỗi video 15 credit.
-5. **`Move.command`:** xem video ổn thì bấm — thư mục SP chuyển về NAS, Sheet ghi "Đã tạo Video".
+5. **`Move.command`:** mỗi video mở tờ ảnh 10 khung → ổn bấm Enter (thư mục SP chuyển về NAS, Sheet ghi "Đã tạo Video"), lỗi gõ `b` rồi Enter (giữ lại để làm lại).
 
 ## Cài đặt (1 lần)
 - Python: `python3 -m venv venv && ./venv/bin/pip install gspread google-auth requests certifi pytest`.

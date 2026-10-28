@@ -5,6 +5,7 @@ Tự động quét các thư mục sản phẩm trong Product_Assets/ (và ~/Dow
 1. Thư mục đã có video .mp4 -> xoá ảnh character, info.json, prompt_backups/.
 2. Di chuyển toàn bộ thư mục sản phẩm hoàn thành về /Volumes/Media/Omni-Video/<Mã_SP>/
 3. Cập nhật trạng thái trên Google Sheet thành "Đã tạo Video" + video_path.
+Trước khi chuyển, mở tờ ảnh 10 khung <Mã_SP>_xem.jpg (N17) để anh Kha xem: Enter = Move, b = bỏ qua.
 (Chế độ QA Gemini + tự học prompt đã chuyển vào archive/ ngày 21/10/2026.)
 """
 
@@ -128,7 +129,36 @@ def safe_move_path(src_path: str, dst_path: str):
         except Exception:
             pass
 
-def archive_completed_folders():
+def review_video(item_id, item_path, video_file, ask=input, show=None):
+    """N17 (anh Kha chốt 28/10): tờ ảnh 10 khung trước khi Move. Trả về True = Move, False = bỏ qua.
+    Tờ ảnh đi theo thư mục lên NAS; bỏ qua thì xoá tờ ảnh để thư mục chỉ còn nguyên liệu (làm lại không lẫn ảnh SP)."""
+    sheet = os.path.join(item_path, f"{item_id}_xem.jpg")
+    try:
+        from contact_sheet import make_sheet
+        make_sheet(video_file, sheet)
+        (show or _open_for_review)(sheet)
+        print(f"  🖼️ Tờ ảnh 10 khung: {sheet}")
+    except Exception as e:
+        sheet = None
+        print(f"  ⚠️ Không tạo được tờ ảnh ({e}) — anh xem thẳng video: {video_file}")
+    answer = ask("  👉 Enter = Move · b = bỏ qua (để làm lại): ").strip().lower()
+    if answer.startswith("b"):
+        if sheet and os.path.exists(sheet):
+            os.remove(sheet)
+        print("  ⏭️ Bỏ qua, thư mục giữ nguyên.")
+        return False
+    return True
+
+
+def _open_for_review(path):
+    """Mở tờ ảnh bằng Preview rồi đưa cửa sổ Terminal lên lại để anh bấm Enter / b."""
+    import subprocess
+    subprocess.run(["open", path], check=False)
+    subprocess.run(["osascript", "-e", "delay 1", "-e", 'tell application "Terminal" to activate'],
+                   check=False, capture_output=True)
+
+
+def archive_completed_folders(review=None):
     if not os.path.exists(ASSETS_DIR):
         print(f"❌ Thư mục {ASSETS_DIR} không tồn tại!")
         return 0
@@ -155,6 +185,9 @@ def archive_completed_folders():
             print(f"\n🎬 Phát hiện video MP4 tại Downloads: {os.path.basename(video_file)} (Mã SP: {item_id})")
         else:
             print(f"\n🎬 Phát hiện video MP4 hoàn thành tại mã SP: {item_id}")
+
+        if review and not review(item_id, item_path, video_file):
+            continue
 
         # 3. Xóa thư mục prompt_backups nếu có (vì sản phẩm đã thành công)
         backups_dir = os.path.join(item_path, "prompt_backups")
@@ -229,7 +262,8 @@ if __name__ == "__main__":
     print("============================================================")
     print(f"📁 Thư mục đích: {TARGET_MEDIA_DIR}\n")
     
-    count = archive_completed_folders()
+    # Chạy từ Move.command (có cửa sổ Terminal) thì hỏi từng video; chạy nền thì Move như cũ
+    count = archive_completed_folders(review=review_video if sys.stdin.isatty() else None)
     print("\n============================================================")
     if count > 0:
         print(f"✅ HOÀN TẤT! Đã di chuyển và cập nhật Google Sheet cho {count} sản phẩm.")

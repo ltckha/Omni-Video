@@ -27,8 +27,8 @@ fi
 $PYTHON_EXEC scripts/auto_organize_downloads.py
 
 echo ""
-# 2. Chạy Direct Import CSV & Lọc trùng sản phẩm trên Google Sheets API v4
-$PYTHON_EXEC scripts/import_csv_to_gsheet.py
+# 2. Nhập mọi file CSV chưa nhập (sổ data/.imported_csv.json; file đã nhập không nhập lại, dòng anh xoá tay không quay lại)
+$PYTHON_EXEC scripts/import_csv_to_gsheet.py --all-new
 
 echo ""
 # 3. Tự điền link TTLK s.shopee.vn từ bảng chung aff_links (chỉ ô trống / chưa phải s.shopee.vn)

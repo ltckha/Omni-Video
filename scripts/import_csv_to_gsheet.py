@@ -201,7 +201,7 @@ def upload_csv_to_gsheet(csv_filepath: Path):
     organize_all_root_csvs()
     return ok
 
-# ===== N29 (bản nháp 23/10, chưa bật trong Import.command): nhập MỌI file CSV chưa nhập =====
+# ===== N29 (bật 28/10, anh Kha chốt X01): Import.command nhập MỌI file CSV chưa nhập, file đã nhập không nhập lại =====
 # Lỗi cũ: mỗi lần chỉ nhập 1 file mới nhất, rồi organize_all_root_csvs() chuyển cả file CHƯA nhập vào data/
 # → lần sau lại chọn file mới nhất, file cũ hơn không bao giờ lên Sheet.
 # Sổ data/.imported_csv.json ghi tên file đã nhập; lần đầu chạy ghi sẵn mọi file đang có trong data/ là "đã nhập"
@@ -254,20 +254,14 @@ def import_all_new() -> int:
 
 
 if __name__ == "__main__":
-    if "--all-new" in sys.argv:
+    # Không truyền file (Import.command) -> chỉ nhập file chưa có trong sổ, để dòng anh Kha xoá tay
+    # (vd 5 SP Nesty trong data/DépNestyT1.csv, 28/10) không quay lại. Truyền đường dẫn file = cố ý nhập lại file đó.
+    args = [a for a in sys.argv[1:] if a != "--all-new"]
+    if not args:
         import_all_new()
         sys.exit(0)
-    target_csv = None
-    if len(sys.argv) > 1:
-        target_csv = Path(sys.argv[1])
-    else:
-        # Scan in data/ and root
-        candidates = list(PROJECT_DIR.glob("*.csv")) + list(DATA_DIR.glob("*.csv"))
-        if candidates:
-            candidates.sort(key=lambda p: p.stat().st_mtime, reverse=True)
-            target_csv = candidates[0]
-
-    if target_csv and target_csv.exists():
+    target_csv = Path(args[0])
+    if target_csv.exists():
         upload_csv_to_gsheet(target_csv)
     else:
-        print("ℹ️ Không tìm thấy file CSV mới nào để import.")
+        print(f"ℹ️ Không thấy file {target_csv}.")
