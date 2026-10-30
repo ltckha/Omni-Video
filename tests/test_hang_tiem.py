@@ -226,7 +226,7 @@ def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
     hang_tiem.write_script("JH8918N", str(item), characters_dir=str(chars))
     info = read_info(str(item))
     assert len(info["anh_lien"]) == 6 and info["nguoi_mau_lien"] == "Nam-25t_tren.jpg"
-    assert "Tạo video người mẫu nam lịch lãm mang đôi giày trong ảnh" in (item / "JH8918N.txt").read_text(encoding="utf-8")
+    assert "Tạo video người mẫu nam mang đôi giày trong ảnh" in (item / "JH8918N.txt").read_text(encoding="utf-8")
     assert not (item / "Nam-25t.png").exists()  # không chép ảnh toàn thân (lộ giày người mẫu)
     slots = [f["slot"] for f in encode_flow_files("JH8918N", assets_dir=str(tmp_path))[0]["files"]]
     assert slots == ["product"] + [f"product_{i}" for i in range(2, 7)] + ["character", "script"]
@@ -389,13 +389,8 @@ def test_tu_nhien_short_vietnamese_prompt_is_default():
     scene = scene_named(cfg, "truong_cong_dinh")
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="tu_nhien", boi_canh=scene["ten"])
     text = hang_tiem.build_script(info, cfg)
-    assert text == ("Tạo video người mẫu nam lịch lãm mang đôi giày trong ảnh, thong thả dạo bước trên đường Trương Công Định, "
-                    "Đà Lạt, tâm trạng thư thái, yêu đời. Có cảnh người mẫu toàn thân và khuôn mặt, xen với vài cảnh cận "
-                    "đôi giày khi bước. Video dọc 9:16. Đôi giày giống hệt ảnh (màu, dáng, đế, chi tiết).\n")
-    female = hang_tiem.build_script(dict(info, gioi_tinh="nữ", boi_canh="ca_phe_san_vuon", tam_trang="nhẹ nhàng, lãng mạn"), cfg)
-    assert female.startswith("Tạo video người mẫu nữ thanh lịch") and "trong quán cà phê sân vườn" in female
-    assert "tâm trạng nhẹ nhàng, lãng mạn" in female and "nhân vật chính" not in female
-    moods = [hang_tiem.pick_mood(cfg, "tu_nhien") for _ in range(4)]
-    assert moods == cfg["lien"]["chuyen_dong"]["tu_nhien"]["tam_trang"] + moods[:1]
-    assert hang_tiem.pick_mood(cfg, "lui_ra") is None
+    assert text == "Tạo video người mẫu nam mang đôi giày trong ảnh, dạo bước trên đường Trương Công Định, Đà Lạt. Video dọc 9:16.\n"
+    female = hang_tiem.build_script(dict(info, gioi_tinh="nữ", boi_canh="ca_phe_san_vuon"), cfg)
+    assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16.\n"
+    assert hang_tiem.pick_mood(cfg, "tu_nhien") is None
     assert hang_tiem.popup_label(info, cfg) == "tự nhiên · đường Trương Công Định"
