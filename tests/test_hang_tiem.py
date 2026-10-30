@@ -319,8 +319,8 @@ def test_video_name_numbers_after_existing_videos(tmp_path):
     media, dl = tmp_path / "media", tmp_path / "dl"
     (media / "JH8918N").mkdir(parents=True)
     dl.mkdir()
-    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N.mp4"
-    (media / "JH8918N" / "JH8918N.mp4").write_bytes(b"v")
+    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_1.mp4"
+    (media / "JH8918N" / "JH8918N.mp4").write_bytes(b"v")  # tên cũ không hậu tố = 1 video
     (media / "JH8918N" / "JH8918N_1.jpg").write_bytes(b"i")  # ảnh không tính
     assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_2.mp4"
     (dl / "JH8918N_2.mp4").write_bytes(b"v")

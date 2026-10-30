@@ -174,7 +174,7 @@ def build_info(code: str, row: Dict[str, str], old: Optional[Dict] = None) -> Di
 
 def video_name(code: str, media_dir: str = HNC_MEDIA_DIR, downloads_dir: str = DOWNLOADS_DIR) -> str:
     """Tên file video đầu ra (anh Kha 30/10): số = số video mã đang có (video trong NAS HNC_Master/<mã>/ + ~/Downloads)
-    + 1. Video đầu <MÃ>.mp4, kế tiếp <MÃ>_2.mp4, <MÃ>_3.mp4 (mẫu HNC gom nhận; không dùng _1). Trùng tên có sẵn → tăng số.
+    + 1, luôn có hậu tố (anh Kha 30/10): <MÃ>_1.mp4, <MÃ>_2.mp4… (<MÃ>.mp4 cũ tính là 1 video). Trùng tên có sẵn → tăng số.
     Mỗi mã chỉ 1 thư mục Product_Assets nên không có mục chờ khác cùng mã."""
     pattern = re.compile(rf"^{re.escape(code)}(?:_(\d+))?\.(mp4|mov)$", re.IGNORECASE)
     names = set()
@@ -185,7 +185,7 @@ def video_name(code: str, media_dir: str = HNC_MEDIA_DIR, downloads_dir: str = D
             pass
     n = len(names) + 1
     while True:
-        name = f"{code}.mp4" if n == 1 else f"{code}_{n}.mp4"
+        name = f"{code}_{n}.mp4"
         if name.lower() not in names and name.lower().replace(".mp4", ".mov") not in names:
             return name
         n += 1
