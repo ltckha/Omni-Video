@@ -313,6 +313,19 @@ def pick_combo(info: Dict, cfg: Dict, used=(), state_path: Optional[str] = None)
     return None
 
 
+def pick_mood(cfg: Dict, motion: str, state_path: Optional[str] = None) -> Optional[str]:
+    """Tâm trạng xoay vòng cho kiểu có danh sách tam_trang (tu_nhien); không có → None."""
+    moods = cfg["lien"]["chuyen_dong"].get(motion, {}).get("tam_trang")
+    if not moods:
+        return None
+    state_path = state_path or SCENE_STATE
+    state = _load_state(state_path)
+    i = int(state.get("tam_trang", 0)) % len(moods)
+    state["tam_trang"] = (i + 1) % len(moods)
+    _save_state(state, state_path)
+    return moods[i]
+
+
 def scene_for(info: Dict, cfg: Dict) -> Dict[str, str]:
     """Bối cảnh đã chọn (info["boi_canh"]); chưa chọn thì cảnh đầu của nhóm."""
     scenes = cfg["boi_canh"]["nhom"][scene_group(info, cfg)]
@@ -411,7 +424,10 @@ def build_script_lien(info: Dict, cfg: Dict) -> str:
     scene = scene_for(info, cfg)
     motion = lien["chuyen_dong"].get(info.get("chuyen_dong") or "lui_ra") or lien["chuyen_dong"]["lui_ra"]
     if motion.get("prompt"):  # tu_nhien: 1 câu tiếng Việt ngắn, để tác nhân Flow tự dựng cảnh (anh Kha 30/10)
-        return motion["prompt"].format(gioi="nữ" if is_female(info) else "nam", **scene) + "\n"
+        moods = motion.get("tam_trang") or [""]
+        mood = info.get("tam_trang") if info.get("tam_trang") in moods else moods[0]
+        style = motion.get("phong_thai", {}).get("nu" if is_female(info) else "nam", "")
+        return motion["prompt"].format(gioi="nữ" if is_female(info) else "nam", phong_thai=style, tam_trang=mood, **scene) + "\n"
     camera = motion["camera"].format(walk=scene["walk"])
     giu_giay = motion.get("giu_giay") or lien.get("giu_giay", "")
     setting_line = motion.get("cau_boi_canh", "{setting}").format(setting=scene["setting"], walk=scene["walk"])
@@ -472,6 +488,11 @@ def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, character
             combo = pick_combo(info, cfg, used) or pick_combo(info, cfg)  # hết tổ hợp mới (làm tay) → xoay lại từ đầu
             info["chuyen_dong"], info["boi_canh"] = combo
         info["anh_lien"] = pick_lien_images(item_dir)
+        mood = pick_mood(cfg, info["chuyen_dong"])
+        if mood:
+            info["tam_trang"] = mood
+        else:
+            info.pop("tam_trang", None)
     else:
         info.pop("chuyen_dong", None)
         info["boi_canh"] = pick_scene(info, cfg)

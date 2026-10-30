@@ -182,7 +182,17 @@
       "_ghi_chu": "Kiểu chuyển động máy (anh Kha 30/10 'nhiều video ở nhiều bối cảnh'; Phân tích tạm đặt, anh duyệt qua video). Tất cả 1 cú máy liền, không cắt. Mỗi mã xoay vòng kiểu × bối cảnh chưa dùng. chi_cho = chỉ dùng cho các loại giày này (tên SP); không có = mọi loại. {walk} = câu đi lại của bối cảnh. bat: false = không vào xoay vòng tự động, chỉ dùng khi gọi tay (HangTiem gõ tên kiểu, anh Kha 30/10: mang_giay dễ lỗi). giu_giay (câu giữ giày, 30/10 sau video 3J658N mở đầu bằng giày trống tự nhảy): mặc định ở lien.giu_giay; mang_giay có câu riêng vì cảnh xỏ chân phải thấy giày trước khi mang. dang_chan (30/10 sau MT5216D méo chân khi xoay gót): không xoay / vặn / nhấc chân khoe đế ở mọi kiểu; ảnh đế vẫn đưa để giữ chi tiết. 30/10 (anh Kha): lui_ra là bản chuẩn khoá chữ; vẫn xoay vòng cả 4 kiểu để thử. cau_boi_canh = câu bối cảnh riêng của kiểu (mặc định chỉ {setting}). nhan = tên hiện trong popup (không có thì dùng tên kiểu). 30/10 theo nghiên cứu 2026-10-30_kich_ban_chuyen_dong_giay.md: thêm dung_yen / day_vao / nguoi_toi (rủi ro thấp); tắt vong_quanh (rủi ro cao). co_buoc: true = kiểu có bước đi → thêm câu lien.buoc_di; lui_ra là bản chuẩn khoá chữ nên chưa thêm (chờ anh duyệt). 30/10 (anh Kha \"làm\"): bỏ kịch bản dài gò bó → tu_nhien (prompt tiếng Việt ngắn, để tác nhân Flow tự sáng tạo) là MẶC ĐỊNH, duy nhất trong xoay vòng; mọi kiểu cũ bat: false (gọi tay được). prompt = cả kịch bản của kiểu (thay lien.prompt).",
       "tu_nhien": {
         "nhan": "tự nhiên",
-        "prompt": "Tạo video người mẫu {gioi} mang đôi giày trong ảnh, bước đi {vi}. Video dọc 9:16. Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết)."
+        "prompt": "Tạo video người mẫu {gioi} {phong_thai} mang đôi giày trong ảnh, thong thả dạo bước {vi}, tâm trạng {tam_trang}. Có cảnh người mẫu toàn thân và khuôn mặt, xen với vài cảnh cận đôi giày khi bước. Video dọc 9:16. Đôi giày giống hệt ảnh (màu, dáng, đế, chi tiết).",
+        "phong_thai": {
+          "nam": "lịch lãm",
+          "nu": "thanh lịch"
+        },
+        "tam_trang": [
+          "thư thái, yêu đời",
+          "tự tin, sẵn sàng cho ngày mới",
+          "nhẹ nhàng, lãng mạn"
+        ],
+        "_ghi_chu": "30/10 (anh Kha): cân bằng hồn video và giày — có toàn thân + khuôn mặt, xen cận giày. tam_trang xoay vòng (file trạng thái), Phân tích tạm đặt, anh duyệt qua video."
       },
       "lui_ra": {
         "_ban_chuan": "bản chuẩn — không sửa chữ nếu anh chưa duyệt (anh Kha 30/10: khoá theo bản JH8918N đạt, commit 2093ad4; chỉ đổi câu mở đầu 'model's feet wearing the shoes', thêm giu_giay, dang_chan; bối cảnh xoay vòng qua {setting} / {walk} / {sound})",
