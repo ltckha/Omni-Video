@@ -288,10 +288,10 @@ def test_combo_rotation_skips_used_and_disabled_motion():
     slip = build_info("A", ROW)  # xỏ chân
     lace = build_info("B", dict(ROW, product_name="Giày tây nam cột dây B"))
     assert "mang_giay" not in hang_tiem.motions_for(slip, cfg)  # bat: false → chỉ gọi tay
-    assert hang_tiem.motions_for(lace, cfg) == ["tu_nhien"]  # 30/10: chỉ kiểu tự nhiên trong xoay vòng
+    assert hang_tiem.motions_for(lace, cfg) == ["tu_nhien", "san_pham"]  # 30/10: chỉ 2 loại đã chốt
     first = hang_tiem.pick_combo(slip, cfg)
     second = hang_tiem.pick_combo(slip, cfg, used=[first])
-    assert first != second and first[1] != second[1]  # 2 lần liền khác bối cảnh
+    assert first[0] != second[0] and first[1] != second[1]  # 2 lần liền xen kẽ loại, khác bối cảnh
     all_combos = hang_tiem.combos_for(slip, cfg)
     assert hang_tiem.pick_combo(slip, cfg, used=all_combos) is None
 
@@ -394,3 +394,13 @@ def test_tu_nhien_short_vietnamese_prompt_is_default():
     assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16.\n"
     assert hang_tiem.pick_mood(cfg, "tu_nhien") is None
     assert hang_tiem.popup_label(info, cfg) == "tự nhiên · đường Trương Công Định"
+
+
+
+def test_san_pham_prompt_text():
+    cfg = hang_tiem.load_config()
+    info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="san_pham", boi_canh="truong_cong_dinh")
+    assert hang_tiem.build_script(info, cfg) == (
+        "Tạo video người mẫu nam mang đôi giày trong ảnh, bước đi trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. "
+        "Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết).\n")
+    assert hang_tiem.popup_label(info, cfg) == "sản phẩm · đường Trương Công Định"
