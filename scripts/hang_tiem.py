@@ -199,7 +199,7 @@ FFMPEG = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "hang_tiem.json")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 # thứ tự = ưu tiên: kiểu cụ thể ("xỏ chân") thắng "giày tây" chung (giày tây → "shoes", không ghi dress shoes vì Flow vẽ giày buộc dây)
-SHOE_TYPES = ("xỏ chân", "giày lười", "giày mọi", "giày thể thao", "giày sandal", "giày cao gót", "giày búp bê",
+SHOE_TYPES = ("xỏ chân", "giày lười", "giày mọi", "cột dây", "giày thể thao", "giày sandal", "giày cao gót", "giày búp bê",
               "sandal", "boot", "dép", "giày tây", "giày")
 
 

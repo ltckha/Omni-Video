@@ -9,7 +9,9 @@ Giữ đúng SO_MA_CHO mã hàng tiệm đang chờ Tạo video trong Product_As
    không tính, không đụng.
 4. Thiếu thì lấy thêm từ tab SANPHAM (tiêu đề hàng 2), MỚI NHẤT trước: tab không có cột ngày → lấy dòng dưới cùng
    trở lên (mã mới được thêm vào cuối tab). Điều kiện: content_files chưa có VIDEO; web_in_stock khác "no" (tab chưa có
-   cột này thì bỏ qua điều kiện); tên SP có loại giày (giày tây / lười / mọi / thể thao…) và có product_color;
+   cột này thì bỏ qua điều kiện); còn hàng trên web giayhainancy.vn (trang SP có trong sitemap.xml, dữ liệu sản phẩm
+   schema.org "availability" = InStock; SANPHAM không có cột tồn kho, trang SP đã gỡ chuyển 301 về danh mục → coi như
+   không bán, bỏ qua để không tốn credit); tên SP có loại giày (giày tây / lười / mọi / thể thao…) và có product_color;
    chưa có thư mục Product_Assets, chưa có ~/Downloads/<mã>.mp4, chưa từng vào hàng chờ (data/.hang_cho_da_lam.json);
    có ảnh (NAS HNC_Master → web giayhainancy.vn → image_01… SANPHAM). Thiếu ảnh / thông tin → bỏ qua, ghi log.
 5. Mỗi mã: kiểu mặc định (liền) + bối cảnh xoay vòng, như HangTiem.command.
@@ -20,7 +22,10 @@ Nhật ký: data/logs/hang_cho.log
 
 import json
 import os
+import re
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -32,6 +37,42 @@ SO_MA_CHO = 5
 SO_MA_THU_TOI_DA = 40  # mỗi lần chạy thử tối đa bấy nhiêu mã (tránh tải web quá nhiều khi nhiều mã thiếu ảnh)
 LEDGER = os.path.join(hang_tiem.PROJECT_DIR, "data", ".hang_cho_da_lam.json")
 LOG_PATH = os.path.join(hang_tiem.PROJECT_DIR, "data", "logs", "hang_cho.log")
+
+
+WEB_SITEMAP = "https://giayhainancy.vn/sitemap.xml"
+USER_AGENT = "OmniVideo/1.0 (Hieu giay Hai Nancy)"
+
+
+def fetch_text(url: str) -> str:
+    from omni_env import google_ssl_context  # certifi, như tải ảnh web (hang_tiem._fetch_image)
+    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    with urllib.request.urlopen(req, timeout=30, context=google_ssl_context()) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+def web_product_urls(sitemap: str) -> Dict[str, str]:
+    """Mã (chữ hoa) → link trang SP, từ sitemap web (link dạng …/product/<tên>-<mã>-<số>)."""
+    out = {}
+    for url in re.findall(r"<loc>([^<]*/product/[^<]*)</loc>", sitemap):
+        m = re.search(r"(?:/|-)([a-z0-9]+)-\d+/?$", url.lower())
+        if m:
+            out.setdefault(m.group(1).upper(), url)
+    return out
+
+
+def web_stock(code: str, urls: Dict[str, str], fetch=fetch_text) -> Optional[str]:
+    """None = còn hàng; chuỗi = lý do bỏ qua."""
+    url = urls.get(code)
+    if not url:
+        return "không có trang SP trên web (đã gỡ / chưa đăng)"
+    try:
+        page = fetch(url)
+    except (urllib.error.URLError, OSError) as e:
+        return f"lỗi mở trang SP ({e.__class__.__name__})"
+    m = re.search(r'"availability"\s*:\s*"(?:https?://schema\.org/)?(\w+)"', page)
+    if not m:
+        return "trang SP không ghi tình trạng hàng"
+    return None if m.group(1) == "InStock" else f"web ghi {m.group(1)}"
 
 
 def log(msg: str, path: Optional[str] = None) -> None:
@@ -97,7 +138,7 @@ def candidates(values: List[List[str]]) -> List[Dict[str, str]]:
     return rows
 
 
-def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, assets_dir: str = ASSETS_DIR,
+def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, fetch=fetch_text, assets_dir: str = ASSETS_DIR,
         downloads_dir: str = DOWNLOADS_DIR, media_dir: str = HNC_MEDIA_DIR, ledger_path: Optional[str] = None,
         log_fn=log) -> List[str]:
     if not os.path.isdir(media_dir):
@@ -112,6 +153,11 @@ def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, asset
         values = values_fn()
     except Exception as e:  # Sheet lỗi / mất mạng
         log_fn(f"⏸ Lỗi đọc tab SANPHAM ({e.__class__.__name__}: {e}) — không làm gì.")
+        return []
+    try:
+        web_urls = web_product_urls(fetch(WEB_SITEMAP))
+    except (urllib.error.URLError, OSError) as e:
+        log_fn(f"⏸ Lỗi đọc sitemap web ({e.__class__.__name__}) — không kiểm được còn hàng, không làm gì.")
         return []
     for code in hang_tiem.cleanup(assets_dir, downloads_dir):
         log_fn(f"🧹 Dọn {code} (HNC đã gom video).")
@@ -133,6 +179,10 @@ def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, asset
         if reason:
             continue  # lý do trên Sheet: không ghi log từng dòng (hàng nghìn dòng)
         tried += 1
+        stock = web_stock(code, web_urls, fetch)
+        if stock:
+            log_fn(f"⏭ {code}: {stock} — bỏ qua.")
+            continue
         if make(code, row, True, {"hang_cho": True}, assets_dir=assets_dir, media_dir=media_dir,
                 downloads_dir=downloads_dir):
             added.append(code)

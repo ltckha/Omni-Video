@@ -244,6 +244,12 @@ def test_scene_rotates_per_shoe_group():
     assert hang_tiem.scene_group(build_info("E", dict(ROW, product_name="Dép nam E")), cfg) == "tay"
 
 
+def test_lace_up_type():
+    cfg = hang_tiem.load_config()
+    info = build_info("G", dict(ROW, product_name="Giày tây nam cột dây Hải Nancy da bò cao cấp G2506N"))
+    assert hang_tiem.describe_shoe(info, cfg)["type"] == "men's lace-up shoes"
+
+
 def test_scene_text_and_sound_follow_chosen_scene():
     cfg = hang_tiem.load_config()
     scene = cfg["boi_canh"]["nhom"]["tay"][1]
