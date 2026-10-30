@@ -7,12 +7,12 @@
     "nam": "Adult Vietnamese male model (Input Image 2), used for body shape and outfit only.",
     "nu": "Adult Vietnamese female model (Input Image 2), used for body shape and outfit only."
   },
-  "framing": "The face is not the focus: frame from the waist or knees down in every shot except the single full-body shot.",
+  "framing": "Every shot is framed from the knees down; the shoes always fill most of the frame. Never show the full body or the face.",
   "shots": [
     "Low tracking close-up of both {shoe_short} stepping forward on the stone pavement.",
     "Macro close-up of the toe and upper, showing the real {material} grain and stitching.",
     "One step where the heel lifts and the foot turns enough to clearly reveal the {sole} outsole pattern.",
-    "One full-body walking shot of the model in the street."
+    "Final close-up of the pair of {shoe_short}, standing still or stepping slowly toward the camera, ending on the shoes."
   ],
   "camera": "Smooth cinematic gimbal movement, shallow depth of field, gentle cuts between the shots, 10 seconds total, vertical 9:16.",
   "audio": "No voiceover, no speech, no lip-sync. Natural footsteps on stone and soft ambient street sound with light background music.",
@@ -20,6 +20,7 @@
     "Shoes must match the product images exactly: same color, same material and texture, same shape of toe, upper and sole.",
     "Do not add buckles, laces, logos, patterns, stitching or decorations that are not visible in the product images.",
     "Both feet wear the identical pair of shoes in every shot.",
+    "The shoes stay identical to Input Image 1 from the first to the last frame; never replace them with the model's own footwear.",
     "No on-screen text, prices, shop names, logos or watermarks."
   ],
   "dich": {

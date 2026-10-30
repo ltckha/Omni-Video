@@ -136,6 +136,7 @@ def test_script_built_from_template_without_gemini(tmp_path):
                  "lightweight phylon foam", cfg["setting"], cfg["audio"], cfg["model"]["nam"]):
         assert part in text
     assert "Shopee" not in text and "{" not in text
+    assert "full-body" not in text and "knees down" in text and "own footwear" in text
     female = hang_tiem.build_script(build_info("X", dict(ROW, gioi_tinh="nữ")), cfg)
     assert cfg["model"]["nu"] in female and "women's dress shoes in brown" in female
 
