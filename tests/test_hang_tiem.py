@@ -274,7 +274,41 @@ def test_lien_is_default_style(monkeypatch, tmp_path):
         hang_tiem.write_info(str(d), build_info(code, row))
         return str(d)
     monkeypatch.setattr(hang_tiem, "prepare", fake_prepare)
-    monkeypatch.setattr(hang_tiem, "write_script", lambda code, d: seen.setdefault(code, read_info(d)["kieu"]))
+    monkeypatch.setattr(hang_tiem, "write_script", lambda code, d, **kw: seen.setdefault(code, read_info(d)["kieu"]))
     hang_tiem.main(["jh8918n"])
     hang_tiem.main(["--4-canh", "X1"])
     assert seen == {"JH8918N": "lien", "X1": "4_canh"}
+
+
+
+def test_combo_rotation_skips_used_and_disabled_motion():
+    cfg = hang_tiem.load_config()
+    slip = build_info("A", ROW)  # xỏ chân
+    lace = build_info("B", dict(ROW, product_name="Giày tây nam cột dây B"))
+    assert "mang_giay" not in hang_tiem.motions_for(slip, cfg)  # bat: false → chỉ gọi tay
+    assert hang_tiem.motions_for(lace, cfg) == ["lui_ra", "tien_vao", "song_hanh", "vong_quanh"]
+    first = hang_tiem.pick_combo(slip, cfg)
+    second = hang_tiem.pick_combo(slip, cfg, used=[first])
+    assert first != second and first[0] != second[0] and first[1] != second[1]  # 2 lần liền khác cả kiểu lẫn cảnh
+    all_combos = hang_tiem.combos_for(slip, cfg)
+    assert hang_tiem.pick_combo(slip, cfg, used=all_combos) is None
+
+
+def test_each_motion_text_and_popup_label():
+    cfg = hang_tiem.load_config()
+    scene = cfg["boi_canh"]["nhom"]["tay"][1]
+    for motion in ("lui_ra", "tien_vao", "song_hanh", "vong_quanh", "mang_giay"):
+        info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a"] * 6, chuyen_dong=motion, boi_canh=scene["ten"])
+        text = hang_tiem.build_script(info, cfg)
+        assert cfg["lien"]["chuyen_dong"][motion]["camera"].format(walk=scene["walk"]) in text
+        assert "single continuous shot" in text and "{" not in text
+    assert hang_tiem.popup_label(info, cfg) == "mang_giay · sảnh khách sạn"
+
+
+def test_manual_motion_overrides_rotation(tmp_path):
+    item = tmp_path / "A"
+    item.mkdir()
+    (item / "A_1.jpg").write_bytes(b"x")
+    hang_tiem.write_info(str(item), dict(build_info("A", ROW), kieu="lien"))
+    hang_tiem.write_script("A", str(item), characters_dir=str(tmp_path / "none"), motion="mang_giay")
+    assert read_info(str(item))["chuyen_dong"] == "mang_giay"

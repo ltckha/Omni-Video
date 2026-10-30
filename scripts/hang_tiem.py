@@ -15,7 +15,9 @@ tối đa 6 ảnh giày đủ góc (thẳng → 3/4 → góc khác → đế, xe
 
 --4-canh = kiểu 4 cảnh + ảnh người mẫu. Bối cảnh xoay vòng theo loại giày (config/hang_tiem.json "boi_canh").
 
-Dùng: python scripts/hang_tiem.py [--4-canh] <mã> [<mã> …]    (HangTiem.command hỏi mã + kiểu rồi chạy lệnh này)
+Kiểu chuyển động (kiểu liền) xoay vòng cùng bối cảnh; --chuyen-dong=<tên> chọn tay 1 kiểu (kể cả mang_giay đang tắt).
+
+Dùng: python scripts/hang_tiem.py [--4-canh | --chuyen-dong=<tên>] <mã> [<mã> …]    (HangTiem.command hỏi mã + kiểu rồi chạy lệnh này)
 """
 
 import glob
@@ -234,17 +236,58 @@ def pick_scene(info: Dict, cfg: Dict, state_path: Optional[str] = None) -> str:
     state_path = state_path or SCENE_STATE
     group = scene_group(info, cfg)
     scenes = cfg["boi_canh"]["nhom"][group]
-    try:
-        with open(state_path, "r", encoding="utf-8") as f:
-            state = json.load(f)
-    except (OSError, ValueError):
-        state = {}
+    state = _load_state(state_path)
     i = int(state.get(group, 0)) % len(scenes)
     state[group] = (i + 1) % len(scenes)
+    _save_state(state, state_path)
+    return scenes[i]["ten"]
+
+
+def _load_state(state_path: str) -> Dict:
+    try:
+        with open(state_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _save_state(state: Dict, state_path: str) -> None:
     os.makedirs(os.path.dirname(state_path), exist_ok=True)
     with open(state_path, "w", encoding="utf-8") as f:
         json.dump(state, f, ensure_ascii=False, indent=2)
-    return scenes[i]["ten"]
+
+
+def motions_for(info: Dict, cfg: Dict) -> List[str]:
+    """Kiểu chuyển động xoay vòng tự động cho mã (bỏ kiểu "bat": false; mang_giay chỉ cho giày xỏ chân / lười…)."""
+    kind = shoe_kind(info)
+    return [name for name, m in cfg["lien"]["chuyen_dong"].items()
+            if not name.startswith("_") and m.get("bat", True) and (not m.get("chi_cho") or kind in m["chi_cho"])]
+
+
+def combos_for(info: Dict, cfg: Dict) -> List[tuple]:
+    scenes = [sc["ten"] for sc in cfg["boi_canh"]["nhom"][scene_group(info, cfg)]]
+    return [(m, sc) for m in motions_for(info, cfg) for sc in scenes]
+
+
+def pick_combo(info: Dict, cfg: Dict, used=(), state_path: Optional[str] = None) -> Optional[tuple]:
+    """(kiểu chuyển động, bối cảnh) chưa dùng cho mã này; kiểu và bối cảnh cùng xoay vòng (file trạng thái) để 2 mã
+    liền nhau khác nhau. Hết tổ hợp → None."""
+    state_path = state_path or SCENE_STATE
+    group = scene_group(info, cfg)
+    motions = motions_for(info, cfg)
+    scenes = [sc["ten"] for sc in cfg["boi_canh"]["nhom"][group]]
+    state = _load_state(state_path)
+    mi, si = int(state.get("chuyen_dong", 0)), int(state.get(group, 0))
+    used = {tuple(u) for u in used}
+    for dm in range(len(motions)):
+        for ds in range(len(scenes)):
+            combo = (motions[(mi + dm) % len(motions)], scenes[(si + ds) % len(scenes)])
+            if combo not in used:
+                state["chuyen_dong"] = (mi + dm + 1) % len(motions)
+                state[group] = (si + ds + 1) % len(scenes)
+                _save_state(state, state_path)
+                return combo
+    return None
 
 
 def scene_for(info: Dict, cfg: Dict) -> Dict[str, str]:
@@ -342,9 +385,20 @@ def build_script_lien(info: Dict, cfg: Dict) -> str:
     """Kiểu liền: 1 cảnh 10 giây, chỉ tả đúng kiểu giày + màu + chất liệu mặt, gọi ảnh theo thứ tự dán (ảnh giày trước, người mẫu sau cùng)."""
     p = describe_shoe(info, cfg)
     lien = cfg["lien"]
-    return "\n".join(line.format(**p, **scene_for(info, cfg), n=len(info.get("anh_lien") or []) or "",
+    scene = scene_for(info, cfg)
+    motion = lien["chuyen_dong"].get(info.get("chuyen_dong") or "lui_ra") or lien["chuyen_dong"]["lui_ra"]
+    camera = motion["camera"].format(walk=scene["walk"])
+    return "\n".join(line.format(**p, **scene, camera=camera, n=len(info.get("anh_lien") or []) or "",
                                  model_word="female" if is_female(info) else "male")
                      for line in lien["prompt"]) + "\n"
+
+
+def popup_label(info: Dict, cfg: Optional[Dict] = None) -> str:
+    """Nhãn cạnh mã trong popup: "tien_vao · sảnh khách sạn" (4 cảnh: "4 cảnh · …")."""
+    cfg = cfg or load_config()
+    scene = scene_for(info, cfg).get("nhan", "")
+    kieu = (info.get("chuyen_dong") or "lui_ra") if info.get("kieu") == "lien" else "4 cảnh"
+    return f"{kieu} · {scene}"
 
 
 def build_script(info: Dict, cfg: Dict) -> str:
@@ -371,14 +425,22 @@ def build_script(info: Dict, cfg: Dict) -> str:
 """
 
 
-def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, characters_dir: str = CHARACTERS_DIR) -> str:
+def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, characters_dir: str = CHARACTERS_DIR,
+                 used=(), motion: Optional[str] = None) -> str:
     """Ghi <mã>.txt (bối cảnh xoay vòng theo loại giày) + ảnh người mẫu: kiểu liền = bản cắt thắt lưng trở lên + ảnh giày
     đủ góc; kiểu 4 cảnh = chép ảnh Nam- / Nu- theo giới tính. 0 Gemini."""
     info = read_info(item_dir)
     cfg = cfg or load_config()
-    info["boi_canh"] = pick_scene(info, cfg)
     if info.get("kieu") == "lien":
+        if motion:  # gọi tay 1 kiểu (kể cả kiểu tắt xoay vòng như mang_giay)
+            info["chuyen_dong"], info["boi_canh"] = motion, pick_scene(info, cfg)
+        else:
+            combo = pick_combo(info, cfg, used) or pick_combo(info, cfg)  # hết tổ hợp mới (làm tay) → xoay lại từ đầu
+            info["chuyen_dong"], info["boi_canh"] = combo
         info["anh_lien"] = pick_lien_images(item_dir)
+    else:
+        info.pop("chuyen_dong", None)
+        info["boi_canh"] = pick_scene(info, cfg)
     write_info(item_dir, info)
     path = os.path.join(item_dir, f"{code}.txt")
     with open(path, "w", encoding="utf-8") as f:
@@ -416,7 +478,8 @@ def cleanup(assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) ->
     return removed
 
 
-def make_item(code: str, row: Dict[str, str], lien: bool = True, extra: Optional[Dict] = None, **prepare_kw) -> Optional[str]:
+def make_item(code: str, row: Dict[str, str], lien: bool = True, extra: Optional[Dict] = None, used=(),
+              motion: Optional[str] = None, **prepare_kw) -> Optional[str]:
     """Ảnh + info.json + kịch bản cho 1 mã (dùng chung cho HangTiem.command và hàng chờ tự động). None = không có ảnh."""
     item_dir = prepare(code, row, **prepare_kw)
     if not item_dir:
@@ -427,13 +490,18 @@ def make_item(code: str, row: Dict[str, str], lien: bool = True, extra: Optional
     info.pop("nguoi_mau_lien", None)
     info.update(extra or {})
     write_info(item_dir, info)
-    write_script(code, item_dir)
+    write_script(code, item_dir, used=used, motion=motion)
     return item_dir
 
 
 def main(argv: List[str]) -> int:
     codes = list(dict.fromkeys(c.strip().upper() for c in argv if c.strip() and not c.startswith("-")))
     lien = "--4-canh" not in argv  # kiểu liền là mặc định từ 30/10 (anh Kha); --lien vẫn nhận
+    motion = next((a.split("=", 1)[1] for a in argv if a.startswith("--chuyen-dong=")), None)
+    motions = [k for k in load_config()["lien"]["chuyen_dong"] if not k.startswith("_")]
+    if motion and motion not in motions:
+        print(f"❌ Không có kiểu {motion}. Có: {', '.join(motions)}")
+        return 1
     for code in cleanup():
         print(f"🧹 Đã dọn Product_Assets/{code}/ (video đã được HNC gom).")
     if not codes:
@@ -446,13 +514,14 @@ def main(argv: List[str]) -> int:
         if not row:
             print(f"❌ {code}: không có trong tab SANPHAM — bỏ qua.")
             continue
-        item_dir = make_item(code, row, lien)
+        item_dir = make_item(code, row, lien, motion=motion)
         if item_dir:
             ok.append(code)
             n_img = len([f for f in os.listdir(os.path.join(ASSETS_DIR, code)) if f.lower().endswith(IMAGE_EXTS)])
             chosen = read_info(item_dir).get("anh_lien")
             print(f"✅ {code}: {row.get('product_name', '').strip()} — "
-                  + (f"kiểu liền, {len(chosen)} ảnh giày + người mẫu: {', '.join(chosen)}" if chosen else f"4 cảnh, {n_img} ảnh"))
+                  + (f"{popup_label(read_info(item_dir), load_config())}, {len(chosen)} ảnh giày + người mẫu"
+                     if chosen else f"4 cảnh, {n_img} ảnh"))
         else:
             print(f"❌ {code}: chưa có ảnh (NAS HNC_Master / web / image_01… đều trống) — bỏ qua.")
     print(f"\n📦 Sẵn sàng {len(ok)}/{len(codes)} mã. Đã có kịch bản — mở Flow, bấm extension → Tạo video.")

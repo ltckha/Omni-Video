@@ -16,10 +16,14 @@ if [ -f "./venv/bin/python3" ]; then
 fi
 
 read -r -p "Nhập mã giày (cách nhau dấu cách), rồi Enter: " CODES
-read -r -p "Kiểu video: Enter = 1 cảnh liền (máy lùi dần từ giày ra người mẫu) · gõ 4 = 4 cảnh: " KIEU
+echo "Kiểu video: Enter = 1 cảnh liền, tự đổi kiểu máy + bối cảnh · gõ 4 = 4 cảnh"
+echo "  hoặc gõ tên 1 kiểu: lui_ra · tien_vao · song_hanh · vong_quanh · mang_giay (thử)"
+read -r -p "Kiểu: " KIEU
 KIEU_ARG=""
 if [ "$KIEU" = "4" ]; then
   KIEU_ARG="--4-canh"
+elif [ -n "$KIEU" ]; then
+  KIEU_ARG="--chuyen-dong=$KIEU"
 fi
 echo ""
 # shellcheck disable=SC2086

@@ -61,7 +61,11 @@ def _product_title(item_dir: str) -> str:
     try:
         with open(info_path, "r", encoding="utf-8") as f:
             info = json.load(f)
-        return str(info.get("productName") or info.get("title") or "").strip()
+        title = str(info.get("productName") or info.get("title") or "").strip()
+        if info.get("hang_tiem"):  # anh biết đang tạo bản nào: "· tien_vao · sảnh khách sạn · <tên>"
+            from hang_tiem import popup_label
+            title = f"· {popup_label(info)} · {title}"
+        return title
     except Exception:
         return ""
 

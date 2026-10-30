@@ -2,7 +2,7 @@
   "_ghi_chu": "Mẫu kịch bản hàng tiệm (Hiệu giày Hải Nancy), ghép bằng code, 0 Gemini. Kiểu dựng theo video anh Kha chọn 30/10 (32837D). Sửa từ ngữ ở đây, không sửa trong code. {shoe} = mô tả giày ghép từ info.json.",
   "shoe": "{type} in {color}, upper made of {material}, outsole made of {sole}",
   "boi_canh": {
-    "_ghi_chu": "Bối cảnh theo loại giày (anh Kha 30/10; Phân tích tạm đặt, anh duyệt qua video thử). Mỗi nhóm 2–3 cảnh, máy xoay vòng (chỉ số lưu data/.hang_tiem_boi_canh.json) để 2 mã liền nhau không trùng. theo_loai: loại giày lấy từ tên SP → nhóm; giày nữ không khớp loại nào → nhóm nu; còn lại → mac_dinh. walk = câu sau 'The model walks slowly …'; sound = câu âm thanh riêng của cảnh.",
+    "_ghi_chu": "Bối cảnh theo loại giày (anh Kha 30/10; Phân tích tạm đặt, anh duyệt qua video thử). Mỗi nhóm 2–3 cảnh, máy xoay vòng (chỉ số lưu data/.hang_tiem_boi_canh.json) để 2 mã liền nhau không trùng. theo_loai: loại giày lấy từ tên SP → nhóm; giày nữ không khớp loại nào → nhóm nu; còn lại → mac_dinh. walk = câu sau 'The model walks slowly …'; sound = câu âm thanh riêng của cảnh. nhan = tên tiếng Việt hiện trong popup.",
     "theo_loai": {
       "giày thể thao": "the_thao",
       "giày sandal": "nu",
@@ -18,19 +18,22 @@
           "ten": "pho_co",
           "setting": "A quiet old-town street paved with weathered stone slabs on a soft misty morning, warm diffused light, colonial-style shopfronts softly blurred in the background.",
           "walk": "along the stone-paved street",
-          "sound": "Natural footsteps on stone, soft ambient street sound, light background music."
+          "sound": "Natural footsteps on stone, soft ambient street sound, light background music.",
+          "nhan": "phố cổ"
         },
         {
           "ten": "sanh_khach_san",
           "setting": "An elegant hotel lobby with a polished marble floor, warm golden lighting, tall windows and soft-focus columns in the background.",
           "walk": "across the polished marble floor",
-          "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music."
+          "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music.",
+          "nhan": "sảnh khách sạn"
         },
         {
           "ten": "via_he_van_phong",
           "setting": "A clean modern sidewalk in a business district on a bright morning, glass office buildings and street trees softly blurred in the background.",
           "walk": "along the sidewalk",
-          "sound": "Footsteps on pavement, light city traffic in the distance, upbeat soft background music."
+          "sound": "Footsteps on pavement, light city traffic in the distance, upbeat soft background music.",
+          "nhan": "vỉa hè văn phòng"
         }
       ],
       "the_thao": [
@@ -38,13 +41,15 @@
           "ten": "duong_chay_cong_vien",
           "setting": "A park running path at sunrise, fresh green trees and dewy grass, golden morning light.",
           "walk": "along the park path",
-          "sound": "Light footsteps on the path, birdsong and a gentle breeze, energetic soft background music."
+          "sound": "Light footsteps on the path, birdsong and a gentle breeze, energetic soft background music.",
+          "nhan": "đường chạy công viên"
         },
         {
           "ten": "pho_di_bo",
           "setting": "A lively pedestrian street on a sunny afternoon, colorful shopfronts and people softly blurred in the background.",
           "walk": "along the pedestrian street",
-          "sound": "Footsteps on pavement, a cheerful street ambience, upbeat background music."
+          "sound": "Footsteps on pavement, a cheerful street ambience, upbeat background music.",
+          "nhan": "phố đi bộ"
         }
       ],
       "nu": [
@@ -52,19 +57,22 @@
           "ten": "pho_mua_sam",
           "setting": "A stylish shopping street on a sunny afternoon, boutique windows and warm light softly blurred in the background.",
           "walk": "past the boutique windows",
-          "sound": "Light footsteps on pavement, soft street ambience, chic light background music."
+          "sound": "Light footsteps on pavement, soft street ambience, chic light background music.",
+          "nhan": "phố mua sắm"
         },
         {
           "ten": "ca_phe_san_vuon",
           "setting": "A garden café with a tiled path, green plants and wooden tables in soft afternoon light, softly blurred in the background.",
           "walk": "along the tiled garden path",
-          "sound": "Soft footsteps on tiles, birdsong and quiet café chatter, gentle acoustic background music."
+          "sound": "Soft footsteps on tiles, birdsong and quiet café chatter, gentle acoustic background music.",
+          "nhan": "cà phê sân vườn"
         },
         {
           "ten": "sanh_khach_san",
           "setting": "An elegant hotel lobby with a polished marble floor, warm golden lighting, tall windows and soft-focus columns in the background.",
           "walk": "across the polished marble floor",
-          "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music."
+          "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music.",
+          "nhan": "sảnh khách sạn"
         }
       ]
     }
@@ -97,11 +105,39 @@
       "Vertical 9:16, 10 seconds, single continuous shot, no scene cuts.",
       "The shoes are the {type} in {color} shown in the first {n} reference images, which show the same pair from different angles (front, three-quarter, side, back, sole). Upper made of {material}. These shoe images are the only source of truth for the shape and every detail of the shoes.",
       "The last reference image is the {model_word} model, upper body only: use it for the face, body and outfit; the shoes come only from the shoe images.",
-      "{setting} The model walks slowly {walk}.",
-      "Handheld-style camera, one continuous move: it opens on an extreme close-up of the shoes, showing the leather and every detail, then slowly and continuously pulls back (dolly out) to gradually reveal the model walking. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame. The same shoes from the opening close-up remain on the model's feet throughout the pull-back.",
+      "{setting}",
+      "{camera}",
       "Shallow depth of field. {sound} No speech, no on-screen text.",
       "Both feet wear the same pair. Keep the shoes identical to the shoe reference images from the first to the last frame."
-    ]
+    ],
+    "chuyen_dong": {
+      "_ghi_chu": "Kiểu chuyển động máy (anh Kha 30/10 'nhiều video ở nhiều bối cảnh'; Phân tích tạm đặt, anh duyệt qua video). Tất cả 1 cú máy liền, không cắt. Mỗi mã xoay vòng kiểu × bối cảnh chưa dùng. chi_cho = chỉ dùng cho các loại giày này (tên SP); không có = mọi loại. {walk} = câu đi lại của bối cảnh. bat: false = không vào xoay vòng tự động, chỉ dùng khi gọi tay (HangTiem gõ tên kiểu, anh Kha 30/10: mang_giay dễ lỗi).",
+      "lui_ra": {
+        "camera": "Handheld-style camera, one continuous move: it opens on an extreme close-up of the shoes, showing the leather and every detail, then slowly and continuously pulls back (dolly out) to gradually reveal the model walking {walk}. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame. The same shoes from the opening close-up remain on the model's feet throughout the pull-back."
+      },
+      "tien_vao": {
+        "camera": "Handheld-style camera, one continuous move: the model walks toward the camera {walk}, starting from a distance; the camera lowers and slowly moves in, keeping the shoes clearly visible, until the model stops and the shot ends on an extreme close-up of the toes of both shoes. The same shoes stay on the model's feet throughout the move."
+      },
+      "song_hanh": {
+        "camera": "Handheld-style camera, one continuous move: the camera tracks alongside the model at ankle height, in rhythm with each step, as the model walks {walk}; the shoes fill most of the frame in side profile. At the end the model stops and gently turns one heel, briefly showing the sole. The same shoes stay on the model's feet throughout the move."
+      },
+      "mang_giay": {
+        "bat": false,
+        "chi_cho": [
+          "xỏ chân",
+          "giày lười",
+          "giày mọi",
+          "giày sandal",
+          "sandal",
+          "giày búp bê",
+          "dép"
+        ],
+        "camera": "Handheld-style camera, one continuous move: the model sits on a low step, slips both feet into the shoes, stands up and starts walking {walk}, while the camera follows from a low angle with the shoes clearly visible. The shoes being put on are the same shoes worn for the rest of the shot."
+      },
+      "vong_quanh": {
+        "camera": "Handheld-style camera, one continuous move: the model stands still wearing the shoes while the camera slowly circles half-way around the feet from a low angle, showing the shoes from the side, front and back; then the model starts walking {walk} and the camera follows low behind the shoes. The same shoes stay on the model's feet throughout the move."
+      }
+    }
   },
   "dich": {
     "giày tây": "shoes",

@@ -36,13 +36,14 @@ def setup(tmp_path):
 
 
 def fake_make(calls, no_image=()):
-    def make(code, r, lien, extra, assets_dir, media_dir, downloads_dir):
+    def make(code, r, lien, extra, used=(), assets_dir=None, media_dir=None, downloads_dir=None):
         calls.append((code, lien))
         if code in no_image:
             return None
         item = os.path.join(assets_dir, code)
         os.makedirs(item)
-        hang_tiem.write_info(item, dict(hang_tiem.build_info(code, r), **extra))
+        hang_tiem.write_info(item, dict(hang_tiem.build_info(code, r), **extra, chuyen_dong="lui_ra",
+                                        boi_canh=f"bc{len(used)}"))
         return item
     return make
 
@@ -57,10 +58,11 @@ def test_fills_to_five_newest_first_with_filters(tmp_path):
     added = hang_cho.run(values_fn=lambda: values, make=fake_make(calls, no_image={"A8"}), fetch=fake_fetch(), assets_dir=str(d["assets"]),
                          downloads_dir=str(d["dl"]), media_dir=str(d["media"]),
                          ledger_path=str(tmp_path / "ledger.json"), log_fn=logs.append)
-    assert [c for c, _ in calls] == ["B2", "A8", "A7", "A6", "A1"] and all(l for _, l in calls)  # kiểu liền
-    assert added == ["B2", "A7", "A6", "A1"]
+    # mã chưa có video trước (mới nhất trước), rồi mới tới A2 (đã có video trên Sheet)
+    assert [c for c, _ in calls] == ["B2", "A8", "A7", "A6", "A1", "A2"] and all(l for _, l in calls)  # kiểu liền
+    assert added == ["B2", "A7", "A6", "A1", "A2"]
     assert any("A8" in l and "không có ảnh" in l for l in logs)
-    assert json.load(open(tmp_path / "ledger.json")) == added
+    assert [e["ma"] for e in json.load(open(tmp_path / "ledger.json"))] == added
 
 
 def test_keeps_exactly_five_and_ignores_manual(tmp_path):
@@ -89,7 +91,8 @@ def test_downloaded_item_frees_slot_after_hnc_gom(tmp_path):
     hang_cho.run(values_fn=lambda: HEAD + [row("Q1"), row("Z1")], make=fake_make(calls), fetch=fake_fetch(), assets_dir=str(d["assets"]),
                  downloads_dir=str(d["dl"]), media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"),
                  log_fn=lambda m: None)
-    assert not item.exists() and [c for c, _ in calls] == ["Z1"]  # Q1 đã dọn, bù Z1
+    assert [c for c, _ in calls] == ["Z1", "Q1"]  # Q1 đã dọn; mã mới Z1 trước, rồi Q1 làm video thứ 2
+    assert hang_cho.load_ledger(str(tmp_path / "l.json"))[-1]["ma"] == "Q1"
 
 
 def test_no_media_or_sheet_error_does_nothing(tmp_path):
@@ -135,3 +138,26 @@ def test_web_product_urls_parses_code_from_link():
           "<loc>https://giayhainancy.vn/product/mh642v-101135</loc><loc>https://giayhainancy.vn/product-cat/x-6</loc>")
     assert hang_cho.web_product_urls(sm) == {"3J658N": "https://giayhainancy.vn/product/giay-tay-nam-cot-day-da-bo-cao-cap-3j658n-4755",
                                              "MH642V": "https://giayhainancy.vn/product/mh642v-101135"}
+
+
+def test_cap_three_videos_and_unused_combo(tmp_path):
+    d = setup(tmp_path)
+    ledger = str(tmp_path / "l.json")
+    hang_cho.save_ledger([{"ma": "Q1", "chuyen_dong": "lui_ra", "boi_canh": "pho_co"}] * 3
+                         + [{"ma": "Q2", "chuyen_dong": "lui_ra", "boi_canh": "pho_co"}], ledger)
+    seen = {}
+    def make(code, r, lien, extra, used=(), **kw):
+        seen[code] = list(used)
+        return None
+    hang_cho.run(values_fn=lambda: HEAD + [row("Q1"), row("Q2")], make=make, fetch=fake_fetch(),
+                 assets_dir=str(d["assets"]), downloads_dir=str(d["dl"]), media_dir=str(d["media"]),
+                 ledger_path=ledger, log_fn=lambda m: None)
+    assert seen == {"Q2": [("lui_ra", "pho_co")]}  # Q1 đủ 3 video → bỏ; Q2 tránh tổ hợp đã dùng
+
+
+def test_old_ledger_of_codes_still_reads():
+    import tempfile
+    path = os.path.join(tempfile.mkdtemp(), "l.json")
+    with open(path, "w") as f:
+        json.dump(["A1", "B2"], f)
+    assert hang_cho.load_ledger(path) == [{"ma": "A1"}, {"ma": "B2"}]
