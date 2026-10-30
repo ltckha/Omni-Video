@@ -164,3 +164,52 @@ def test_prompt_command_uses_template_for_shop_item(tmp_path, monkeypatch):
     monkeypatch.setattr(g, "call_gemini_multimodal_api", lambda *a, **k: (_ for _ in ()).throw(AssertionError("không được gọi Gemini")))
     assert g.generate_prompt_for_item("JH8918N", str(d)) == "Hàng tiệm"
     assert (d / "JH8918N.txt").exists()
+
+
+# --- kiểu liền (HangTiem --lien, 30/10) ---
+SHAPES = {"JH8918N_1.jpg": (1.40, 0.65), "JH8918N_2.jpg": (0.83, 0.79), "JH8918N_4.jpg": (1.61, 0.74),
+          "JH8918N_6.jpg": (1.51, 0.61), "JH8918N_7.jpg": (2.23, 0.72), "JH8918N_8.jpg": (2.47, 0.70),
+          "JH8918N_9.jpg": (2.71, 0.82), "JH8918N_10.jpg": (2.0, 0.9)}
+
+
+def test_pick_lien_images_three_quarter_side_sole(tmp_path):
+    for name in list(SHAPES)[:7]:  # số đo thật của ảnh JH8918N
+        (tmp_path / name).write_bytes(b"x")
+    (tmp_path / "Nam-25t.png").write_bytes(b"x")
+    shape = lambda p: SHAPES[os.path.basename(p)]
+    assert hang_tiem.pick_lien_images(str(tmp_path), shape=shape) == ["JH8918N_6.jpg", "JH8918N_8.jpg", "JH8918N_9.jpg"]
+    (tmp_path / "JH8918N_10.jpg").write_bytes(b"x")  # đế = số cuối theo số, không theo chữ (10 sau 9)
+    assert hang_tiem.pick_lien_images(str(tmp_path), shape=shape)[2] == "JH8918N_10.jpg"
+
+
+def test_lien_script_single_shot_no_object_negatives():
+    cfg = hang_tiem.load_config()
+    info = dict(build_info("JH8918N", ROW), kieu="lien")
+    text = hang_tiem.build_script(info, cfg)
+    assert "single continuous shot" in text and "fourth reference image is the male model" in text
+    assert "men's slip-on loafers in brown" in text and "Input Image" not in text and "{" not in text
+    for word in ("laces", "buckle", "dress shoes", "[ASSETS]"):
+        assert word not in text
+
+
+def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
+    import shutil as sh
+    import pytest
+    if not os.path.exists(hang_tiem.FFMPEG):
+        pytest.skip("không có ffmpeg")
+    from flow_helper import encode_flow_files
+    item = tmp_path / "JH8918N"
+    item.mkdir()
+    chars = tmp_path / "chars"
+    chars.mkdir()
+    src = os.path.join(PROJECT_DIR, "characters", "Nam-25t.png")
+    sh.copy(src, chars / "Nam-25t.png")
+    for i in (1, 2, 3, 4):
+        sh.copy(src, item / f"JH8918N_{i}.jpg")  # nội dung không quan trọng, chỉ cần ảnh đọc được
+    hang_tiem.write_info(str(item), dict(build_info("JH8918N", ROW), kieu="lien"))
+    hang_tiem.write_script("JH8918N", str(item), characters_dir=str(chars))
+    info = read_info(str(item))
+    assert len(info["anh_lien"]) == 3 and info["nguoi_mau_lien"] == "Nam-25t_tren.jpg"
+    assert not (item / "Nam-25t.png").exists()  # không chép ảnh toàn thân (lộ giày người mẫu)
+    slots = [f["slot"] for f in encode_flow_files("JH8918N", assets_dir=str(tmp_path))[0]["files"]]
+    assert slots == ["product", "product_2", "product_3", "character", "script"]

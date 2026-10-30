@@ -47,7 +47,7 @@ def find_character_image(item_dir: str) -> Optional[str]:
     for ext in ("*.png", "*.jpg", "*.jpeg", "*.webp"):
         for f in glob.glob(os.path.join(item_dir, ext)):
             name = os.path.basename(f).lower()
-            if name.startswith("nu-") or name.startswith("nam-") or "character" in name:
+            if (name.startswith("nu-") or name.startswith("nam-") or "character" in name) and "_tren" not in name:
                 return f
     for ext in ("*.png", "*.jpg", "*.jpeg", "*.webp"):
         chars = sorted(glob.glob(os.path.join(CHARACTERS_DIR, ext)))
@@ -121,12 +121,26 @@ def shrink_for_paste(path: str, max_bytes: int = PASTE_MAX_BYTES) -> bytes:
 
 def encode_flow_files(item_id: str, assets_dir: str = ASSETS_DIR, chunk_size: int = 700_000) -> List[Dict]:
     """Native messaging giới hạn 1 MB/tin -> mã base64 rồi chia nhỏ. Trả danh sách tin: 1 tin meta + các tin chunk."""
+    item_dir = os.path.join(assets_dir, item_id)
+    info = read_info(item_dir)
+    if info.get("kieu") == "lien" and info.get("anh_lien"):
+        # hàng tiệm kiểu liền: 3 ảnh giày (chéo 3/4, ngang hông, đế) → người mẫu cắt từ thắt lưng → kịch bản
+        ordered = [("product" if i == 1 else f"product_{i}", os.path.join(item_dir, name))
+                   for i, name in enumerate(info["anh_lien"], start=1)]
+        if info.get("nguoi_mau_lien"):
+            ordered.append(("character", os.path.join(item_dir, info["nguoi_mau_lien"])))
+        ordered.append(("script", find_prompt_file(item_dir, item_id)))
+        return _encode(item_id, ordered, chunk_size)
     assets = get_flow_assets(item_id, assets_dir)
     # Thứ tự dán = thứ tự Input Image trên Flow: 1 = ảnh SP chính, 2 = người mẫu (khớp kịch bản), 3.. = ảnh SP còn lại
     extras = find_product_images(os.path.join(assets_dir, item_id))[1:MAX_FLOW_IMAGES - 1]
     ordered = [("product", assets["product"]), ("character", assets["character"])]
     ordered += [(f"product_{i}", path) for i, path in enumerate(extras, start=2)]
     ordered.append(("script", assets["script"]))
+    return _encode(item_id, ordered, chunk_size)
+
+
+def _encode(item_id: str, ordered: List, chunk_size: int) -> List[Dict]:
     files, chunks = [], []
     for slot, path in ordered:
         if slot == "script":

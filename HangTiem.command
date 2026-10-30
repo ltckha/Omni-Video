@@ -16,9 +16,14 @@ if [ -f "./venv/bin/python3" ]; then
 fi
 
 read -r -p "Nhập mã giày (cách nhau dấu cách), rồi Enter: " CODES
+read -r -p "Kiểu video: Enter = 4 cảnh · gõ 2 = 1 cảnh liền (máy lùi dần từ giày ra người mẫu): " KIEU
+KIEU_ARG=""
+if [ "$KIEU" = "2" ]; then
+  KIEU_ARG="--lien"
+fi
 echo ""
 # shellcheck disable=SC2086
-$PYTHON_EXEC scripts/hang_tiem.py $CODES
+$PYTHON_EXEC scripts/hang_tiem.py $KIEU_ARG $CODES
 
 echo ""
 echo "============================================================"

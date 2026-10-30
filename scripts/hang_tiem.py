@@ -10,13 +10,18 @@ Video Flow cho giày tiệm Hiệu giày Hải Nancy, theo mã tiệm (vd JH8918
    trên trình duyệt, không qua API) + chép ảnh người mẫu Nam- / Nu- theo giới tính → mở Flow bấm Tạo video luôn.
 3. Sau khi tải từ Flow, video để nguyên ~/Downloads/<mã>.mp4 cho luồng gom của HNC; thư mục tạm tự dọn khi video đã rời Downloads.
 
-Dùng: python scripts/hang_tiem.py <mã> [<mã> …]    (HangTiem.command hỏi mã rồi chạy lệnh này)
+Kiểu dựng (anh Kha 30/10 "thử 1 bản mới để so"): mặc định 4 cảnh + ảnh người mẫu; --lien = 1 cảnh liền 10 giây,
+3 ảnh giày (chéo 3/4, ngang hông, đế — chọn tự động, xem pick_lien_images) + ảnh người mẫu cắt từ thắt lưng trở lên.
+
+Dùng: python scripts/hang_tiem.py [--lien] <mã> [<mã> …]    (HangTiem.command hỏi mã + kiểu rồi chạy lệnh này)
 """
 
 import glob
 import json
 import os
+import re
 import shutil
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -184,6 +189,7 @@ def prepare(code: str, row: Dict[str, str], assets_dir: str = ASSETS_DIR, media_
     return item_dir
 
 
+FFMPEG = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "hang_tiem.json")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 # thứ tự = ưu tiên: kiểu cụ thể ("xỏ chân") thắng "giày tây" chung (giày tây → "shoes", không ghi dress shoes vì Flow vẽ giày buộc dây)
@@ -227,8 +233,69 @@ def describe_shoe(info: Dict, cfg: Dict) -> Dict[str, str]:
     return parts
 
 
+def image_shape(path: str, width: int = 160) -> tuple:
+    """(rộng/cao, độ đặc) của khung bao quanh giày: ffmpeg thu ảnh xám nhỏ, điểm khác màu nền (góc ảnh) > 35 là giày."""
+    raw = subprocess.run([FFMPEG, "-loglevel", "error", "-i", path, "-vf", f"scale={width}:-2,format=gray",
+                          "-f", "rawvideo", "-"], capture_output=True, check=True).stdout
+    height = len(raw) // width
+    bg = sorted([raw[0], raw[width - 1], raw[(height - 1) * width], raw[height * width - 1]])[1]
+    xs, ys = [], []
+    for i, v in enumerate(raw[:height * width]):
+        if abs(v - bg) > 35:
+            xs.append(i % width)
+            ys.append(i // width)
+    if not xs:
+        return 1.0, 1.0
+    bw, bh = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+    return bw / bh, len(xs) / (bw * bh)
+
+
+def _number_order(path: str) -> list:
+    return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", os.path.basename(path).lower())]
+
+
+def pick_lien_images(item_dir: str, shape=image_shape) -> List[str]:
+    """3 ảnh giày cho kiểu liền: [chéo 3/4, ngang hông, đế].
+    - đế = ảnh số cuối (ảnh tiệm luôn chụp đế sau cùng: JH8918N_9, 32837N web 8);
+    - ngang hông = ảnh còn lại có khung giày bẹt nhất (rộng/cao lớn nhất);
+    - chéo 3/4 = trong ảnh rộng/cao 1,3–1,9 lấy ảnh độ đặc thấp nhất (1 chiếc đứng chéo, không phải cả đôi
+      chụp thẳng / chụp sau); không có thì lấy ảnh số nhỏ nhất còn lại.
+    Ít hơn 3 ảnh thì trả hết ảnh đang có."""
+    images = sorted((f for f in glob.glob(os.path.join(item_dir, "*"))
+                     if f.lower().endswith(IMAGE_EXTS) and not os.path.basename(f).lower().startswith(("nu-", "nam-"))),
+                    key=_number_order)
+    if len(images) <= 3:
+        return [os.path.basename(f) for f in images]
+    sole, rest = images[-1], images[:-1]
+    shapes = {f: shape(f) for f in rest}
+    side = max(rest, key=lambda f: shapes[f][0])
+    rest = [f for f in rest if f != side]
+    three_q = [f for f in rest if 1.3 <= shapes[f][0] <= 1.9]
+    angle = min(three_q, key=lambda f: shapes[f][1]) if three_q else rest[0]
+    return [os.path.basename(f) for f in (angle, side, sole)]
+
+
+def crop_model_upper(src: str, item_dir: str, keep: float) -> str:
+    """Bản cắt ảnh người mẫu từ thắt lưng trở lên (giữ `keep` phần trên, cả bề ngang) → <tên>_tren.jpg; ảnh gốc giữ nguyên.
+    Ảnh characters/ là tờ 2 hình (chân dung + toàn thân, giày nâu); bỏ phần dưới để Flow không lấy giày của người mẫu."""
+    out = os.path.join(item_dir, os.path.splitext(os.path.basename(src))[0] + "_tren.jpg")
+    subprocess.run([FFMPEG, "-loglevel", "error", "-y", "-i", src, "-vf", f"crop=iw:trunc(ih*{keep}/2)*2:0:0",
+                    "-q:v", "3", out], check=True)
+    return out
+
+
+def build_script_lien(info: Dict, cfg: Dict) -> str:
+    """Kiểu liền: 1 cảnh 10 giây, chỉ tả đúng kiểu giày + màu + chất liệu mặt, gọi ảnh theo thứ tự dán (3 giày + người mẫu)."""
+    p = describe_shoe(info, cfg)
+    lien = cfg["lien"]
+    return "\n".join(line.format(**p, model_word="female" if is_female(info) else "male", setting=cfg["setting"])
+                     for line in lien["prompt"]) + "\n"
+
+
 def build_script(info: Dict, cfg: Dict) -> str:
     """Kịch bản Flow hàng tiệm, cùng khung [ASSETS] / [PROMPT] / [CONSTRAINTS] như kịch bản Omni."""
+    if info.get("kieu") == "lien":
+        return build_script_lien(info, cfg)
     p = describe_shoe(info, cfg)
     shots = " ".join(f"({i}) {shot.format(**p)}" for i, shot in enumerate(cfg["shots"], start=1))
     rules = "\n".join(f"- {rule}" for rule in cfg["fidelity_rules"])
@@ -249,15 +316,23 @@ def build_script(info: Dict, cfg: Dict) -> str:
 
 
 def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, characters_dir: str = CHARACTERS_DIR) -> str:
-    """Ghi <mã>.txt + chép ảnh người mẫu theo giới tính vào thư mục. 0 Gemini."""
+    """Ghi <mã>.txt + chép ảnh người mẫu theo giới tính vào thư mục (kiểu liền: chọn 3 ảnh giày, không người mẫu). 0 Gemini."""
     info = read_info(item_dir)
     cfg = cfg or load_config()
+    if info.get("kieu") == "lien":
+        info["anh_lien"] = pick_lien_images(item_dir)
+        write_info(item_dir, info)
     path = os.path.join(item_dir, f"{code}.txt")
     with open(path, "w", encoding="utf-8") as f:
         f.write(build_script(info, cfg))
     prefix = "nu-" if is_female(info) else "nam-"
     chars = sorted(f for f in glob.glob(os.path.join(characters_dir, "*")) if os.path.basename(f).lower().startswith(prefix))
-    have = [f for f in os.listdir(item_dir) if f.lower().startswith(("nu-", "nam-"))]
+    if info.get("kieu") == "lien":
+        if chars:
+            info["nguoi_mau_lien"] = os.path.basename(crop_model_upper(chars[-1], item_dir, cfg["lien"]["cat_nguoi_mau"]))
+            write_info(item_dir, info)
+        return path
+    have = [f for f in os.listdir(item_dir) if f.lower().startswith(("nu-", "nam-")) and "_tren" not in f.lower()]
     if chars and not have:  # Nu-25t / Nam-25t (bản 25 tuổi đứng sau khi sắp xếp), giống kịch bản Omni
         shutil.copy2(chars[-1], os.path.join(item_dir, os.path.basename(chars[-1])))
     return path
@@ -285,6 +360,7 @@ def cleanup(assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) ->
 
 def main(argv: List[str]) -> int:
     codes = list(dict.fromkeys(c.strip().upper() for c in argv if c.strip() and not c.startswith("-")))
+    lien = "--lien" in argv
     for code in cleanup():
         print(f"🧹 Đã dọn Product_Assets/{code}/ (video đã được HNC gom).")
     if not codes:
@@ -299,10 +375,17 @@ def main(argv: List[str]) -> int:
             continue
         item_dir = prepare(code, row)
         if item_dir:
+            info = read_info(item_dir)
+            info["kieu"] = "lien" if lien else "4_canh"
+            info.pop("anh_lien", None)
+            info.pop("nguoi_mau_lien", None)
+            write_info(item_dir, info)
             write_script(code, item_dir)
             ok.append(code)
             n_img = len([f for f in os.listdir(os.path.join(ASSETS_DIR, code)) if f.lower().endswith(IMAGE_EXTS)])
-            print(f"✅ {code}: {row.get('product_name', '').strip()} — {n_img} ảnh")
+            chosen = read_info(item_dir).get("anh_lien")
+            print(f"✅ {code}: {row.get('product_name', '').strip()} — "
+                  + (f"kiểu liền, 3 ảnh: {', '.join(chosen)}" if chosen else f"4 cảnh, {n_img} ảnh"))
         else:
             print(f"❌ {code}: chưa có ảnh (NAS HNC_Master / web / image_01… đều trống) — bỏ qua.")
     print(f"\n📦 Sẵn sàng {len(ok)}/{len(codes)} mã. Đã có kịch bản — mở Flow, bấm extension → Tạo video.")
