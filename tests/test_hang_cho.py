@@ -52,15 +52,15 @@ def test_fills_to_five_newest_first_with_filters(tmp_path):
     d = setup(tmp_path)
     values = HEAD + [row("A1"), row("A2", files="VIDEO, IMG"), row("A3", stock="no"), row("A4", name="Túi xách {c}"),
                      row("A5", color=""), row("A6"), row("A7"), row("A8"), row("A9"), row("B1"), row("B2")]
-    (d["dl"] / "B1.mp4").write_bytes(b"v")          # đang chờ HNC gom
+    (d["dl"] / "B1.mp4").write_bytes(b"v")          # video cũ chờ HNC gom: vẫn vào được (tên mới B1_2.mp4)
     (d["assets"] / "A9").mkdir()                     # mã anh làm tay
     calls, logs = [], []
     added = hang_cho.run(values_fn=lambda: values, make=fake_make(calls, no_image={"A8"}), fetch=fake_fetch(), assets_dir=str(d["assets"]),
                          downloads_dir=str(d["dl"]), media_dir=str(d["media"]),
                          ledger_path=str(tmp_path / "ledger.json"), log_fn=logs.append)
     # mã chưa có video trước (mới nhất trước), rồi mới tới A2 (đã có video trên Sheet)
-    assert [c for c, _ in calls] == ["B2", "A8", "A7", "A6", "A1", "A2"] and all(l for _, l in calls)  # kiểu liền
-    assert added == ["B2", "A7", "A6", "A1", "A2"]
+    assert [c for c, _ in calls] == ["B2", "B1", "A8", "A7", "A6", "A1"] and all(l for _, l in calls)  # kiểu liền
+    assert added == ["B2", "B1", "A7", "A6", "A1"]
     assert any("A8" in l and "không có ảnh" in l for l in logs)
     assert [e["ma"] for e in json.load(open(tmp_path / "ledger.json"))] == added
 
@@ -161,3 +161,12 @@ def test_old_ledger_of_codes_still_reads():
     with open(path, "w") as f:
         json.dump(["A1", "B2"], f)
     assert hang_cho.load_ledger(path) == [{"ma": "A1"}, {"ma": "B2"}]
+
+
+def test_queue_after_existing_video_reaches_a2(tmp_path):
+    d = setup(tmp_path)
+    calls = []
+    added = hang_cho.run(values_fn=lambda: HEAD + [row("A2", files="VIDEO, IMG"), row("A1")], make=fake_make(calls),
+                         fetch=fake_fetch(), assets_dir=str(d["assets"]), downloads_dir=str(d["dl"]),
+                         media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"), log_fn=lambda m: None)
+    assert added == ["A1", "A2"]  # mã chưa có video trước, mã đã có video sau

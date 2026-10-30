@@ -172,6 +172,29 @@ def build_info(code: str, row: Dict[str, str], old: Optional[Dict] = None) -> Di
     return info
 
 
+def video_name(code: str, media_dir: str = HNC_MEDIA_DIR, downloads_dir: str = DOWNLOADS_DIR) -> str:
+    """Tên file video đầu ra (anh Kha 30/10): số = số video mã đang có (video trong NAS HNC_Master/<mã>/ + ~/Downloads)
+    + 1. Video đầu <MÃ>.mp4, kế tiếp <MÃ>_2.mp4, <MÃ>_3.mp4 (mẫu HNC gom nhận; không dùng _1). Trùng tên có sẵn → tăng số.
+    Mỗi mã chỉ 1 thư mục Product_Assets nên không có mục chờ khác cùng mã."""
+    pattern = re.compile(rf"^{re.escape(code)}(?:_(\d+))?\.(mp4|mov)$", re.IGNORECASE)
+    names = set()
+    for folder in (os.path.join(media_dir, code), downloads_dir):
+        try:
+            names |= {f.lower() for f in os.listdir(folder) if pattern.match(f)}
+        except OSError:
+            pass
+    n = len(names) + 1
+    while True:
+        name = f"{code}.mp4" if n == 1 else f"{code}_{n}.mp4"
+        if name.lower() not in names and name.lower().replace(".mp4", ".mov") not in names:
+            return name
+        n += 1
+
+
+def output_name(info: Dict, item_id: str) -> str:
+    return info.get("ten_video") or f"{item_id}.mp4"
+
+
 def prepare(code: str, row: Dict[str, str], assets_dir: str = ASSETS_DIR, media_dir: str = HNC_MEDIA_DIR,
             downloads_dir: str = DOWNLOADS_DIR, fetch_web=download_web_images) -> Optional[str]:
     """Tạo / làm mới Product_Assets/<mã>/. Trả đường dẫn thư mục, hoặc None nếu mã không có ảnh."""
@@ -190,9 +213,9 @@ def prepare(code: str, row: Dict[str, str], assets_dir: str = ASSETS_DIR, media_
         if not existed:
             shutil.rmtree(item_dir, ignore_errors=True)
         return None
-    write_info(item_dir, build_info(code, row, read_info(item_dir)))
-    if os.path.exists(os.path.join(downloads_dir, f"{code}.mp4")):
-        print(f"  ⚠️ ~/Downloads/{code}.mp4 đang có sẵn — video mới sẽ bị Chrome đặt tên khác. Chờ HNC gom xong rồi hãy Tạo video.")
+    info = build_info(code, row, read_info(item_dir))
+    info["ten_video"] = video_name(code, media_dir, downloads_dir)
+    write_info(item_dir, info)
     return item_dir
 
 
@@ -394,11 +417,12 @@ def build_script_lien(info: Dict, cfg: Dict) -> str:
 
 
 def popup_label(info: Dict, cfg: Optional[Dict] = None) -> str:
-    """Nhãn cạnh mã trong popup: "tien_vao · sảnh khách sạn" (4 cảnh: "4 cảnh · …")."""
+    """Nhãn cạnh mã trong popup: "JH8918N_2.mp4 · tien_vao · sảnh khách sạn" (4 cảnh: "… · 4 cảnh · …")."""
     cfg = cfg or load_config()
     scene = scene_for(info, cfg).get("nhan", "")
     kieu = (info.get("chuyen_dong") or "lui_ra") if info.get("kieu") == "lien" else "4 cảnh"
-    return f"{kieu} · {scene}"
+    out = f"{info['ten_video']} · " if info.get("ten_video") else ""
+    return f"{out}{kieu} · {scene}"
 
 
 def build_script(info: Dict, cfg: Dict) -> str:
@@ -472,7 +496,7 @@ def cleanup(assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) ->
     for code in sorted(os.listdir(assets_dir)):
         item_dir = os.path.join(assets_dir, code)
         info = read_info(item_dir) if os.path.isdir(item_dir) else {}
-        if info.get("hang_tiem") and info.get("da_tai") and not os.path.exists(os.path.join(downloads_dir, f"{code}.mp4")):
+        if info.get("hang_tiem") and info.get("da_tai") and not os.path.exists(os.path.join(downloads_dir, output_name(info, code))):
             shutil.rmtree(item_dir, ignore_errors=True)
             removed.append(code)
     return removed

@@ -312,3 +312,39 @@ def test_manual_motion_overrides_rotation(tmp_path):
     hang_tiem.write_info(str(item), dict(build_info("A", ROW), kieu="lien"))
     hang_tiem.write_script("A", str(item), characters_dir=str(tmp_path / "none"), motion="mang_giay")
     assert read_info(str(item))["chuyen_dong"] == "mang_giay"
+
+
+
+def test_video_name_numbers_after_existing_videos(tmp_path):
+    media, dl = tmp_path / "media", tmp_path / "dl"
+    (media / "JH8918N").mkdir(parents=True)
+    dl.mkdir()
+    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N.mp4"
+    (media / "JH8918N" / "JH8918N.mp4").write_bytes(b"v")
+    (media / "JH8918N" / "JH8918N_1.jpg").write_bytes(b"i")  # ảnh không tính
+    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_2.mp4"
+    (dl / "JH8918N_2.mp4").write_bytes(b"v")
+    (dl / "JH8918N_20.mp4.crdownload").write_bytes(b"v")
+    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_3.mp4"
+    (dl / "JH8918N_4.mp4").write_bytes(b"v")  # có lỗ: 3 video → số 4 đã có → 5
+    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_5.mp4"
+
+
+def test_collect_and_cleanup_use_numbered_name(tmp_path):
+    from flow_helper import collect_flow_video, encode_flow_files
+    assets, dl = tmp_path / "assets", tmp_path / "dl"
+    item = assets / "JH8918N"
+    item.mkdir(parents=True)
+    dl.mkdir()
+    (item / "JH8918N.txt").write_text("x")
+    (item / "JH8918N_1.jpg").write_bytes(b"i")
+    hang_tiem.write_info(str(item), dict(build_info("JH8918N", ROW), kieu="lien", anh_lien=["JH8918N_1.jpg"],
+                                         ten_video="JH8918N_2.mp4"))
+    assert encode_flow_files("JH8918N", assets_dir=str(assets))[0]["output"] == "JH8918N_2.mp4"
+    (dl / "JH8918N.mp4").write_bytes(b"old")
+    assert collect_flow_video("JH8918N", str(assets), str(dl)) is None  # video cũ không phải của mục này
+    (dl / "JH8918N_2.mp4").write_bytes(b"new")
+    assert collect_flow_video("JH8918N", str(assets), str(dl)) == str(dl / "JH8918N_2.mp4")
+    assert cleanup(str(assets), str(dl)) == []  # _2 còn ở Downloads
+    os.remove(dl / "JH8918N_2.mp4")
+    assert cleanup(str(assets), str(dl)) == ["JH8918N"]

@@ -14,7 +14,7 @@ Giữ đúng SO_MA_CHO mã hàng tiệm đang chờ Tạo video trong Product_As
    cột này thì bỏ qua điều kiện); còn hàng trên web giayhainancy.vn (trang SP có trong sitemap.xml, dữ liệu sản phẩm
    schema.org "availability" = InStock; SANPHAM không có cột tồn kho, trang SP đã gỡ chuyển 301 về danh mục → coi như
    không bán, bỏ qua để không tốn credit); tên SP có loại giày (giày tây / lười / mọi / thể thao…) và có product_color;
-   chưa có thư mục Product_Assets, chưa có ~/Downloads/<mã>.mp4; sổ data/.hang_cho_da_lam.json ghi từng lần (mã, kiểu, bối cảnh);
+   chưa có thư mục Product_Assets (video cũ của mã vẫn ở Downloads cũng được: tên đầu ra có số, không trùng); sổ data/.hang_cho_da_lam.json ghi từng lần (mã, kiểu, bối cảnh);
    có ảnh (NAS HNC_Master → web giayhainancy.vn → image_01… SANPHAM). Thiếu ảnh / thông tin → bỏ qua, ghi log.
 5. Mỗi mã: kiểu liền, kiểu chuyển động × bối cảnh xoay vòng (hang_tiem.pick_combo), như HangTiem.command.
 
@@ -188,7 +188,7 @@ def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, fetch
         if len(added) >= need or tried >= SO_MA_THU_TOI_DA:
             break
         code = row["product_code"]
-        if os.path.exists(os.path.join(assets_dir, code)) or os.path.exists(os.path.join(downloads_dir, f"{code}.mp4")):
+        if os.path.exists(os.path.join(assets_dir, code)):  # mỗi mã 1 mục chờ; video trùng mã → tên _2, _3 (ten_video)
             continue
         if video_count(row, done) >= TRAN_VIDEO or why_not(row):
             continue  # lý do trên Sheet: không ghi log từng dòng (hàng nghìn dòng)

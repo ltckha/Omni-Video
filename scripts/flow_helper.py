@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 from typing import Optional, List, Dict
 
-from hang_tiem import read_info, mark_downloaded
+from hang_tiem import read_info, mark_downloaded, output_name
 
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -145,6 +145,7 @@ def encode_flow_files(item_id: str, assets_dir: str = ASSETS_DIR, chunk_size: in
 
 
 def _encode(item_id: str, ordered: List, chunk_size: int) -> List[Dict]:
+    output = output_name(read_info(os.path.dirname(ordered[-1][1])), item_id)  # ordered[-1] = kịch bản trong thư mục SP
     files, chunks = [], []
     for slot, path in ordered:
         if slot == "script":
@@ -160,7 +161,7 @@ def _encode(item_id: str, ordered: List, chunk_size: int) -> List[Dict]:
         parts = [b64[i:i + chunk_size] for i in range(0, len(b64), chunk_size)] or [""]
         files.append({"slot": slot, "name": name, "mime": mime, "chunks": len(parts)})
         chunks += [{"type": "chunk", "slot": slot, "index": i, "data": part} for i, part in enumerate(parts)]
-    return [{"type": "meta", "itemId": item_id, "files": files}] + chunks
+    return [{"type": "meta", "itemId": item_id, "output": output, "files": files}] + chunks
 
 
 def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
@@ -185,9 +186,10 @@ def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
 
 def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) -> Optional[str]:
     """Chuyển ~/Downloads/<itemId>.mp4 vào Product_Assets/<itemId>/<itemId>.mp4.
-    Hàng tiệm: không chuyển — để nguyên cho luồng gom HNC, ghi da_tai vào info.json, trả đường dẫn ở Downloads."""
-    src = os.path.join(downloads_dir, f"{item_id}.mp4")
+    Hàng tiệm: tên tải về là info.json "ten_video" (<MÃ>.mp4 / <MÃ>_2.mp4…); không chuyển — để nguyên cho luồng gom HNC,
+    ghi da_tai vào info.json, trả đường dẫn ở Downloads."""
     item_dir = os.path.join(assets_dir, item_id)
+    src = os.path.join(downloads_dir, output_name(read_info(item_dir), item_id) if os.path.isdir(item_dir) else f"{item_id}.mp4")
     if not os.path.isfile(src) or not os.path.isdir(item_dir):
         return None
     if read_info(item_dir).get("hang_tiem"):

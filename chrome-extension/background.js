@@ -47,7 +47,7 @@ function loadFlowFiles(itemId) {
       } else if (msg.type === "chunk") {
         (parts[msg.slot] = parts[msg.slot] || [])[msg.index] = msg.data;
       } else if (msg.type === "done" && meta) {
-        finish({ status: "success", files: meta.files.map((f) => ({ ...f, b64: (parts[f.slot] || []).join("") })) });
+        finish({ status: "success", output: meta.output, files: meta.files.map((f) => ({ ...f, b64: (parts[f.slot] || []).join("") })) });
       } else if (msg.status === "error") {
         finish({ status: "error", message: msg.message });
       }
@@ -70,8 +70,8 @@ async function fillFlowTool(itemId) {
   await chrome.tabs.update(projectTab.id, { active: true });
   let resp;
   try {
-    // Đặt trước để tên file tải về là <itemId>.mp4 (content script tự chạy tới bước Tải)
-    await chrome.storage.local.set({ flowActiveItem: { itemId: itemId, since: Date.now() } });
+    // Đặt trước tên file tải về: <itemId>.mp4, hàng tiệm <MÃ>_2.mp4… theo native host (content script tự chạy tới bước Tải)
+    await chrome.storage.local.set({ flowActiveItem: { itemId: itemId, output: loaded.output || `${itemId}.mp4`, since: Date.now() } });
     resp = await chrome.tabs.sendMessage(projectTab.id, { action: "FLOW_FILL", itemId: itemId, files: loaded.files, autoRun: true });
   } catch (e) {
     resp = { status: "error", message: "Trang Flow chưa nạp extension — anh tải lại trang Flow (Cmd+R) rồi bấm lại." };
@@ -99,7 +99,7 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
     if (active && Date.now() - active.since < FLOW_ACTIVE_MAX_AGE_MS && isFlowVideoDownload(item)) {
       flowDownloads[item.id] = active.itemId;
       chrome.storage.local.remove("flowActiveItem");
-      suggest({ filename: `${active.itemId}.mp4`, conflictAction: "uniquify" });
+      suggest({ filename: active.output || `${active.itemId}.mp4`, conflictAction: "uniquify" });
     } else {
       suggest();
     }
