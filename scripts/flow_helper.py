@@ -4,7 +4,8 @@
 Omni Video - Google Flow helper (bán tự động, anh Kha tự bấm Tạo / Tải trên Flow).
 1. list_pending_items(): sản phẩm đã có prompt <itemId>.txt nhưng chưa có <itemId>.mp4.
 2. encode_flow_files(): 3 file (ảnh SP, ảnh người mẫu, kịch bản .txt) gửi cho extension dán vào Flow.
-3. collect_flow_video(): video tải về ~/Downloads/<itemId>.mp4 -> Product_Assets/<itemId>/<itemId>.mp4.
+3. collect_flow_video(): video tải về ~/Downloads/<itemId>.mp4 -> Product_Assets/<itemId>/<itemId>.mp4
+   (hàng tiệm: để nguyên ở ~/Downloads cho luồng gom HNC, chỉ đánh dấu đã tải).
 Không gọi API, không đụng Google Sheet (Move.command cập nhật Sheet như cũ).
 """
 
@@ -16,6 +17,8 @@ import shutil
 import subprocess
 import tempfile
 from typing import Optional, List, Dict
+
+from hang_tiem import read_info, mark_downloaded
 
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -155,17 +158,23 @@ def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
             continue
         if glob.glob(os.path.join(item_dir, "*.mp4")) or glob.glob(os.path.join(item_dir, "*.MP4")):
             continue
+        if read_info(item_dir).get("da_tai"):  # hàng tiệm đã tải video, chờ HNC gom
+            continue
         items.append({"itemId": item_id, "title": _product_title(item_dir), "mtime": os.path.getmtime(item_dir)})
     items.sort(key=lambda x: x["mtime"], reverse=True)
     return [{"itemId": i["itemId"], "title": i["title"]} for i in items]
 
 
 def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) -> Optional[str]:
-    """Chuyển ~/Downloads/<itemId>.mp4 vào Product_Assets/<itemId>/<itemId>.mp4."""
+    """Chuyển ~/Downloads/<itemId>.mp4 vào Product_Assets/<itemId>/<itemId>.mp4.
+    Hàng tiệm: không chuyển — để nguyên cho luồng gom HNC, ghi da_tai vào info.json, trả đường dẫn ở Downloads."""
     src = os.path.join(downloads_dir, f"{item_id}.mp4")
     item_dir = os.path.join(assets_dir, item_id)
     if not os.path.isfile(src) or not os.path.isdir(item_dir):
         return None
+    if read_info(item_dir).get("hang_tiem"):
+        mark_downloaded(item_dir)
+        return src
     dst = os.path.join(item_dir, f"{item_id}.mp4")
     if os.path.exists(dst):
         raise FileExistsError(f"Product_Assets/{item_id}/{item_id}.mp4 đã có — không ghi đè")

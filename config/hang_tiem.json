@@ -1,0 +1,25 @@
+{
+  "_ghi_chu": "Lời dặn kịch bản hàng tiệm (Hiệu giày Hải Nancy). Kiểu dựng theo video anh Kha chọn 30/10 (32837D). Sửa từ ngữ ở đây, không sửa trong code.",
+  "central_rule_sections": ["FORBIDDEN_ACTIONS", "FOOTWEAR_SPECIFIC_RULES", "PROMPT_STRUCTURE_STANDARDS"],
+  "setting": "A quiet old-town street paved with weathered stone slabs on a soft misty morning, warm diffused light, colonial-style shopfronts softly blurred in the background.",
+  "outfit": "Dark, elegant smart-casual outfit (dark slim trousers, dark long-sleeve shirt or light jacket) so the shoes stand out.",
+  "model": {
+    "nam": "An adult Vietnamese male model (Input Image 2) used for body shape and outfit only.",
+    "nu": "An adult Vietnamese female model (Input Image 2) used for body shape and outfit only."
+  },
+  "framing": "The face is not the focus: frame from the waist or knees down in every shot except the single full-body shot.",
+  "shots": [
+    "Low tracking close-up of both shoes stepping forward on the stone pavement.",
+    "Macro close-up of the toe and upper, showing the real leather grain and stitching.",
+    "One step where the heel lifts and the foot turns enough to clearly reveal the outsole pattern.",
+    "One full-body walking shot of the model in the street."
+  ],
+  "camera": "Smooth cinematic gimbal movement, shallow depth of field, gentle cuts between the shots, 10 seconds total, vertical 9:16.",
+  "audio": "No voiceover, no speech, no lip-sync. Natural footsteps on stone and soft ambient street sound with light background music.",
+  "fidelity_rules": [
+    "Shoes must match the product images exactly: same color, same material and texture, same shape of toe, upper and sole.",
+    "Do not add buckles, laces, logos, patterns, stitching or decorations that are not visible in the product images.",
+    "Both feet wear the identical pair of shoes in every shot.",
+    "No on-screen text, prices, shop names, logos or watermarks."
+  ]
+}

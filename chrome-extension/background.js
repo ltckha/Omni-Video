@@ -114,7 +114,7 @@ chrome.downloads.onChanged.addListener((delta) => {
   chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_COLLECT", itemId: itemId }, (resp) => {
     const ok = !chrome.runtime.lastError && resp && resp.status === "success";
     const detail = chrome.runtime.lastError ? chrome.runtime.lastError.message : (resp && resp.message) || "";
-    const message = ok ? `✅ Đã lưu video vào Product_Assets/${itemId}/${itemId}.mp4` : `⚠️ Chưa chuyển được video ${itemId}: ${detail}`;
+    const message = ok ? `✅ Đã lưu video: ${resp.movedTo || itemId + ".mp4"}` : `⚠️ Chưa chuyển được video ${itemId}: ${detail}`;
     chrome.storage.local.set({ flowLastResult: { ok: ok, message: message, at: Date.now() } });
     chrome.action.setBadgeBackgroundColor({ color: ok ? "#2e7d32" : "#d32f2f" });
     chrome.action.setBadgeText({ text: ok ? "OK" : "!" });

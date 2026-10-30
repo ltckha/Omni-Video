@@ -172,8 +172,14 @@ def archive_completed_folders(review=None):
 
     archived_count = 0
 
+    from hang_tiem import is_hang_tiem, cleanup
+    for code in cleanup(ASSETS_DIR, DOWNLOADS_DIR):
+        print(f"🧹 Hàng tiệm {code}: video đã được HNC gom, đã dọn thư mục tạm.")
+
     for item_id in item_dirs:
         item_path = os.path.join(ASSETS_DIR, item_id)
+        if not os.path.isdir(item_path) or is_hang_tiem(item_path):
+            continue  # hàng tiệm: video ở ~/Downloads cho HNC gom, không lên NAS Omni, không quét Downloads theo mã
         
         # Tìm file video từ Product_Assets hoặc trực tiếp từ ~/Downloads/
         video_file, is_from_downloads = find_video_for_item(item_id, item_path)

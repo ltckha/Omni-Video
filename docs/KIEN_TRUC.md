@@ -1,5 +1,5 @@
 # Kiến trúc & quy trình — Omni-Video
-Cập nhật 28/10/2026 (Thực thi · Video AI). **Nguồn duy nhất** tả quy trình / kiến trúc: đổi cấu trúc thì sửa file này (cả sơ đồ) trong cùng commit. Luật: `CLAUDE.md`. Cài đặt: `README.md`.
+Cập nhật 30/10/2026 (Thực thi · Video AI). **Nguồn duy nhất** tả quy trình / kiến trúc: đổi cấu trúc thì sửa file này (cả sơ đồ) trong cùng commit. Luật: `CLAUDE.md`. Cài đặt: `README.md`.
 
 ## Sơ đồ tổng thể
 
@@ -27,6 +27,10 @@ flowchart LR
   end
 
   NAS[(NAS /Volumes/Media/Omni-Video/&lt;Mã_SP&gt;/)]
+  HNCNAS[(NAS /Volumes/Media/HNC_Master/&lt;mã&gt;/<br/>ảnh giày tiệm)]
+  SANPHAM[(Sheet HNC_Control_Center<br/>tab SANPHAM)]
+  HT[HangTiem.command<br/>hang_tiem.py]
+  HNC[Kho hàng gomvideo<br/>→ SANPHAM → Video-Post]
   VP[Video-Post<br/>src_omni → master → đăng FB/YT/TikTok<br/>không Shopee]
   AVF[AVF<br/>links/ → aff_links]
 
@@ -43,6 +47,10 @@ flowchart LR
   FLOW -- &lt;Mã_SP&gt;.mp4 --> DL -- native host chuyển --> PA
   PA --> MV --> NAS
   MV -- status + video_path --> SH
+  HNCNAS -- ảnh --> HT
+  SANPHAM -- tên · màu · chất liệu · image_01.. --> HT
+  HT -- info.json hang_tiem --> PA
+  DL -- hàng tiệm: &lt;mã&gt;.mp4 để nguyên --> HNC
   SH --> VP
 ```
 
@@ -56,6 +64,14 @@ flowchart LR
 | 3 | Mở dự án Flow (ô câu lệnh trống) → extension → **Tạo video** | `flow_page.js` + `flow_helper.py` | Dán ảnh (1 = SP lớn nhất, 2 = người mẫu, 3.. = SP còn lại, ≤ 7) + kịch bản → Tạo → Phê duyệt → chờ → Tải 720p `<Mã_SP>.mp4` (Chrome hỏi Save thì bấm Save) → vào `Product_Assets/<Mã_SP>/` |
 | 4 | `Move.command` | `archive_completed_videos.py` + `contact_sheet.py` | Mỗi video mở tờ ảnh 10 khung `<Mã_SP>_xem.jpg` (ffmpeg, 0 Gemini): Enter = Move, `b` = bỏ qua (xoá tờ ảnh, thư mục giữ nguyên để làm lại). Move: xoá `info.json` + ảnh nhân vật, chuyển thư mục về NAS, Sheet "Đã tạo Video" + `video_path` |
 
+### Hàng tiệm (Hiệu giày Hải Nancy, từ 30/10)
+| Bước | Anh làm | Script | Kết quả |
+|---|---|---|---|
+| H1 | `HangTiem.command` → gõ mã (vd `JH8918N 32837D`) | `hang_tiem.py` | `Product_Assets/<mã>/`: ảnh từ NAS `HNC_Master/<mã>/` (chỉ ảnh), không có thì tải `image_01…` của SANPHAM; `info.json` (`hang_tiem: true`, tên / màu / chất liệu / đế / giới tính từ SANPHAM, tiêu đề hàng 2). Mã không có ảnh → báo, bỏ qua. **Không tạo dòng `src_omni`** |
+| H2 | `Prompt.command` | `generate_ugc_prompt.py` (nhánh hàng tiệm) | Kịch bản theo `config/hang_tiem.json` (phố lát đá sương sớm, người mẫu Nam- / Nu- theo giới tính, cận giày, lật đế, 1 cảnh toàn thân; không lời, không nhép môi; giữ đúng màu / chất liệu / dáng). 1 lượt Gemini / mã, không ghi Sheet |
+| H3 | Flow → extension → **Tạo video** | như bước 3 | Video **để nguyên** `~/Downloads/<mã>.mp4` (ghi `da_tai` vào info.json, mã biến khỏi popup) → Kho hàng gom vào SANPHAM → Video-Post |
+| — | (tự động) | `hang_tiem.cleanup` (chạy đầu `HangTiem.command` và `Move.command`) | Video đã rời Downloads → xoá `Product_Assets/<mã>/`. Move bỏ qua thư mục hàng tiệm (không lên NAS Omni, không quét Downloads theo mã) |
+
 Không có cron / LaunchAgent / n8n của Omni — mọi bước chỉ chạy khi anh bấm.
 
 ## Đọc / ghi gì
@@ -68,6 +84,9 @@ Không có cron / LaunchAgent / n8n của Omni — mọi bước chỉ chạy kh
 | `Product_Assets/<Mã_SP>/` (không commit) | ✔ | ✔ | mọi bước |
 | `config/prompt_rules.json`, `config/mua_vu.json`, `config/templates/` | ✔ | ✘ | kịch bản, lịch mùa, mẫu file Shopee |
 | NAS `/Volumes/Media/Omni-Video/<Mã_SP>/` | — | ✔ | Move |
+| NAS `/Volumes/Media/HNC_Master/<mã>/` | ✔ chỉ ảnh | ✘ | `hang_tiem.py` |
+| Sheet HNC_Control_Center tab `SANPHAM` (Kho hàng giữ; tiêu đề hàng 2) | ✔ theo tên cột | ✘ | `hang_tiem.py` |
+| `config/hang_tiem.json` | ✔ | ✘ | lời dặn kịch bản hàng tiệm |
 
 ### Cột `src_omni` Omni quản lý
 `job_id` (item id Shopee, bản kịch bản thêm `<id>-N`), `title`, `price`, `sales_count`, `shop_name`, `commission_rate`, `commission`, `product_url`, `shopee_link`, `cdn_url`, `local_path`, `status` ("Đã chọn ảnh" → "Đã tạo Prompt" → "Đã tạo Video"; "Hết mùa"), `video_path`, `brand_fb/yt/ig/tt/shopee/zalo`, `season`.
