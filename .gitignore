@@ -22,6 +22,7 @@ Product_Assets/
 .env.local
 data/*.csv
 data/.imported_csv.json
+data/.hang_tiem_boi_canh.json
 *service*.json
 config/*service*.json
 

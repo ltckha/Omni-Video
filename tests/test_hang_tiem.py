@@ -10,6 +10,15 @@ if SCRIPTS_DIR not in sys.path:
 import hang_tiem
 from hang_tiem import sanpham_rows, prepare, build_info, cleanup, read_info, is_hang_tiem
 
+import pytest
+
+
+@pytest.fixture(autouse=True)
+def _scene_state(tmp_path, monkeypatch):
+    """Không đụng file xoay vòng bối cảnh thật (data/.hang_tiem_boi_canh.json)."""
+    monkeypatch.setattr(hang_tiem, "SCENE_STATE", str(tmp_path / "boi_canh.json"))
+
+
 ROW = {"product_code": "JH8918N", "product_name": "Giày tây nam xỏ chân da bò JH8918N", "product_color": "Nâu",
        "chat_lieu": "da bò", "chat_lieu_de": "cao su nhiệt TPR", "kieu_giay_tay": "", "gioi_tinh": "nam"}
 
@@ -133,7 +142,8 @@ def test_script_built_from_template_without_gemini(tmp_path):
                                      product_color="Đen", chat_lieu_de="phylon"))
     text = hang_tiem.build_script(info, cfg)
     for part in ("[ASSETS]", "[PROMPT]", "[CONSTRAINTS]", "men's slip-on loafers in black", "soft pebbled cowhide leather",
-                 "lightweight phylon foam", cfg["setting"], cfg["audio"], cfg["model"]["nam"]):
+                 "lightweight phylon foam", cfg["boi_canh"]["nhom"]["tay"][0]["setting"], "Natural footsteps on stone",
+                 cfg["model"]["nam"]):
         assert part in text
     assert "Shopee" not in text and "{" not in text
     assert "dress shoes" not in text and "only source of truth" in text
@@ -218,3 +228,45 @@ def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
     assert not (item / "Nam-25t.png").exists()  # không chép ảnh toàn thân (lộ giày người mẫu)
     slots = [f["slot"] for f in encode_flow_files("JH8918N", assets_dir=str(tmp_path))[0]["files"]]
     assert slots == ["product"] + [f"product_{i}" for i in range(2, 7)] + ["character", "script"]
+
+
+def test_scene_rotates_per_shoe_group():
+    cfg = hang_tiem.load_config()
+    tay = build_info("A", ROW)
+    sneaker = build_info("B", dict(ROW, product_name="Giày thể thao nam B"))
+    heels = build_info("C", dict(ROW, product_name="Giày cao gót C", gioi_tinh="nữ"))
+    names = [sc["ten"] for sc in cfg["boi_canh"]["nhom"]["tay"]]
+    picked = [hang_tiem.pick_scene(tay, cfg) for _ in range(len(names) + 1)]
+    assert picked == names + names[:1]  # 2 mã liền nhau không trùng, hết vòng quay lại
+    assert hang_tiem.pick_scene(sneaker, cfg) == cfg["boi_canh"]["nhom"]["the_thao"][0]["ten"]
+    assert hang_tiem.scene_group(heels, cfg) == "nu"
+    assert hang_tiem.scene_group(build_info("D", dict(ROW, product_name="Giày D", gioi_tinh="nữ")), cfg) == "nu"
+    assert hang_tiem.scene_group(build_info("E", dict(ROW, product_name="Dép nam E")), cfg) == "tay"
+
+
+def test_scene_text_and_sound_follow_chosen_scene():
+    cfg = hang_tiem.load_config()
+    scene = cfg["boi_canh"]["nhom"]["tay"][1]
+    info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a.jpg"] * 6, boi_canh=scene["ten"])
+    text = hang_tiem.build_script(info, cfg)
+    assert scene["setting"] in text and scene["sound"] in text and scene["walk"] in text
+    assert "stone" not in text
+    four = hang_tiem.build_script(dict(info, kieu="4_canh"), cfg)
+    assert scene["setting"] in four and scene["sound"] in four and "stone" not in four
+
+
+def test_lien_is_default_style(monkeypatch, tmp_path):
+    seen = {}
+    monkeypatch.setattr(hang_tiem, "cleanup", lambda: [])
+    monkeypatch.setattr(hang_tiem, "read_sanpham", lambda codes: {c: ROW for c in codes})
+    monkeypatch.setattr(hang_tiem, "ASSETS_DIR", str(tmp_path))
+    def fake_prepare(code, row):
+        d = tmp_path / code
+        d.mkdir(exist_ok=True)
+        hang_tiem.write_info(str(d), build_info(code, row))
+        return str(d)
+    monkeypatch.setattr(hang_tiem, "prepare", fake_prepare)
+    monkeypatch.setattr(hang_tiem, "write_script", lambda code, d: seen.setdefault(code, read_info(d)["kieu"]))
+    hang_tiem.main(["jh8918n"])
+    hang_tiem.main(["--4-canh", "X1"])
+    assert seen == {"JH8918N": "lien", "X1": "4_canh"}

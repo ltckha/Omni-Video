@@ -10,10 +10,12 @@ Video Flow cho giày tiệm Hiệu giày Hải Nancy, theo mã tiệm (vd JH8918
    trên trình duyệt, không qua API) + chép ảnh người mẫu Nam- / Nu- theo giới tính → mở Flow bấm Tạo video luôn.
 3. Sau khi tải từ Flow, video để nguyên ~/Downloads/<mã>.mp4 cho luồng gom của HNC; thư mục tạm tự dọn khi video đã rời Downloads.
 
-Kiểu dựng (anh Kha 30/10 "thử 1 bản mới để so"): mặc định 4 cảnh + ảnh người mẫu; --lien = 1 cảnh liền 10 giây,
+Kiểu dựng (anh Kha 30/10): mặc định "liền" = 1 cảnh liền 10 giây (máy lùi dần từ giày ra người mẫu),
 tối đa 6 ảnh giày đủ góc (thẳng → 3/4 → góc khác → đế, xem pick_lien_images) + ảnh người mẫu cắt từ thắt lưng trở lên.
 
-Dùng: python scripts/hang_tiem.py [--lien] <mã> [<mã> …]    (HangTiem.command hỏi mã + kiểu rồi chạy lệnh này)
+--4-canh = kiểu 4 cảnh + ảnh người mẫu. Bối cảnh xoay vòng theo loại giày (config/hang_tiem.json "boi_canh").
+
+Dùng: python scripts/hang_tiem.py [--4-canh] <mã> [<mã> …]    (HangTiem.command hỏi mã + kiểu rồi chạy lệnh này)
 """
 
 import glob
@@ -189,6 +191,7 @@ def prepare(code: str, row: Dict[str, str], assets_dir: str = ASSETS_DIR, media_
     return item_dir
 
 
+SCENE_STATE = os.path.join(PROJECT_DIR, "data", ".hang_tiem_boi_canh.json")  # chỉ số bối cảnh kế tiếp theo nhóm
 FFMPEG = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "hang_tiem.json")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
@@ -212,10 +215,45 @@ def is_female(info: Dict) -> bool:
     return info.get("gioi_tinh", "").strip().lower() in ("nữ", "nu", "female")
 
 
+def shoe_kind(info: Dict) -> str:
+    name = info.get("productName", "").lower()
+    return next((t for t in SHOE_TYPES if t in name), "giày")
+
+
+def scene_group(info: Dict, cfg: Dict) -> str:
+    bc = cfg["boi_canh"]
+    group = bc["theo_loai"].get(shoe_kind(info))
+    return group or (bc["giay_nu"] if is_female(info) else bc["mac_dinh"])
+
+
+def pick_scene(info: Dict, cfg: Dict, state_path: Optional[str] = None) -> str:
+    """Xoay vòng bối cảnh trong nhóm của mã (2 mã liền nhau không trùng); chỉ số kế tiếp lưu ở file trạng thái nhỏ."""
+    state_path = state_path or SCENE_STATE
+    group = scene_group(info, cfg)
+    scenes = cfg["boi_canh"]["nhom"][group]
+    try:
+        with open(state_path, "r", encoding="utf-8") as f:
+            state = json.load(f)
+    except (OSError, ValueError):
+        state = {}
+    i = int(state.get(group, 0)) % len(scenes)
+    state[group] = (i + 1) % len(scenes)
+    os.makedirs(os.path.dirname(state_path), exist_ok=True)
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
+    return scenes[i]["ten"]
+
+
+def scene_for(info: Dict, cfg: Dict) -> Dict[str, str]:
+    """Bối cảnh đã chọn (info["boi_canh"]); chưa chọn thì cảnh đầu của nhóm."""
+    scenes = cfg["boi_canh"]["nhom"][scene_group(info, cfg)]
+    return next((sc for sc in scenes if sc["ten"] == info.get("boi_canh")), scenes[0])
+
+
 def describe_shoe(info: Dict, cfg: Dict) -> Dict[str, str]:
     dich = cfg.get("dich", {})
     name = info.get("productName", "").lower()
-    shoe_type = next((t for t in SHOE_TYPES if t in name), "giày")
+    shoe_type = shoe_kind(info)
     material = info.get("chat_lieu", "").strip()
     # tên SP thường rõ hơn cột chất liệu (vd "da bò hạt mềm") → lấy cụm dài nhất trong bảng dịch có trong tên
     longer = [k for k in dich if material and k.startswith(material.lower()) and k in name]
@@ -297,7 +335,7 @@ def build_script_lien(info: Dict, cfg: Dict) -> str:
     """Kiểu liền: 1 cảnh 10 giây, chỉ tả đúng kiểu giày + màu + chất liệu mặt, gọi ảnh theo thứ tự dán (ảnh giày trước, người mẫu sau cùng)."""
     p = describe_shoe(info, cfg)
     lien = cfg["lien"]
-    return "\n".join(line.format(**p, n=len(info.get("anh_lien") or []) or "", setting=cfg["setting"],
+    return "\n".join(line.format(**p, **scene_for(info, cfg), n=len(info.get("anh_lien") or []) or "",
                                  model_word="female" if is_female(info) else "male")
                      for line in lien["prompt"]) + "\n"
 
@@ -307,6 +345,7 @@ def build_script(info: Dict, cfg: Dict) -> str:
     if info.get("kieu") == "lien":
         return build_script_lien(info, cfg)
     p = describe_shoe(info, cfg)
+    scene = scene_for(info, cfg)
     shots = " ".join(f"({i}) {shot.format(**p)}" for i, shot in enumerate(cfg["shots"], start=1))
     rules = "\n".join(f"- {rule}" for rule in cfg["fidelity_rules"])
     return f"""[ASSETS]:
@@ -314,10 +353,10 @@ def build_script(info: Dict, cfg: Dict) -> str:
 - Model (Input Image 2): {cfg["model"]["nu" if is_female(info) else "nam"]} {cfg["outfit"]}
 
 [PROMPT]:
-- Setting: {cfg["setting"]}
+- Setting: {scene["setting"]}
 - Visual: A 10-second vertical product film of the {p["shoe_short"]}. {cfg["framing"]} Shots in order: {shots}
 - Camera: {cfg["camera"]}
-- Audio: {cfg["audio"]}
+- Audio: {cfg["audio"].format(**scene)}
 
 [CONSTRAINTS]:
 - 9:16 vertical, 10s, photorealistic, no text/logos/watermarks.
@@ -326,12 +365,14 @@ def build_script(info: Dict, cfg: Dict) -> str:
 
 
 def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, characters_dir: str = CHARACTERS_DIR) -> str:
-    """Ghi <mã>.txt + chép ảnh người mẫu theo giới tính vào thư mục (kiểu liền: chọn 3 ảnh giày, không người mẫu). 0 Gemini."""
+    """Ghi <mã>.txt (bối cảnh xoay vòng theo loại giày) + ảnh người mẫu: kiểu liền = bản cắt thắt lưng trở lên + ảnh giày
+    đủ góc; kiểu 4 cảnh = chép ảnh Nam- / Nu- theo giới tính. 0 Gemini."""
     info = read_info(item_dir)
     cfg = cfg or load_config()
+    info["boi_canh"] = pick_scene(info, cfg)
     if info.get("kieu") == "lien":
         info["anh_lien"] = pick_lien_images(item_dir)
-        write_info(item_dir, info)
+    write_info(item_dir, info)
     path = os.path.join(item_dir, f"{code}.txt")
     with open(path, "w", encoding="utf-8") as f:
         f.write(build_script(info, cfg))
@@ -370,7 +411,7 @@ def cleanup(assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) ->
 
 def main(argv: List[str]) -> int:
     codes = list(dict.fromkeys(c.strip().upper() for c in argv if c.strip() and not c.startswith("-")))
-    lien = "--lien" in argv
+    lien = "--4-canh" not in argv  # kiểu liền là mặc định từ 30/10 (anh Kha); --lien vẫn nhận
     for code in cleanup():
         print(f"🧹 Đã dọn Product_Assets/{code}/ (video đã được HNC gom).")
     if not codes:
