@@ -148,6 +148,7 @@ def test_script_built_from_template_without_gemini(tmp_path):
     assert "Shopee" not in text and "{" not in text
     assert "dress shoes" not in text and "only source of truth" in text
     assert "full-body" not in text and "knees down" in text and "own footwear" in text
+    assert "no pivoting" in text and "heel lifts" not in text
     plain = hang_tiem.build_script(build_info("X", dict(ROW, product_name="Giày tây nam da bò X")), cfg)
     assert "men's shoes in brown" in plain and "dress shoes" not in plain
     female = hang_tiem.build_script(build_info("X", dict(ROW, gioi_tinh="nữ")), cfg)
@@ -303,6 +304,7 @@ def test_each_motion_text_and_popup_label():
         assert cfg["lien"]["chuyen_dong"][motion]["camera"].format(walk=scene["walk"]) in text
         assert "single continuous shot" in text and "{" not in text
         assert "never move on their own" in text
+        assert "no pivoting" in text and "heel" not in text and "turns" not in text
         if motion != "mang_giay":
             assert "never show empty shoes" in text
     assert hang_tiem.popup_label(info, cfg) == "mang_giay · sảnh khách sạn"
