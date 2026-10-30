@@ -25,6 +25,7 @@ data/.imported_csv.json
 data/.hang_tiem_boi_canh.json
 data/.hang_cho_da_lam.json
 data/logs/
+data/kich_ban_da_tao/
 *service*.json
 config/*service*.json
 

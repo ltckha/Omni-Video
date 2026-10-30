@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 from typing import Optional, List, Dict
 
-from hang_tiem import read_info, mark_downloaded, output_name
+from hang_tiem import read_info, mark_downloaded, output_name, save_made_script
 
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -193,6 +193,7 @@ def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir
     if not os.path.isfile(src) or not os.path.isdir(item_dir):
         return None
     if read_info(item_dir).get("hang_tiem"):
+        save_made_script(item_dir)
         mark_downloaded(item_dir)
         return src
     dst = os.path.join(item_dir, f"{item_id}.mp4")

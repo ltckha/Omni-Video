@@ -412,7 +412,8 @@ def build_script_lien(info: Dict, cfg: Dict) -> str:
     motion = lien["chuyen_dong"].get(info.get("chuyen_dong") or "lui_ra") or lien["chuyen_dong"]["lui_ra"]
     camera = motion["camera"].format(walk=scene["walk"])
     giu_giay = motion.get("giu_giay") or lien.get("giu_giay", "")
-    return "\n".join(line.format(**p, **scene, camera=camera, giu_giay=giu_giay, dang_chan=lien.get("dang_chan", ""), n=len(info.get("anh_lien") or []) or "",
+    setting_line = motion.get("cau_boi_canh", "{setting}").format(setting=scene["setting"], walk=scene["walk"])
+    return "\n".join(line.format(**p, **scene, camera=camera, giu_giay=giu_giay, setting_line=setting_line, dang_chan=lien.get("dang_chan", ""), n=len(info.get("anh_lien") or []) or "",
                                  model_word="female" if is_female(info) else "male")
                      for line in lien["prompt"]) + "\n"
 
@@ -421,7 +422,11 @@ def popup_label(info: Dict, cfg: Optional[Dict] = None) -> str:
     """Nhãn cạnh mã trong popup: "JH8918N_2.mp4 · tien_vao · sảnh khách sạn" (4 cảnh: "… · 4 cảnh · …")."""
     cfg = cfg or load_config()
     scene = scene_for(info, cfg).get("nhan", "")
-    kieu = (info.get("chuyen_dong") or "lui_ra") if info.get("kieu") == "lien" else "4 cảnh"
+    if info.get("kieu") == "lien":
+        name = info.get("chuyen_dong") or "lui_ra"
+        kieu = cfg["lien"]["chuyen_dong"].get(name, {}).get("nhan", name)
+    else:
+        kieu = "4 cảnh"
     out = f"{info['ten_video']} · " if info.get("ten_video") else ""
     return f"{out}{kieu} · {scene}"
 
@@ -481,6 +486,26 @@ def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, character
     if chars and not have:  # Nu-25t / Nam-25t (bản 25 tuổi đứng sau khi sắp xếp), giống kịch bản Omni
         shutil.copy2(chars[-1], os.path.join(item_dir, os.path.basename(chars[-1])))
     return path
+
+
+SCRIPTS_MADE_DIR = os.path.join(PROJECT_DIR, "data", "kich_ban_da_tao")
+
+
+def save_made_script(item_dir: str, out_dir: Optional[str] = None) -> Optional[str]:
+    """Chép kịch bản của video vừa tải về data/kich_ban_da_tao/<tên video>.txt (kèm kiểu, bối cảnh, ngày) để so sau."""
+    info = read_info(item_dir)
+    code = info.get("itemId") or os.path.basename(item_dir)
+    src = os.path.join(item_dir, f"{code}.txt")
+    if not os.path.isfile(src):
+        return None
+    out_dir = out_dir or SCRIPTS_MADE_DIR
+    os.makedirs(out_dir, exist_ok=True)
+    dst = os.path.join(out_dir, os.path.splitext(output_name(info, code))[0] + ".txt")
+    head = (f"# {output_name(info, code)} · kiểu {info.get('kieu')} · {info.get('chuyen_dong', '')} · "
+            f"bối cảnh {info.get('boi_canh', '')} · tải {datetime.now():%Y-%m-%d %H:%M}\n")
+    with open(src, "r", encoding="utf-8") as f, open(dst, "w", encoding="utf-8") as g:
+        g.write(head + f.read())
+    return dst
 
 
 def mark_downloaded(item_dir: str) -> None:

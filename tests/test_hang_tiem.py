@@ -17,6 +17,7 @@ import pytest
 def _scene_state(tmp_path, monkeypatch):
     """Không đụng file xoay vòng bối cảnh thật (data/.hang_tiem_boi_canh.json)."""
     monkeypatch.setattr(hang_tiem, "SCENE_STATE", str(tmp_path / "boi_canh.json"))
+    monkeypatch.setattr(hang_tiem, "SCRIPTS_MADE_DIR", str(tmp_path / "kich_ban_da_tao"))
 
 
 ROW = {"product_code": "JH8918N", "product_name": "Giày tây nam xỏ chân da bò JH8918N", "product_color": "Nâu",
@@ -287,7 +288,7 @@ def test_combo_rotation_skips_used_and_disabled_motion():
     slip = build_info("A", ROW)  # xỏ chân
     lace = build_info("B", dict(ROW, product_name="Giày tây nam cột dây B"))
     assert "mang_giay" not in hang_tiem.motions_for(slip, cfg)  # bat: false → chỉ gọi tay
-    assert hang_tiem.motions_for(lace, cfg) == ["lui_ra", "tien_vao", "song_hanh", "vong_quanh"]
+    assert hang_tiem.motions_for(lace, cfg) == ["lui_ra", "tien_vao", "song_hanh", "vong_quanh", "got_mui"]
     first = hang_tiem.pick_combo(slip, cfg)
     second = hang_tiem.pick_combo(slip, cfg, used=[first])
     assert first != second and first[0] != second[0] and first[1] != second[1]  # 2 lần liền khác cả kiểu lẫn cảnh
@@ -298,16 +299,17 @@ def test_combo_rotation_skips_used_and_disabled_motion():
 def test_each_motion_text_and_popup_label():
     cfg = hang_tiem.load_config()
     scene = cfg["boi_canh"]["nhom"]["tay"][1]
-    for motion in ("lui_ra", "tien_vao", "song_hanh", "vong_quanh", "mang_giay"):
+    for motion in ("lui_ra", "tien_vao", "song_hanh", "vong_quanh", "got_mui", "mang_giay"):
         info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a"] * 6, chuyen_dong=motion, boi_canh=scene["ten"])
         text = hang_tiem.build_script(info, cfg)
         assert cfg["lien"]["chuyen_dong"][motion]["camera"].format(walk=scene["walk"]) in text
         assert "single continuous shot" in text and "{" not in text
         assert "never move on their own" in text
-        assert "no pivoting" in text and "heel" not in text and "turns" not in text
+        assert "no pivoting" in text and "heel lifts" not in text and "turns one heel" not in text
         if motion != "mang_giay":
             assert "never show empty shoes" in text
     assert hang_tiem.popup_label(info, cfg) == "mang_giay · sảnh khách sạn"
+    assert hang_tiem.popup_label(dict(info, chuyen_dong="got_mui"), cfg) == "gót → mũi · sảnh khách sạn"
 
 
 def test_manual_motion_overrides_rotation(tmp_path):
@@ -353,3 +355,21 @@ def test_collect_and_cleanup_use_numbered_name(tmp_path):
     assert cleanup(str(assets), str(dl)) == []  # _2 còn ở Downloads
     os.remove(dl / "JH8918N_2.mp4")
     assert cleanup(str(assets), str(dl)) == ["JH8918N"]
+
+
+
+def test_lui_ra_standard_text_and_made_script_saved(tmp_path):
+    cfg = hang_tiem.load_config()
+    scene = cfg["boi_canh"]["nhom"]["tay"][0]
+    info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a"] * 6, chuyen_dong="lui_ra", boi_canh=scene["ten"])
+    text = hang_tiem.build_script(info, cfg)
+    assert f"{scene['setting']} The model walks slowly {scene['walk']}." in text  # như bản 2093ad4
+    assert "opens on an extreme close-up of the model's feet wearing the shoes" in text
+    item = tmp_path / "A"
+    item.mkdir()
+    (item / "A.txt").write_text(text, encoding="utf-8")
+    hang_tiem.write_info(str(item), dict(info, ten_video="A_2.mp4"))
+    out = hang_tiem.save_made_script(str(item), str(tmp_path / "made"))
+    assert out.endswith("A_2.txt")
+    saved = open(out, encoding="utf-8").read()
+    assert saved.startswith("# A_2.mp4 · kiểu lien · lui_ra · bối cảnh pho_co") and text in saved
