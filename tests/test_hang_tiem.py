@@ -288,7 +288,7 @@ def test_combo_rotation_skips_used_and_disabled_motion():
     slip = build_info("A", ROW)  # xỏ chân
     lace = build_info("B", dict(ROW, product_name="Giày tây nam cột dây B"))
     assert "mang_giay" not in hang_tiem.motions_for(slip, cfg)  # bat: false → chỉ gọi tay
-    assert hang_tiem.motions_for(lace, cfg) == ["tu_nhien", "san_pham"]  # 30/10: chỉ 2 loại đã chốt
+    assert hang_tiem.motions_for(lace, cfg) == ["tu_nhien", "san_pham", "ngoi_dung"]  # 30/10: 2 loại đã chốt + ngồi → đứng
     first = hang_tiem.pick_combo(slip, cfg)
     second = hang_tiem.pick_combo(slip, cfg, used=[first])
     assert first[0] != second[0] and first[1] != second[1]  # 2 lần liền xen kẽ loại, khác bối cảnh
@@ -404,3 +404,15 @@ def test_san_pham_prompt_text():
         "Tạo video người mẫu nam mang đôi giày trong ảnh, bước đi trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. "
         "Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết).\n")
     assert hang_tiem.popup_label(info, cfg) == "sản phẩm · đường Trương Công Định"
+
+
+
+def test_ngoi_dung_prompt_uses_seat_of_scene():
+    cfg = hang_tiem.load_config()
+    for scenes in cfg["boi_canh"]["nhom"].values():
+        assert all(sc.get("ngoi") for sc in scenes)
+    info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="ngoi_dung", boi_canh="ho_xuan_huong")
+    assert hang_tiem.build_script(info, cfg) == (
+        "Tạo video người mẫu nam mang đôi giày trong ảnh, đang ngồi trên ghế đá bên hồ Xuân Hương, Đà Lạt, máy quay tập trung "
+        "vào đôi giày, rồi người mẫu đứng dậy bước đi, quay cả người. Video dọc 9:16.\n")
+    assert hang_tiem.popup_label(info, cfg) == "ngồi → đứng · hồ Xuân Hương"
