@@ -268,7 +268,11 @@ def describe_shoe(info: Dict, cfg: Dict) -> Dict[str, str]:
         "sole": translate(info.get("chat_lieu_de", ""), dich) or "the sole shown in the images",
     }
     if info.get("kieu_giay_tay"):
-        parts["type"] += f" ({translate(info['kieu_giay_tay'], dich)})"
+        # cột kieu_giay_tay: "Derby (buộc dây hở), đục lỗ (brogue)" → "Derby, brogue"
+        styles = [translate(k, dich) for k in info["kieu_giay_tay"].split(",") if k.strip()]
+        styles = [k for k in styles if k.lower() not in parts["type"].lower()]  # bỏ lặp: "slip-on loafers (slip-on)"
+        if styles:
+            parts["type"] += f" ({', '.join(styles)})"
     parts["shoe"] = cfg["shoe"].format(**parts)
     parts["shoe_short"] = f"{parts['color']} {translate(shoe_type, dich)}"
     return parts

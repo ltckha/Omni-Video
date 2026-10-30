@@ -248,6 +248,8 @@ def test_lace_up_type():
     cfg = hang_tiem.load_config()
     info = build_info("G", dict(ROW, product_name="Giày tây nam cột dây Hải Nancy da bò cao cấp G2506N"))
     assert hang_tiem.describe_shoe(info, cfg)["type"] == "men's lace-up shoes"
+    info["kieu_giay_tay"] = "Derby (buộc dây hở), đục lỗ (brogue)"
+    assert hang_tiem.describe_shoe(info, cfg)["type"] == "men's lace-up shoes (Derby, brogue)"
 
 
 def test_scene_text_and_sound_follow_chosen_scene():
