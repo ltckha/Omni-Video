@@ -266,6 +266,11 @@
         return;
       }
       if (!resp.items.length) list.textContent = "Không có mã nào đang chờ video.";
+      else if (!window.__omniPanelExpanded) {  // có mã thì bung danh sách (1 lần mỗi lần tải trang)
+        window.__omniPanelExpanded = true;
+        const panel = document.getElementById(PANEL_ID);
+        if (panel && panel.expand) panel.expand();
+      }
       resp.items.forEach((item) => {
         const row = document.createElement("div");
         row.style.cssText = "display:flex;gap:6px;align-items:center;margin:4px 0;";
@@ -301,11 +306,13 @@
     if (existing) return;
     const panel = document.createElement("div");
     panel.id = PANEL_ID;
-    panel.style.cssText = `position:fixed;right:12px;bottom:12px;z-index:2147483646;width:360px;max-height:50vh;overflow:auto;
+    // góc TRÁI dưới: khung chat tác nhân của Flow chiếm bên phải và che danh sách (30/10)
+    panel.style.cssText = `position:fixed;left:12px;bottom:12px;z-index:2147483647;width:360px;max-width:calc(100vw - 24px);
+      max-height:45vh;display:flex;flex-direction:column;
       background:#202124;color:#e0e0e0;border:1px solid #5f6368;border-radius:8px;padding:8px 10px;
       font:12px -apple-system,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.5);`;
     const head = document.createElement("div");
-    head.style.cssText = "display:flex;justify-content:space-between;align-items:center;font-weight:600;";
+    head.style.cssText = "display:flex;justify-content:space-between;align-items:center;font-weight:600;flex:0 0 auto;";
     head.textContent = "🎬 Omni · hàng chờ";
     const tools = document.createElement("span");
     const refresh = document.createElement("button");
@@ -329,6 +336,7 @@
     head.appendChild(tools);
     const body = document.createElement("div");
     body.id = "omni-flow-body";
+    body.style.cssText = "overflow-y:auto;min-height:0;flex:1 1 auto;";
     const status = document.createElement("div");
     status.id = "omni-flow-status";
     status.style.cssText = "white-space:pre-line;margin:6px 0;";
@@ -341,7 +349,8 @@
     document.body.appendChild(panel);
     let collapsed = false;
     try { collapsed = localStorage.getItem("omniFlowPanelCollapsed") === "1"; } catch (e) {}
-    const applyCollapsed = () => { body.style.display = collapsed ? "none" : ""; toggle.textContent = collapsed ? "+" : "–"; };
+    const applyCollapsed = () => { body.style.display = collapsed ? "none" : "block"; toggle.textContent = collapsed ? "+" : "–"; };
+    panel.expand = () => { collapsed = false; applyCollapsed(); };
     applyCollapsed();
     toggle.addEventListener("click", () => {
       collapsed = !collapsed;
