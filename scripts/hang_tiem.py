@@ -413,9 +413,11 @@ def build_script_lien(info: Dict, cfg: Dict) -> str:
     camera = motion["camera"].format(walk=scene["walk"])
     giu_giay = motion.get("giu_giay") or lien.get("giu_giay", "")
     setting_line = motion.get("cau_boi_canh", "{setting}").format(setting=scene["setting"], walk=scene["walk"])
-    return "\n".join(line.format(**p, **scene, camera=camera, giu_giay=giu_giay, setting_line=setting_line, dang_chan=lien.get("dang_chan", ""), n=len(info.get("anh_lien") or []) or "",
+    lines = (line.format(**p, **scene, camera=camera, giu_giay=giu_giay, setting_line=setting_line, dang_chan=lien.get("dang_chan", ""),
+                                 buoc_di=lien.get("buoc_di", "") if motion.get("co_buoc") else "", n=len(info.get("anh_lien") or []) or "",
                                  model_word="female" if is_female(info) else "male")
-                     for line in lien["prompt"]) + "\n"
+             for line in lien["prompt"])
+    return "\n".join(line for line in lines if line.strip()) + "\n"  # kiểu không có câu bước đi → bỏ dòng trống
 
 
 def popup_label(info: Dict, cfg: Optional[Dict] = None) -> str:

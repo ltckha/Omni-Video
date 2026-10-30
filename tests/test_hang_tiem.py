@@ -288,7 +288,7 @@ def test_combo_rotation_skips_used_and_disabled_motion():
     slip = build_info("A", ROW)  # xỏ chân
     lace = build_info("B", dict(ROW, product_name="Giày tây nam cột dây B"))
     assert "mang_giay" not in hang_tiem.motions_for(slip, cfg)  # bat: false → chỉ gọi tay
-    assert hang_tiem.motions_for(lace, cfg) == ["lui_ra", "tien_vao", "song_hanh", "vong_quanh", "got_mui"]
+    assert hang_tiem.motions_for(lace, cfg) == ["lui_ra", "tien_vao", "song_hanh", "got_mui", "dung_yen", "day_vao", "nguoi_toi"]
     first = hang_tiem.pick_combo(slip, cfg)
     second = hang_tiem.pick_combo(slip, cfg, used=[first])
     assert first != second and first[0] != second[0] and first[1] != second[1]  # 2 lần liền khác cả kiểu lẫn cảnh
@@ -299,7 +299,7 @@ def test_combo_rotation_skips_used_and_disabled_motion():
 def test_each_motion_text_and_popup_label():
     cfg = hang_tiem.load_config()
     scene = cfg["boi_canh"]["nhom"]["tay"][1]
-    for motion in ("lui_ra", "tien_vao", "song_hanh", "vong_quanh", "got_mui", "mang_giay"):
+    for motion in ("lui_ra", "tien_vao", "song_hanh", "vong_quanh", "got_mui", "mang_giay", "dung_yen", "day_vao", "nguoi_toi"):
         info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a"] * 6, chuyen_dong=motion, boi_canh=scene["ten"])
         text = hang_tiem.build_script(info, cfg)
         assert cfg["lien"]["chuyen_dong"][motion]["camera"].format(walk=scene["walk"]) in text
@@ -308,7 +308,9 @@ def test_each_motion_text_and_popup_label():
         assert "pivoting or twisting a foot in place" in text and "heel lifts" not in text and "turns one heel" not in text
         if motion != "mang_giay":
             assert "never show empty shoes" in text
-    assert hang_tiem.popup_label(info, cfg) == "mang_giay · sảnh khách sạn"
+        assert ("heel lands first" in text) == bool(cfg["lien"]["chuyen_dong"][motion].get("co_buoc"))
+        assert "\n\n" not in text
+    assert hang_tiem.popup_label(dict(info, chuyen_dong="mang_giay"), cfg) == "mang_giay · sảnh khách sạn"
     assert hang_tiem.popup_label(dict(info, chuyen_dong="got_mui"), cfg) == "gót → mũi · sảnh khách sạn"
 
 

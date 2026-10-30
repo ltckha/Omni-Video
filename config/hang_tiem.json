@@ -110,21 +110,24 @@
       "{camera}",
       "{giu_giay}",
       "{dang_chan}",
+      "{buoc_di}",
       "Shallow depth of field. {sound} No speech, no on-screen text.",
       "Both feet wear the same pair. Keep the shoes identical to the shoe reference images from the first to the last frame."
     ],
     "chuyen_dong": {
-      "_ghi_chu": "Kiểu chuyển động máy (anh Kha 30/10 'nhiều video ở nhiều bối cảnh'; Phân tích tạm đặt, anh duyệt qua video). Tất cả 1 cú máy liền, không cắt. Mỗi mã xoay vòng kiểu × bối cảnh chưa dùng. chi_cho = chỉ dùng cho các loại giày này (tên SP); không có = mọi loại. {walk} = câu đi lại của bối cảnh. bat: false = không vào xoay vòng tự động, chỉ dùng khi gọi tay (HangTiem gõ tên kiểu, anh Kha 30/10: mang_giay dễ lỗi). giu_giay (câu giữ giày, 30/10 sau video 3J658N mở đầu bằng giày trống tự nhảy): mặc định ở lien.giu_giay; mang_giay có câu riêng vì cảnh xỏ chân phải thấy giày trước khi mang. dang_chan (30/10 sau MT5216D méo chân khi xoay gót): không xoay / vặn / nhấc chân khoe đế ở mọi kiểu; ảnh đế vẫn đưa để giữ chi tiết. 30/10 (anh Kha): lui_ra là bản chuẩn khoá chữ; vẫn xoay vòng cả 4 kiểu để thử. cau_boi_canh = câu bối cảnh riêng của kiểu (mặc định chỉ {setting}). nhan = tên hiện trong popup (không có thì dùng tên kiểu).",
+      "_ghi_chu": "Kiểu chuyển động máy (anh Kha 30/10 'nhiều video ở nhiều bối cảnh'; Phân tích tạm đặt, anh duyệt qua video). Tất cả 1 cú máy liền, không cắt. Mỗi mã xoay vòng kiểu × bối cảnh chưa dùng. chi_cho = chỉ dùng cho các loại giày này (tên SP); không có = mọi loại. {walk} = câu đi lại của bối cảnh. bat: false = không vào xoay vòng tự động, chỉ dùng khi gọi tay (HangTiem gõ tên kiểu, anh Kha 30/10: mang_giay dễ lỗi). giu_giay (câu giữ giày, 30/10 sau video 3J658N mở đầu bằng giày trống tự nhảy): mặc định ở lien.giu_giay; mang_giay có câu riêng vì cảnh xỏ chân phải thấy giày trước khi mang. dang_chan (30/10 sau MT5216D méo chân khi xoay gót): không xoay / vặn / nhấc chân khoe đế ở mọi kiểu; ảnh đế vẫn đưa để giữ chi tiết. 30/10 (anh Kha): lui_ra là bản chuẩn khoá chữ; vẫn xoay vòng cả 4 kiểu để thử. cau_boi_canh = câu bối cảnh riêng của kiểu (mặc định chỉ {setting}). nhan = tên hiện trong popup (không có thì dùng tên kiểu). 30/10 theo nghiên cứu 2026-10-30_kich_ban_chuyen_dong_giay.md: thêm dung_yen / day_vao / nguoi_toi (rủi ro thấp); tắt vong_quanh (rủi ro cao). co_buoc: true = kiểu có bước đi → thêm câu lien.buoc_di; lui_ra là bản chuẩn khoá chữ nên chưa thêm (chờ anh duyệt).",
       "lui_ra": {
         "_ban_chuan": "bản chuẩn — không sửa chữ nếu anh chưa duyệt (anh Kha 30/10: khoá theo bản JH8918N đạt, commit 2093ad4; chỉ đổi câu mở đầu 'model's feet wearing the shoes', thêm giu_giay, dang_chan; bối cảnh xoay vòng qua {setting} / {walk} / {sound})",
         "cau_boi_canh": "{setting} The model walks slowly {walk}.",
         "camera": "Handheld-style camera, one continuous move: it opens on an extreme close-up of the model's feet wearing the shoes, showing the leather and every detail, then slowly and continuously pulls back (dolly out) to gradually reveal the model walking {walk}. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame. The same shoes from the opening close-up remain on the model's feet throughout the pull-back."
       },
       "tien_vao": {
-        "camera": "Handheld-style camera, one continuous move: the model walks toward the camera {walk}, starting from a distance; the camera lowers and slowly moves in, keeping the shoes clearly visible, until the model stops and the shot ends on an extreme close-up of the toes of both shoes. The same shoes stay on the model's feet throughout the move."
+        "camera": "Handheld-style camera, one continuous move: the model walks toward the camera {walk}, starting from a distance; the camera lowers and slowly moves in, keeping the shoes clearly visible, until the model stops and the shot ends on an extreme close-up of the toes of both shoes. The same shoes stay on the model's feet throughout the move.",
+        "co_buoc": true
       },
       "song_hanh": {
-        "camera": "Handheld-style camera, one continuous move: the camera tracks alongside the model at ankle height, in rhythm with each step, as the model walks {walk}; the shoes fill most of the frame in side profile. At the end the model stops with both feet flat on the ground. The same shoes stay on the model's feet throughout the move."
+        "camera": "Handheld-style camera, one continuous move: the camera tracks alongside the model at ankle height, in rhythm with each step, as the model walks {walk}; the shoes fill most of the frame in side profile. At the end the model stops with both feet flat on the ground. The same shoes stay on the model's feet throughout the move.",
+        "co_buoc": true
       },
       "mang_giay": {
         "bat": false,
@@ -138,18 +141,36 @@
           "dép"
         ],
         "camera": "Handheld-style camera, one continuous move: the model sits on a low step, slips both feet into the shoes, stands up and starts walking {walk}, while the camera follows from a low angle with the shoes clearly visible. The shoes being put on are the same shoes worn for the rest of the shot.",
-        "giu_giay": "The shoes never move on their own; once the model's feet are in the shoes, they stay on the model's feet until the last frame."
+        "giu_giay": "The shoes never move on their own; once the model's feet are in the shoes, they stay on the model's feet until the last frame.",
+        "co_buoc": true
       },
       "vong_quanh": {
-        "camera": "Handheld-style camera, one continuous move: the model stands still wearing the shoes while the camera slowly circles half-way around the feet from a low angle, showing the shoes from the side, front and back; then the model starts walking {walk} and the camera follows low behind the shoes. The same shoes stay on the model's feet throughout the move."
+        "bat": false,
+        "camera": "Handheld-style camera, one continuous move: the model stands still wearing the shoes while the camera slowly circles half-way around the feet from a low angle, showing the shoes from the side, front and back; then the model starts walking {walk} and the camera follows low behind the shoes. The same shoes stay on the model's feet throughout the move.",
+        "co_buoc": true
       },
       "got_mui": {
         "nhan": "gót → mũi",
-        "camera": "Handheld-style camera, one continuous move: the model stands still with both feet flat on the ground, wearing the shoes. The camera moves low and close to the shoes, gliding from behind the heels, around the side, to the front of the toes; only the camera moves, the feet stay still. From the front of the toes the camera then slowly pulls back as the model starts walking {walk} toward the camera. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame."
+        "camera": "Handheld-style camera, one continuous move: the model stands still with both feet flat on the ground, wearing the shoes. The camera moves low and close to the shoes, gliding from behind the heels, around the side, to the front of the toes; only the camera moves, the feet stay still. From the front of the toes the camera then slowly pulls back as the model starts walking {walk} toward the camera. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame.",
+        "co_buoc": true
+      },
+      "dung_yen": {
+        "nhan": "đứng yên",
+        "camera": "Static locked-off camera low at ankle height, framed from the knees down; the shoes stay large in the frame for the whole clip. The model stands still and gently shifts weight from one foot to the other."
+      },
+      "day_vao": {
+        "nhan": "đẩy vào",
+        "camera": "The model stands still with both feet flat on the ground, wearing the shoes. The camera starts at shin height, framed from the knees down, and slowly pushes in (dolly in) toward the shoes, ending on a close-up of the toes of both shoes."
+      },
+      "nguoi_toi": {
+        "nhan": "người tới",
+        "co_buoc": true,
+        "camera": "Static locked-off camera low at shin height, framed from the knees down. The model walks slowly toward the camera {walk}, then stops with both feet close to the camera, the shoes large in the frame."
       }
     },
     "giu_giay": "The shoes are worn on the model's feet from the very first frame to the last; never show empty shoes, and the shoes never move on their own.",
-    "dang_chan": "Natural walking steps with normal heel-to-toe movement are fine; the only thing to avoid is pivoting or twisting a foot in place, or deliberately turning a foot up to show the sole."
+    "dang_chan": "Natural walking steps with normal heel-to-toe movement are fine; the only thing to avoid is pivoting or twisting a foot in place, or deliberately turning a foot up to show the sole.",
+    "buoc_di": "Slow, natural steps: the heel lands first and the weight rolls to the ball of the foot; 4–6 steps in 10 seconds."
   },
   "dich": {
     "giày tây": "shoes",
