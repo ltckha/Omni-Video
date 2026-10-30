@@ -132,13 +132,16 @@ def test_script_built_from_template_without_gemini(tmp_path):
     info = build_info("32837D", dict(ROW, product_name="Giày mọi nam xỏ chân da bò hạt mềm 32837D",
                                      product_color="Đen", chat_lieu_de="phylon"))
     text = hang_tiem.build_script(info, cfg)
-    for part in ("[ASSETS]", "[PROMPT]", "[CONSTRAINTS]", "men's loafers in black", "soft pebbled cowhide leather",
+    for part in ("[ASSETS]", "[PROMPT]", "[CONSTRAINTS]", "men's slip-on loafers in black", "soft pebbled cowhide leather",
                  "lightweight phylon foam", cfg["setting"], cfg["audio"], cfg["model"]["nam"]):
         assert part in text
     assert "Shopee" not in text and "{" not in text
+    assert "dress shoes" not in text and "only source of truth" in text
     assert "full-body" not in text and "knees down" in text and "own footwear" in text
+    plain = hang_tiem.build_script(build_info("X", dict(ROW, product_name="Giày tây nam da bò X")), cfg)
+    assert "men's shoes in brown" in plain and "dress shoes" not in plain
     female = hang_tiem.build_script(build_info("X", dict(ROW, gioi_tinh="nữ")), cfg)
-    assert cfg["model"]["nu"] in female and "women's dress shoes in brown" in female
+    assert cfg["model"]["nu"] in female and "women's slip-on loafers in brown" in female
 
 
 def test_write_script_copies_model_by_gender(tmp_path):

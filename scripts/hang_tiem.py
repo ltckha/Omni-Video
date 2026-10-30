@@ -186,8 +186,9 @@ def prepare(code: str, row: Dict[str, str], assets_dir: str = ASSETS_DIR, media_
 
 CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "hang_tiem.json")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
-SHOE_TYPES = ("giày tây", "giày mọi", "giày lười", "giày thể thao", "giày sandal", "giày cao gót", "giày búp bê",
-              "sandal", "boot", "dép", "giày")
+# thứ tự = ưu tiên: kiểu cụ thể ("xỏ chân") thắng "giày tây" chung (giày tây → "shoes", không ghi dress shoes vì Flow vẽ giày buộc dây)
+SHOE_TYPES = ("xỏ chân", "giày lười", "giày mọi", "giày thể thao", "giày sandal", "giày cao gót", "giày búp bê",
+              "sandal", "boot", "dép", "giày tây", "giày")
 
 
 def load_config(path: str = CONFIG_PATH) -> Dict:
@@ -232,7 +233,7 @@ def build_script(info: Dict, cfg: Dict) -> str:
     shots = " ".join(f"({i}) {shot.format(**p)}" for i, shot in enumerate(cfg["shots"], start=1))
     rules = "\n".join(f"- {rule}" for rule in cfg["fidelity_rules"])
     return f"""[ASSETS]:
-- Product (Primary Subject - Input Image 1; other product images are extra angles of the same shoe): {p["shoe"]}. Must keep 100% visual fidelity to the product images.
+- Product (Primary Subject - Input Image 1; other product images are extra angles of the same shoe): {p["shoe"]}. Must keep 100% visual fidelity to the product images; the product images are the only source of truth for shape and details, the text is only a hint.
 - Model (Input Image 2): {cfg["model"]["nu" if is_female(info) else "nam"]} {cfg["outfit"]}
 
 [PROMPT]:

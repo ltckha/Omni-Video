@@ -18,15 +18,16 @@
   "audio": "No voiceover, no speech, no lip-sync. Natural footsteps on stone and soft ambient street sound with light background music.",
   "fidelity_rules": [
     "Shoes must match the product images exactly: same color, same material and texture, same shape of toe, upper and sole.",
-    "Do not add buckles, laces, logos, patterns, stitching or decorations that are not visible in the product images.",
+    "Copy every detail exactly as in the product images (straps, buckles, hardware, laces or no laces, embossing, stitching); do not add, remove or change any detail.",
     "Both feet wear the identical pair of shoes in every shot.",
     "The shoes stay identical to Input Image 1 from the first to the last frame; never replace them with the model's own footwear.",
     "No on-screen text, prices, shop names, logos or watermarks."
   ],
   "dich": {
-    "giày tây": "dress shoes",
-    "giày mọi": "loafers",
-    "giày lười": "loafers",
+    "giày tây": "shoes",
+    "xỏ chân": "slip-on loafers",
+    "giày mọi": "slip-on loafers",
+    "giày lười": "slip-on loafers",
     "giày thể thao": "sneakers",
     "giày sandal": "sandals",
     "sandal": "sandals",
