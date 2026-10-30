@@ -107,13 +107,14 @@
       "The last reference image is the {model_word} model, upper body only: use it for the face, body and outfit; the shoes come only from the shoe images.",
       "{setting}",
       "{camera}",
+      "{giu_giay}",
       "Shallow depth of field. {sound} No speech, no on-screen text.",
       "Both feet wear the same pair. Keep the shoes identical to the shoe reference images from the first to the last frame."
     ],
     "chuyen_dong": {
-      "_ghi_chu": "Kiểu chuyển động máy (anh Kha 30/10 'nhiều video ở nhiều bối cảnh'; Phân tích tạm đặt, anh duyệt qua video). Tất cả 1 cú máy liền, không cắt. Mỗi mã xoay vòng kiểu × bối cảnh chưa dùng. chi_cho = chỉ dùng cho các loại giày này (tên SP); không có = mọi loại. {walk} = câu đi lại của bối cảnh. bat: false = không vào xoay vòng tự động, chỉ dùng khi gọi tay (HangTiem gõ tên kiểu, anh Kha 30/10: mang_giay dễ lỗi).",
+      "_ghi_chu": "Kiểu chuyển động máy (anh Kha 30/10 'nhiều video ở nhiều bối cảnh'; Phân tích tạm đặt, anh duyệt qua video). Tất cả 1 cú máy liền, không cắt. Mỗi mã xoay vòng kiểu × bối cảnh chưa dùng. chi_cho = chỉ dùng cho các loại giày này (tên SP); không có = mọi loại. {walk} = câu đi lại của bối cảnh. bat: false = không vào xoay vòng tự động, chỉ dùng khi gọi tay (HangTiem gõ tên kiểu, anh Kha 30/10: mang_giay dễ lỗi). giu_giay (câu giữ giày, 30/10 sau video 3J658N mở đầu bằng giày trống tự nhảy): mặc định ở lien.giu_giay; mang_giay có câu riêng vì cảnh xỏ chân phải thấy giày trước khi mang.",
       "lui_ra": {
-        "camera": "Handheld-style camera, one continuous move: it opens on an extreme close-up of the shoes, showing the leather and every detail, then slowly and continuously pulls back (dolly out) to gradually reveal the model walking {walk}. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame. The same shoes from the opening close-up remain on the model's feet throughout the pull-back."
+        "camera": "Handheld-style camera, one continuous move: it opens on an extreme close-up of the model's feet wearing the shoes, showing the leather and every detail, then slowly and continuously pulls back (dolly out) to gradually reveal the model walking {walk}. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame. The same shoes from the opening close-up remain on the model's feet throughout the pull-back."
       },
       "tien_vao": {
         "camera": "Handheld-style camera, one continuous move: the model walks toward the camera {walk}, starting from a distance; the camera lowers and slowly moves in, keeping the shoes clearly visible, until the model stops and the shot ends on an extreme close-up of the toes of both shoes. The same shoes stay on the model's feet throughout the move."
@@ -132,12 +133,14 @@
           "giày búp bê",
           "dép"
         ],
-        "camera": "Handheld-style camera, one continuous move: the model sits on a low step, slips both feet into the shoes, stands up and starts walking {walk}, while the camera follows from a low angle with the shoes clearly visible. The shoes being put on are the same shoes worn for the rest of the shot."
+        "camera": "Handheld-style camera, one continuous move: the model sits on a low step, slips both feet into the shoes, stands up and starts walking {walk}, while the camera follows from a low angle with the shoes clearly visible. The shoes being put on are the same shoes worn for the rest of the shot.",
+        "giu_giay": "The shoes never move on their own; once the model's feet are in the shoes, they stay on the model's feet until the last frame."
       },
       "vong_quanh": {
         "camera": "Handheld-style camera, one continuous move: the model stands still wearing the shoes while the camera slowly circles half-way around the feet from a low angle, showing the shoes from the side, front and back; then the model starts walking {walk} and the camera follows low behind the shoes. The same shoes stay on the model's feet throughout the move."
       }
-    }
+    },
+    "giu_giay": "The shoes are worn on the model's feet from the very first frame to the last; never show empty shoes, and the shoes never move on their own."
   },
   "dich": {
     "giày tây": "shoes",

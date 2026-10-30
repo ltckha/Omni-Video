@@ -411,7 +411,8 @@ def build_script_lien(info: Dict, cfg: Dict) -> str:
     scene = scene_for(info, cfg)
     motion = lien["chuyen_dong"].get(info.get("chuyen_dong") or "lui_ra") or lien["chuyen_dong"]["lui_ra"]
     camera = motion["camera"].format(walk=scene["walk"])
-    return "\n".join(line.format(**p, **scene, camera=camera, n=len(info.get("anh_lien") or []) or "",
+    giu_giay = motion.get("giu_giay") or lien.get("giu_giay", "")
+    return "\n".join(line.format(**p, **scene, camera=camera, giu_giay=giu_giay, n=len(info.get("anh_lien") or []) or "",
                                  model_word="female" if is_female(info) else "male")
                      for line in lien["prompt"]) + "\n"
 

@@ -302,6 +302,9 @@ def test_each_motion_text_and_popup_label():
         text = hang_tiem.build_script(info, cfg)
         assert cfg["lien"]["chuyen_dong"][motion]["camera"].format(walk=scene["walk"]) in text
         assert "single continuous shot" in text and "{" not in text
+        assert "never move on their own" in text
+        if motion != "mang_giay":
+            assert "never show empty shoes" in text
     assert hang_tiem.popup_label(info, cfg) == "mang_giay · sảnh khách sạn"
 
 
