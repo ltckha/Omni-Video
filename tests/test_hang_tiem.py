@@ -100,13 +100,63 @@ def test_move_skips_shop_folder(tmp_path, monkeypatch):
     assert d.exists() and (dl / "JH8918N.mp4").exists() and is_hang_tiem(str(d))
 
 
-def test_hang_tiem_directive_uses_config_and_gender():
-    from generate_ugc_prompt import build_hang_tiem_directive, load_hang_tiem_config, load_central_prompt_rules
-    cfg = load_hang_tiem_config()
-    rules = load_central_prompt_rules(only=cfg["central_rule_sections"])
-    assert "FORBIDDEN_ACTIONS" in rules and "CHARACTER_AND_VOICE_STANDARDS" not in rules
-    text = build_hang_tiem_directive(build_info("JH8918N", ROW), cfg, rules)
-    assert cfg["setting"] in text and cfg["model"]["nam"] in text and "cao su nhiệt TPR" in text
-    assert "Shopee" not in text
-    female = build_hang_tiem_directive(build_info("X", dict(ROW, gioi_tinh="nữ")), cfg, rules)
-    assert cfg["model"]["nu"] in female
+def test_web_images_until_404_saved_as_jpg(tmp_path, monkeypatch):
+    from hang_tiem import download_shop_web_images
+    jpg = b"\xff\xd8\xff" + b"0" * 10
+    urls = []
+    def fake_fetch(url):
+        urls.append(url)
+        return jpg if len(urls) <= 3 else None
+    saved = download_shop_web_images("32837N", str(tmp_path), fetch=fake_fetch)
+    assert [os.path.basename(p) for p in saved] == ["32837N_web_01.jpg", "32837N_web_02.jpg", "32837N_web_03.jpg"]
+    assert urls[0] == "https://giayhainancy.vn/img/32837N/1-1000.webp" and len(urls) == 4
+
+
+def test_webp_converted_to_jpg_with_sips(tmp_path):
+    import shutil, subprocess
+    import pytest
+    if not shutil.which("sips"):
+        pytest.skip("không có sips")
+    png = tmp_path / "a.png"
+    subprocess.run(["sips", "-s", "format", "png", "/System/Library/CoreServices/CoreTypes.bundle/Contents/Resources/GenericDocumentIcon.icns",
+                    "--out", str(png)], capture_output=True)
+    if not png.exists():
+        pytest.skip("không tạo được ảnh mẫu")
+    out = tmp_path / "b.jpg"
+    hang_tiem._save_as_jpg(png.read_bytes(), str(out))
+    assert out.read_bytes()[:3] == b"\xff\xd8\xff"
+
+
+def test_script_built_from_template_without_gemini(tmp_path):
+    cfg = hang_tiem.load_config()
+    info = build_info("32837D", dict(ROW, product_name="Giày mọi nam xỏ chân da bò hạt mềm 32837D",
+                                     product_color="Đen", chat_lieu_de="phylon"))
+    text = hang_tiem.build_script(info, cfg)
+    for part in ("[ASSETS]", "[PROMPT]", "[CONSTRAINTS]", "men's loafers in black", "soft pebbled cowhide leather",
+                 "lightweight phylon foam", cfg["setting"], cfg["audio"], cfg["model"]["nam"]):
+        assert part in text
+    assert "Shopee" not in text and "{" not in text
+    female = hang_tiem.build_script(build_info("X", dict(ROW, gioi_tinh="nữ")), cfg)
+    assert cfg["model"]["nu"] in female and "women's dress shoes in brown" in female
+
+
+def test_write_script_copies_model_by_gender(tmp_path):
+    chars = tmp_path / "chars"
+    chars.mkdir()
+    for name in ("Nam-25t.png", "Nu-23t.png", "Nu-25t.png"):
+        (chars / name).write_bytes(b"x")
+    d = tmp_path / "JH8918N"
+    d.mkdir()
+    (d / "info.json").write_text(json.dumps(build_info("JH8918N", ROW)))
+    path = hang_tiem.write_script("JH8918N", str(d), characters_dir=str(chars))
+    assert path.endswith("JH8918N.txt") and (d / "Nam-25t.png").exists() and not (d / "Nu-25t.png").exists()
+
+
+def test_prompt_command_uses_template_for_shop_item(tmp_path, monkeypatch):
+    import generate_ugc_prompt as g
+    d = tmp_path / "JH8918N"
+    d.mkdir()
+    (d / "info.json").write_text(json.dumps(build_info("JH8918N", ROW)))
+    monkeypatch.setattr(g, "call_gemini_multimodal_api", lambda *a, **k: (_ for _ in ()).throw(AssertionError("không được gọi Gemini")))
+    assert g.generate_prompt_for_item("JH8918N", str(d)) == "Hàng tiệm"
+    assert (d / "JH8918N.txt").exists()

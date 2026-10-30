@@ -9,7 +9,7 @@ Chi tiết quy trình, sơ đồ, đọc / ghi gì: [`docs/KIEN_TRUC.md`](docs/K
 4. **Tạo video:** mở dự án Flow (ô câu lệnh trống) → bấm extension → **Tạo video** ở 1 SP → Chrome hỏi Save thì bấm Save. Mỗi video 15 credit.
 5. **`Move.command`:** mỗi video mở tờ ảnh 10 khung → ổn bấm Enter (thư mục SP chuyển về NAS, Sheet ghi "Đã tạo Video"), lỗi gõ `b` rồi Enter (giữ lại để làm lại).
 
-**Hàng tiệm (giày Hiệu giày Hải Nancy):** `HangTiem.command` → gõ mã → `Prompt.command` → Flow **Tạo video**. Video để nguyên `~/Downloads/<mã>.mp4` cho Kho hàng gom, không qua `src_omni`, không Move.
+**Hàng tiệm (giày Hiệu giày Hải Nancy):** `HangTiem.command` → gõ mã (ảnh + kịch bản ghép sẵn, 0 Gemini) → Flow **Tạo video**. Video để nguyên `~/Downloads/<mã>.mp4` cho Kho hàng gom, không qua `src_omni`, không Move.
 
 ## Cài đặt (1 lần)
 - Python: `python3 -m venv venv && ./venv/bin/pip install gspread google-auth requests certifi pytest`.

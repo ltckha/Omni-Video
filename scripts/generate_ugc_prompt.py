@@ -223,8 +223,8 @@ def update_google_sheet_status(item_id):
     except Exception as e:
         print(f"⚠️ Lỗi cập nhật Sheet cho mã {item_id}:", e)
 
-def load_central_prompt_rules(only=None):
-    """Tự động nạp toàn bộ danh sách quy tắc và điều cấm kỵ từ config/prompt_rules.json (only = chỉ nạp các mục này)."""
+def load_central_prompt_rules():
+    """Tự động nạp toàn bộ danh sách quy tắc và điều cấm kỵ từ config/prompt_rules.json."""
     rules_path = os.path.join(PROJECT_DIR, "config", "prompt_rules.json")
     if not os.path.exists(rules_path):
         return ""
@@ -234,8 +234,6 @@ def load_central_prompt_rules(only=None):
             
         lines = ["\n[MANDATORY ZERO-TOLERANCE COMPLIANCE & NEGATIVE CONSTRAINTS (STRICT)]:\nYOU MUST STRICTLY OBEY EVERY SINGLE RULE BELOW WITHOUT EXCEPTION:"]
         for category, items in data.items():
-            if only is not None and category not in only:
-                continue
             lines.append(f"\n>>> {category.upper()}:")
             if isinstance(items, list):
                 for item in items:
@@ -326,97 +324,13 @@ def save_story_angle(item_dir, angle_name):
     except Exception:
         pass
 
-HANG_TIEM_CONFIG = os.path.join(PROJECT_DIR, "config", "hang_tiem.json")
-
-
-def load_hang_tiem_config():
-    with open(HANG_TIEM_CONFIG, "r", encoding="utf-8") as f:
-        return json.load(f)
-
-
-def build_hang_tiem_directive(info, cfg, central_rules_text):
-    """Lời dặn Gemini cho giày tiệm (Hiệu giày Hải Nancy): từ ngữ kiểu dựng lấy từ config/hang_tiem.json."""
-    is_female = info.get("gioi_tinh", "").strip().lower() in ("nữ", "nu", "female")
-    facts = [f"- Product name: {info.get('productName', '')}"]
-    for key, label in (("product_color", "Color"), ("chat_lieu", "Upper material"),
-                       ("chat_lieu_de", "Sole material"), ("kieu_giay_tay", "Shoe style")):
-        if info.get(key):
-            facts.append(f"- {label}: {info[key]}")
-    shots = "\n".join(f"  {i}. {shot}" for i, shot in enumerate(cfg["shots"], start=1))
-    fidelity = "\n".join(f"- {rule}" for rule in cfg["fidelity_rules"])
-    return f"""You are a cinematic product-video director writing a 10-second Google Flow (Omni) prompt for a real shoe sold in a physical shoe store.
-
-Look closely at the attached product image (Input Image 1). Product facts from the store catalogue (Vietnamese):
-{chr(10).join(facts)}
-
-{central_rules_text}
-
-CREATIVE TARGET (follow exactly):
-- Setting: {cfg["setting"]}
-- Model: {cfg["model"]["nu" if is_female else "nam"]}
-- Outfit: {cfg["outfit"]}
-- Framing: {cfg["framing"]}
-- Shots, in this order:
-{shots}
-- Camera: {cfg["camera"]}
-- Audio: {cfg["audio"]}
-
-PRODUCT FIDELITY (zero tolerance):
-{fidelity}
-
-STRICTLY GENERATE THE FINAL PROMPT IN THIS EXACT FORMAT (English):
-
-```markdown
-[ASSETS]:
-- Product (Primary Subject - Input Image 1, other product images are extra angles of the same shoe): [exact shoe type, color, material, toe shape, sole as seen in the images]. Must keep 100% visual fidelity.
-- Model (Input Image 2): [model description per the Model and Outfit lines above].
-
-[PROMPT]:
-- Visual: [the shots above as one flowing 10-second sequence, concrete and visual]
-- Audio: [the Audio line above]
-
-[CONSTRAINTS]:
-- 9:16 vertical, 10s, photorealistic, no text/logos/watermarks.
-- [the product fidelity rules above, condensed]
-```
-
-Generate ONLY the clean markdown block above. Do not include any explanations."""
-
-
-def generate_hang_tiem_prompt(item_id, item_dir, info):
-    """Kịch bản hàng tiệm: 1 lượt Gemini, không ghi Sheet src_omni (hàng tiệm không có dòng src_omni)."""
-    from flow_helper import find_best_product_image
-    print(f"\n👞 Hàng tiệm {item_id}: {info.get('productName', '')}")
-    cfg = load_hang_tiem_config()
-    image_path = find_best_product_image(item_dir)
-    if not image_path:
-        print(f"❌ {item_id}: không có ảnh sản phẩm.")
-        return False
-    is_female = info.get("gioi_tinh", "").strip().lower() in ("nữ", "nu", "female")
-    selected_char = select_character_for_product("giày nữ" if is_female else "giày nam")
-    directive = build_hang_tiem_directive(info, cfg, load_central_prompt_rules(only=cfg.get("central_rule_sections")))
-    generated_text = call_gemini_multimodal_api(directive, image_path)
-    if not generated_text:
-        return False
-    clean_text = generated_text.replace("```markdown", "").replace("```text", "").replace("```", "").strip()
-    with open(os.path.join(item_dir, f"{item_id}.txt"), "w", encoding="utf-8") as f:
-        f.write(clean_text)
-    print(f"✅ Đã lưu kịch bản hàng tiệm: {item_id}.txt")
-    char_src_path = os.path.join(CHARACTERS_DIR, selected_char or "")
-    if selected_char and os.path.isfile(char_src_path):
-        import shutil
-        shutil.copy2(char_src_path, os.path.join(item_dir, selected_char))
-        print(f"📸 Người mẫu: {selected_char}")
-    print(clean_text[:550] + "...")
-    return "Hàng tiệm"
-
-
 def generate_prompt_for_item(item_id, item_dir, exclude_angles=()):
     """Sinh <item_id>.txt. Trả về tên góc sáng tạo đã dùng (truthy) hoặc False."""
-    from hang_tiem import read_info
-    info = read_info(item_dir)
-    if info.get("hang_tiem"):
-        return generate_hang_tiem_prompt(item_id, item_dir, info)
+    from hang_tiem import read_info, write_script
+    if read_info(item_dir).get("hang_tiem"):
+        # Hàng tiệm: ghép kịch bản từ mẫu config/hang_tiem.json, 0 Gemini, không ghi Sheet (không có dòng src_omni)
+        print(f"👞 Hàng tiệm {item_id}: {write_script(item_id, item_dir)}")
+        return "Hàng tiệm"
     print(f"\n🎬 Đang xử lý sinh Master Prompt UGC cho Mã SP: {item_id}...")
     
     images = []

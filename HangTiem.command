@@ -1,6 +1,7 @@
 #!/bin/bash
 # Chế độ hàng tiệm (30/10/2026): video Flow cho giày tiệm Hiệu giày Hải Nancy theo mã tiệm (vd JH8918N).
-# Tạo Product_Assets/<mã>/ (ảnh NAS HNC_Master hoặc image_01… SANPHAM, info.json hàng tiệm). Không tạo dòng src_omni.
+# Tạo Product_Assets/<mã>/ (ảnh NAS HNC_Master → web giayhainancy.vn → image_01… SANPHAM, info.json hàng tiệm,
+# kịch bản ghép từ config/hang_tiem.json, 0 Gemini). Không tạo dòng src_omni.
 
 cd "$(dirname "$0")"
 

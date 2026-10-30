@@ -28,6 +28,7 @@ flowchart LR
 
   NAS[(NAS /Volumes/Media/Omni-Video/&lt;Mã_SP&gt;/)]
   HNCNAS[(NAS /Volumes/Media/HNC_Master/&lt;mã&gt;/<br/>ảnh giày tiệm)]
+  WEB[giayhainancy.vn/img/&lt;mã&gt;/&lt;n&gt;-1000.webp]
   SANPHAM[(Sheet HNC_Control_Center<br/>tab SANPHAM)]
   HT[HangTiem.command<br/>hang_tiem.py]
   HNC[Kho hàng gomvideo<br/>→ SANPHAM → Video-Post]
@@ -48,8 +49,9 @@ flowchart LR
   PA --> MV --> NAS
   MV -- status + video_path --> SH
   HNCNAS -- ảnh --> HT
+  WEB -- ảnh webp → jpg --> HT
   SANPHAM -- tên · màu · chất liệu · image_01.. --> HT
-  HT -- info.json hang_tiem --> PA
+  HT -- info.json hang_tiem · &lt;mã&gt;.txt từ mẫu, 0 Gemini --> PA
   DL -- hàng tiệm: &lt;mã&gt;.mp4 để nguyên --> HNC
   SH --> VP
 ```
@@ -67,8 +69,7 @@ flowchart LR
 ### Hàng tiệm (Hiệu giày Hải Nancy, từ 30/10)
 | Bước | Anh làm | Script | Kết quả |
 |---|---|---|---|
-| H1 | `HangTiem.command` → gõ mã (vd `JH8918N 32837D`) | `hang_tiem.py` | `Product_Assets/<mã>/`: ảnh từ NAS `HNC_Master/<mã>/` (chỉ ảnh), không có thì tải `image_01…` của SANPHAM; `info.json` (`hang_tiem: true`, tên / màu / chất liệu / đế / giới tính từ SANPHAM, tiêu đề hàng 2). Mã không có ảnh → báo, bỏ qua. **Không tạo dòng `src_omni`** |
-| H2 | `Prompt.command` | `generate_ugc_prompt.py` (nhánh hàng tiệm) | Kịch bản theo `config/hang_tiem.json` (phố lát đá sương sớm, người mẫu Nam- / Nu- theo giới tính, cận giày, lật đế, 1 cảnh toàn thân; không lời, không nhép môi; giữ đúng màu / chất liệu / dáng). 1 lượt Gemini / mã, không ghi Sheet |
+| H1 | `HangTiem.command` → gõ mã (vd `JH8918N 32837D`) | `hang_tiem.py` | `Product_Assets/<mã>/`: ảnh theo thứ tự NAS `HNC_Master/<mã>/` (chỉ ảnh) → web `giayhainancy.vn/img/<mã>/<n>-1000.webp` (n = 1, 2… tới 404, đổi sang JPG) → `image_01…` SANPHAM; `info.json` (`hang_tiem: true`, tên / màu / chất liệu / đế / giới tính từ SANPHAM, tiêu đề hàng 2). Kịch bản `<mã>.txt` **ghép bằng code từ mẫu `config/hang_tiem.json`, 0 Gemini** (phố lát đá sương sớm, cận giày, lật đế, 1 cảnh toàn thân; không lời, không nhép môi; giữ đúng màu / chất liệu / dáng; bảng `dich` đổi màu / chất liệu sang tiếng Anh) + ảnh người mẫu Nam- / Nu- theo giới tính. Mã không có ảnh → báo, bỏ qua. **Không tạo dòng `src_omni`**. (`Prompt.command` gặp thư mục hàng tiệm cũng ghép lại từ mẫu, không gọi Gemini) |
 | H3 | Flow → extension → **Tạo video** | như bước 3 | Video **để nguyên** `~/Downloads/<mã>.mp4` (ghi `da_tai` vào info.json, mã biến khỏi popup) → Kho hàng gom vào SANPHAM → Video-Post |
 | — | (tự động) | `hang_tiem.cleanup` (chạy đầu `HangTiem.command` và `Move.command`) | Video đã rời Downloads → xoá `Product_Assets/<mã>/`. Move bỏ qua thư mục hàng tiệm (không lên NAS Omni, không quét Downloads theo mã) |
 
