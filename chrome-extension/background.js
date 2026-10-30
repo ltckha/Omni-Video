@@ -26,7 +26,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse(chrome.runtime.lastError ? { status: "error", message: chrome.runtime.lastError.message } : resp);
     });
   } else if (message.action === "FLOW_FILL" && message.itemId) {
-    fillFlowTool(message.itemId).then(sendResponse);
+    // từ khung nổi trên trang Flow (flow_page.js) → dùng đúng tab đó; từ popup → chọn tab Flow
+    fillFlowTool(message.itemId, sender.tab ? sender.tab.id : null).then(sendResponse);
   } else if (message.action === "FLOW_RESULT") {  // flow_page.js báo kết quả / lỗi các bước tự chạy
     setFlowResult(message.ok, message.message);
     if (!message.ok) chrome.storage.local.remove("flowActiveItem");
@@ -80,16 +81,16 @@ async function pickFlowTab() {
   return tabs[0] || null;
 }
 
-async function fillFlowTool(itemId) {
-  const resp = await fillFlowToolInner(itemId);
+async function fillFlowTool(itemId, tabId) {
+  const resp = await fillFlowToolInner(itemId, tabId);
   if (!resp || resp.status !== "success") {
     setFlowResult(false, `⚠️ Mã ${itemId}: ${(resp && resp.message) || "lỗi không rõ"}`);
   }
   return resp;
 }
 
-async function fillFlowToolInner(itemId) {
-  const projectTab = await pickFlowTab();
+async function fillFlowToolInner(itemId, tabId) {
+  const projectTab = tabId ? await chrome.tabs.get(tabId) : await pickFlowTab();
   if (!projectTab) {
     return { status: "error", message: "Chưa mở dự án Google Flow — anh mở dự án (vd Omni-Video) trước." };
   }

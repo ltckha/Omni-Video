@@ -207,6 +207,120 @@
     }
   }
 
+  // ===== Khung nổi hàng chờ trên trang dự án Flow (30/10): giống popup — mã · tên file · kiểu · bối cảnh, nút Tạo video,
+  // dòng trạng thái flowLastResult. Để làm được cả khi không mở được popup (vd Claude in Chrome). id cố định để tìm:
+  // #omni-flow-panel, nút button[data-item-id="<mã>"], trạng thái #omni-flow-status, danh sách #omni-flow-list.
+  const PANEL_ID = "omni-flow-panel";
+  const isProjectPage = () => /^\/project\//.test(location.pathname) && !/\/tool\//.test(location.pathname);
+
+  function panelStatus() {
+    const el = document.getElementById("omni-flow-status");
+    if (!el) return;
+    chrome.storage.local.get(["flowActiveItem", "flowLastResult"], (st) => {
+      const lines = [];
+      if (st.flowLastResult && st.flowLastResult.message) lines.push(st.flowLastResult.message);
+      if (st.flowActiveItem && st.flowActiveItem.itemId) lines.push(`Đang làm mã ${st.flowActiveItem.itemId} (${st.flowActiveItem.output || ""})…`);
+      el.textContent = lines.join("\n") || "Chọn mã cần làm video.";
+      el.style.color = st.flowLastResult && st.flowLastResult.ok === false ? "#ff8a80" : "#e0e0e0";
+    });
+  }
+
+  function panelList() {
+    const list = document.getElementById("omni-flow-list");
+    if (!list) return;
+    chrome.runtime.sendMessage({ action: "FLOW_LIST" }, (resp) => {
+      list.textContent = "";
+      if (!resp || resp.status !== "success") {
+        list.textContent = `⚠️ ${resp ? resp.message : "Không kết nối được Native Host"}`;
+        return;
+      }
+      if (!resp.items.length) list.textContent = "Không có mã nào đang chờ video.";
+      resp.items.forEach((item) => {
+        const row = document.createElement("div");
+        row.style.cssText = "display:flex;gap:6px;align-items:center;margin:4px 0;";
+        const label = document.createElement("span");
+        label.textContent = `${item.itemId} ${item.title || ""}`;
+        label.title = label.textContent;
+        label.style.cssText = "flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;";
+        const btn = document.createElement("button");
+        btn.textContent = "Tạo video";
+        btn.dataset.itemId = item.itemId;
+        btn.style.cssText = "background:#1a73e8;color:#fff;border:0;border-radius:4px;padding:3px 8px;cursor:pointer;font:12px sans-serif;";
+        btn.addEventListener("click", () => {
+          btn.disabled = true;
+          document.getElementById("omni-flow-status").textContent = `Đang làm mã ${item.itemId}…`;
+          chrome.runtime.sendMessage({ action: "FLOW_FILL", itemId: item.itemId }, () => {
+            btn.disabled = false;
+            panelStatus();
+          });
+        });
+        row.appendChild(label);
+        row.appendChild(btn);
+        list.appendChild(row);
+      });
+    });
+  }
+
+  function ensurePanel() {
+    const existing = document.getElementById(PANEL_ID);
+    if (!isProjectPage()) {
+      if (existing) existing.remove();
+      return;
+    }
+    if (existing) return;
+    const panel = document.createElement("div");
+    panel.id = PANEL_ID;
+    panel.style.cssText = `position:fixed;right:12px;bottom:12px;z-index:2147483646;width:360px;max-height:50vh;overflow:auto;
+      background:#202124;color:#e0e0e0;border:1px solid #5f6368;border-radius:8px;padding:8px 10px;
+      font:12px -apple-system,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.5);`;
+    const head = document.createElement("div");
+    head.style.cssText = "display:flex;justify-content:space-between;align-items:center;font-weight:600;";
+    head.textContent = "🎬 Omni · hàng chờ";
+    const tools = document.createElement("span");
+    const refresh = document.createElement("button");
+    refresh.id = "omni-flow-refresh";
+    refresh.textContent = "↻";
+    const toggle = document.createElement("button");
+    toggle.id = "omni-flow-toggle";
+    toggle.textContent = "–";
+    for (const b of [refresh, toggle]) {
+      b.style.cssText = "background:none;color:#e0e0e0;border:1px solid #5f6368;border-radius:4px;margin-left:4px;cursor:pointer;";
+      tools.appendChild(b);
+    }
+    head.appendChild(tools);
+    const body = document.createElement("div");
+    body.id = "omni-flow-body";
+    const status = document.createElement("div");
+    status.id = "omni-flow-status";
+    status.style.cssText = "white-space:pre-line;margin:6px 0;";
+    const list = document.createElement("div");
+    list.id = "omni-flow-list";
+    body.appendChild(status);
+    body.appendChild(list);
+    panel.appendChild(head);
+    panel.appendChild(body);
+    document.body.appendChild(panel);
+    let collapsed = false;
+    try { collapsed = localStorage.getItem("omniFlowPanelCollapsed") === "1"; } catch (e) {}
+    const applyCollapsed = () => { body.style.display = collapsed ? "none" : ""; toggle.textContent = collapsed ? "+" : "–"; };
+    applyCollapsed();
+    toggle.addEventListener("click", () => {
+      collapsed = !collapsed;
+      try { localStorage.setItem("omniFlowPanelCollapsed", collapsed ? "1" : "0"); } catch (e) {}
+      applyCollapsed();
+    });
+    refresh.addEventListener("click", () => { panelStatus(); panelList(); });
+    panelStatus();
+    panelList();
+  }
+
+  chrome.storage.onChanged.addListener((changes) => {
+    if (changes.flowLastResult || changes.flowActiveItem) panelStatus();
+    if (changes.flowLastResult && changes.flowLastResult.newValue && /Đã lưu video/.test(changes.flowLastResult.newValue.message || "")) panelList();
+  });
+  ensurePanel();
+  setInterval(ensurePanel, 2000);  // Flow đổi trang không tải lại (SPA)
+
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== "FLOW_FILL") return false;
     fill(message).then((resp) => {
