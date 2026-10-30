@@ -74,6 +74,18 @@ def handle_flow_action(msg):
                     return
                 time.sleep(0.25)
             send_message({"status": "error", "message": f"Không thấy {item_id}.mp4 trong Downloads"})
+        elif action == "FLOW_SNAPSHOT":
+            # Ảnh chụp cấu trúc trang Flow (nút, ô chọn, hộp thoại, chữ cuối trang) để sửa extension khi Flow đổi giao diện.
+            # Chỉ đọc trang, không bấm gì. Lưu data/logs/flow_snapshot_<giờ>_<nhãn>.json
+            import re
+            from datetime import datetime
+            label = re.sub(r"[^A-Za-z0-9_-]+", "_", str(msg.get("label") or "tay"))[:40]
+            out_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data", "logs")
+            os.makedirs(out_dir, exist_ok=True)
+            path = os.path.join(out_dir, f"flow_snapshot_{datetime.now():%Y%m%d_%H%M%S}_{label}.json")
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(msg.get("snapshot") or {}, f, ensure_ascii=False, indent=1)
+            send_message({"status": "success", "path": path})
         else:
             send_message({"status": "error", "message": f"Lệnh không hỗ trợ: {action}"})
     except Exception as e:

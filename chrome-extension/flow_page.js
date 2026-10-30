@@ -204,7 +204,36 @@
     } catch (e) {
       showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${itemId}: ${e.message}` });
+      saveSnapshot(`loi_${itemId}`);
     }
+  }
+
+  // ===== Ghi cấu trúc trang (chỉ đọc, không bấm) → data/logs/flow_snapshot_*.json qua native host (30/10: Flow đổi
+  // sang giao diện "Tác nhân", extension kẹt ở "Phê duyệt"). Tự ghi khi tự chạy bị lỗi; nút 📋 trong khung để ghi tay.
+  function snapshot() {
+    const vis = (el) => el.offsetParent !== null;
+    const short = (t, n = 80) => (t || "").replace(/\s+/g, " ").trim().slice(0, n);
+    const pick = (sel, n = 150) => [...document.querySelectorAll(sel)].filter(vis).slice(-n);
+    return {
+      url: location.href, at: new Date().toISOString(),
+      buttons: pick("button,[role=button]", 250).filter((b) => !b.closest("#" + PANEL_ID)).map((b) => ({
+        aria: b.getAttribute("aria-label"), text: short(b.textContent, 60), disabled: !!b.disabled || b.getAttribute("aria-disabled") === "true",
+        pressed: b.getAttribute("aria-pressed"), cls: short(b.className && b.className.baseVal !== undefined ? "" : b.className, 80) })),
+      roles: pick("[role=radio],[role=dialog],[role=alertdialog],[role=menuitem],[role=option],[role=checkbox],[role=switch],[role=tab],[role=status],[role=alert],[role=log]")
+        .map((el) => ({ role: el.getAttribute("role"), aria: el.getAttribute("aria-label"), checked: el.getAttribute("aria-checked"), text: short(el.textContent, 120) })),
+      textboxes: pick("[contenteditable=true],textarea").map((el) => ({ aria: el.getAttribute("aria-label"), len: (el.innerText || el.value || "").length })),
+      chips: chipCount(), videoCards: videoCards().length,
+      media: pick("video,img", 60).map((m) => ({ tag: m.tagName, src: (m.currentSrc || m.src || "").slice(0, 90), w: m.naturalWidth || m.videoWidth || 0 })),
+      tail: short(document.body.innerText.slice(-4000), 4000),
+    };
+  }
+
+  function saveSnapshot(label) {
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ action: "FLOW_SNAPSHOT", label, snapshot: snapshot() }, (r) => resolve(r));
+      } catch (e) { resolve({ status: "error", message: e.message }); }
+    });
   }
 
   // ===== Khung nổi hàng chờ trên trang dự án Flow (30/10): giống popup — mã · tên file · kiểu · bối cảnh, nút Tạo video,
@@ -283,7 +312,15 @@
     const toggle = document.createElement("button");
     toggle.id = "omni-flow-toggle";
     toggle.textContent = "–";
-    for (const b of [refresh, toggle]) {
+    const snap = document.createElement("button");
+    snap.id = "omni-flow-snapshot";
+    snap.textContent = "📋";
+    snap.title = "Ghi cấu trúc trang Flow lúc này (chỉ đọc, không bấm gì) để sửa extension";
+    snap.addEventListener("click", async () => {
+      const r = await saveSnapshot("tay");
+      document.getElementById("omni-flow-status").textContent = r && r.status === "success" ? `📋 Đã ghi ${r.path.split("/").pop()}` : `⚠️ Chưa ghi được: ${r ? r.message : ""}`;
+    });
+    for (const b of [snap, refresh, toggle]) {
       b.style.cssText = "background:none;color:#e0e0e0;border:1px solid #5f6368;border-radius:4px;margin-left:4px;cursor:pointer;";
       tools.appendChild(b);
     }

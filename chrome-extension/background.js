@@ -32,6 +32,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     setFlowResult(message.ok, message.message);
     if (!message.ok) chrome.storage.local.remove("flowActiveItem");
     sendResponse({ status: "success" });
+  } else if (message.action === "FLOW_SNAPSHOT") {
+    chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_SNAPSHOT", label: message.label, snapshot: message.snapshot }, (resp) => {
+      sendResponse(chrome.runtime.lastError ? { status: "error", message: chrome.runtime.lastError.message } : resp);
+    });
   } else if (message.action === "FLOW_CLEAR") {
     chrome.storage.local.remove("flowActiveItem", () => sendResponse({ status: "success" }));
   }
