@@ -23,6 +23,8 @@ Product_Assets/
 data/*.csv
 data/.imported_csv.json
 data/.hang_tiem_boi_canh.json
+data/.hang_cho_da_lam.json
+data/logs/
 *service*.json
 config/*service*.json
 

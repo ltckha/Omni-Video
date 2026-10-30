@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- 30/10 (anh Kha "làm", qua Phân tích · Xưởng video): hàng chờ tự động hàng tiệm, giữ 5 mã chờ Tạo video trên Flow.
+     13:30 hằng ngày (luật 18: việc chỉ cần Mac mini, khung 13:00–16:00; sau HNC gom video 13:00). 0 Gemini.
+     Nhật ký: data/logs/hang_cho.log. Cài / gỡ: launchd/bat_hang_cho.sh, launchd/tat_hang_cho.sh. Chạy tay: HangCho.command -->
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>vn.giayhainancy.omni.hangcho</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/khan/Developer/Omni-Video/venv/bin/python3</string>
+    <string>/Users/khan/Developer/Omni-Video/scripts/hang_cho.py</string>
+  </array>
+  <key>WorkingDirectory</key><string>/Users/khan/Developer/Omni-Video</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>StartCalendarInterval</key><dict><key>Hour</key><integer>13</integer><key>Minute</key><integer>30</integer></dict>
+  <key>StandardOutPath</key><string>/Users/khan/Developer/Omni-Video/data/logs/hang_cho_launchd.log</string>
+  <key>StandardErrorPath</key><string>/Users/khan/Developer/Omni-Video/data/logs/hang_cho_launchd.log</string>
+</dict>
+</plist>

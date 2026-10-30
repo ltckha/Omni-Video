@@ -77,13 +77,16 @@ def sanpham_rows(values: List[List[str]], codes: List[str]) -> Dict[str, Dict[st
     return found
 
 
-def read_sanpham(codes: List[str]) -> Dict[str, Dict[str, str]]:
+def read_sanpham_values() -> List[List[str]]:
     from sheet_sync import get_gspread_client
     gc = get_gspread_client()
     if not gc:
         raise RuntimeError("Không kết nối được Google Sheets (Service Account).")
-    values = gc.open_by_key(SANPHAM_SHEET_ID).worksheet(SANPHAM_TAB).get_all_values()
-    return sanpham_rows(values, codes)
+    return gc.open_by_key(SANPHAM_SHEET_ID).worksheet(SANPHAM_TAB).get_all_values()
+
+
+def read_sanpham(codes: List[str]) -> Dict[str, Dict[str, str]]:
+    return sanpham_rows(read_sanpham_values(), codes)
 
 
 def nas_images(code: str, media_dir: str = HNC_MEDIA_DIR) -> List[str]:
@@ -409,6 +412,21 @@ def cleanup(assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) ->
     return removed
 
 
+def make_item(code: str, row: Dict[str, str], lien: bool = True, extra: Optional[Dict] = None, **prepare_kw) -> Optional[str]:
+    """Ảnh + info.json + kịch bản cho 1 mã (dùng chung cho HangTiem.command và hàng chờ tự động). None = không có ảnh."""
+    item_dir = prepare(code, row, **prepare_kw)
+    if not item_dir:
+        return None
+    info = read_info(item_dir)
+    info["kieu"] = "lien" if lien else "4_canh"
+    info.pop("anh_lien", None)
+    info.pop("nguoi_mau_lien", None)
+    info.update(extra or {})
+    write_info(item_dir, info)
+    write_script(code, item_dir)
+    return item_dir
+
+
 def main(argv: List[str]) -> int:
     codes = list(dict.fromkeys(c.strip().upper() for c in argv if c.strip() and not c.startswith("-")))
     lien = "--4-canh" not in argv  # kiểu liền là mặc định từ 30/10 (anh Kha); --lien vẫn nhận
@@ -424,14 +442,8 @@ def main(argv: List[str]) -> int:
         if not row:
             print(f"❌ {code}: không có trong tab SANPHAM — bỏ qua.")
             continue
-        item_dir = prepare(code, row)
+        item_dir = make_item(code, row, lien)
         if item_dir:
-            info = read_info(item_dir)
-            info["kieu"] = "lien" if lien else "4_canh"
-            info.pop("anh_lien", None)
-            info.pop("nguoi_mau_lien", None)
-            write_info(item_dir, info)
-            write_script(code, item_dir)
             ok.append(code)
             n_img = len([f for f in os.listdir(os.path.join(ASSETS_DIR, code)) if f.lower().endswith(IMAGE_EXTS)])
             chosen = read_info(item_dir).get("anh_lien")
