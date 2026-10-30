@@ -11,11 +11,56 @@
     return boxes[boxes.length - 1] || null;
   }
 
-  function chipCount() {
+  function chips() {
     return [...document.querySelectorAll("button")].filter(
       (b) => b.getAttribute("aria-label") === CHIP_LABEL || b.textContent.trim().startsWith(CHIP_LABEL)
-    ).length;
+    );
   }
+
+  function chipCount() {
+    return chips().length;
+  }
+
+  // Ảnh đã tải lên xong thật chưa (30/10: đủ ô ảnh nhưng ảnh còn đang tải → Tạo hỏng). Không chỉ đếm ô:
+  // - không có vòng xoay / thanh tiến độ / aria-busy / lớp mờ trong ô ảnh và khung chứa các ô;
+  // - ảnh trong ô (nếu ô có <img>) đã nạp: src blob:/https:/data:, complete, naturalWidth > 0.
+  const BUSY = '[role=progressbar],[aria-busy="true"],circle[stroke-dasharray],[class*="progress" i],[class*="spinner" i],[class*="loading" i],[class*="uploading" i]';
+  function uploadState(expected) {
+    const list = chips();
+    const scopes = [...new Set(list.map((c) => c.parentElement).filter(Boolean))];
+    const busy = scopes.some((el) => [...el.querySelectorAll(BUSY)].some((x) => x.offsetParent !== null || x.tagName === "circle"));
+    const anyImg = list.some((c) => c.querySelector("img"));
+    const loaded = list.filter((c) => {
+      if (parseFloat(getComputedStyle(c).opacity) < 0.95) return false;
+      const img = c.querySelector("img");
+      if (!img) return !anyImg;
+      return /^(blob:|https:|data:)/.test(img.src || "") && img.complete && img.naturalWidth > 0
+        && parseFloat(getComputedStyle(img).opacity) >= 0.95;
+    }).length;
+    return { ready: list.length >= expected && loaded >= expected && !busy, loaded, total: list.length, busy };
+  }
+
+  // Chờ ảnh tải xong và giữ ổn định stableMs liền; quá hạn → trả trạng thái để báo lỗi (không bấm Tạo)
+  async function waitUploaded(expected, timeoutMs = 120000, stableMs = 4000) {
+    const start = Date.now();
+    let since = 0;
+    let st = uploadState(expected);
+    while (Date.now() - start < timeoutMs) {
+      st = uploadState(expected);
+      if (st.ready) {
+        since = since || Date.now();
+        if (Date.now() - since >= stableMs) return { ok: true, ...st };
+      } else {
+        since = 0;
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
+    console.warn("[Omni] ảnh chưa tải xong", st, chips().map((c) => c.outerHTML.slice(0, 400)));
+    return { ok: false, ...st };
+  }
+
+  const notUploadedMsg = (st, expected) =>
+    `ảnh chưa tải xong ${Math.min(st.loaded, expected)}/${expected}${st.busy ? " (Flow còn đang tải)" : ""} sau 120 giây — chưa bấm Tạo, không tốn credit. Anh xoá ảnh trong ô câu lệnh rồi bấm lại.`;
 
   function b64ToBytes(b64) {
     const bin = atob(b64);
@@ -69,6 +114,8 @@
     if (!(await pasteImages(box, images))) {
       return { status: "error", message: `Flow chưa nhận đủ ${images.length} ảnh (đang có ${chipCount()}) — anh tải lại trang Flow rồi thử lại.` };
     }
+    const up = await waitUploaded(images.length);
+    if (!up.ok) return { status: "error", message: notUploadedMsg(up, images.length) };
     // Flow vẽ lại ô câu lệnh khi gắn ảnh (và có thể khoá ô khi ảnh còn đang tải lên) -> tìm lại ô mới rồi dán
     // kịch bản, thử lại tới ~60 giây
     const scriptText = new TextDecoder().decode(b64ToBytes(byslot.script.b64));
@@ -119,10 +166,13 @@
   const isNew = (el, oldSet) => !oldSet.has(el);
   const after = (el, ref) => !ref || (ref.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-  async function autoRun(itemId, output) {
+  async function autoRun(itemId, output, nImages) {
     try {
-      const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled).pop(), 60000);
-      await sleep(3000);  // chờ ảnh tải lên xong
+      // kiểm lại ngay trước khi bấm Tạo: ảnh vẫn tải xong + ổn định, nút Tạo không bị khoá
+      const up = await waitUploaded(nImages);
+      if (!up.ok) throw new Error(notUploadedMsg(up, nImages));
+      const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled && b.getAttribute("aria-disabled") !== "true").pop(), 60000);
+      await sleep(3000);
       const oldRadios = new Set(approveRadios());
       const oldCards = new Set(videoCards());
       submit.click();
@@ -164,7 +214,8 @@
         ? `✅ Đã điền mã ${message.itemId}: ${message.files.length - 1} ảnh + kịch bản. Đang tự bấm Tạo…`
         : `⚠️ ${resp.message}`, resp.status !== "success");
       sendResponse(resp);
-      if (resp.status === "success" && message.autoRun) autoRun(message.itemId, message.output || `${message.itemId}.mp4`);
+      if (resp.status === "success" && message.autoRun) autoRun(message.itemId, message.output || `${message.itemId}.mp4`,
+        message.files.filter((f) => f.slot !== "script").length);
     });
     return true;
   });
