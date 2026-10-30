@@ -97,7 +97,7 @@
     "Both feet wear the identical pair of shoes in every shot.",
     "The shoes stay identical to Input Image 1 from the first to the last frame; never replace them with the model's own footwear.",
     "No on-screen text, prices, shop names, logos or watermarks.",
-    "The feet only stand still or walk naturally forward; no pivoting, twisting or lifting the foot to show the sole."
+    "Natural walking steps with normal heel-to-toe movement are fine; the only thing to avoid is pivoting or twisting a foot in place, or deliberately turning a foot up to show the sole."
   ],
   "lien": {
     "_ghi_chu": "Kiểu liền (MẶC ĐỊNH từ 30/10; HangTiem gõ 4 / --4-canh = kiểu 4 cảnh): 1 cảnh 10 giây không cắt; dán tối đa 6 ảnh giày đủ góc (nhìn thẳng → chéo 3/4 → góc khác → đế, anh Kha 30/10 muốn đủ góc) rồi ảnh người mẫu đã cắt từ thắt lưng trở lên (không lộ giày của người mẫu). Theo Ecosystem-Hub/docs/nghien_cuu/2026-10-30_prompt_omni_giu_giay.md: chỉ tả cái đang có, không liệt kê đồ vật trong câu phủ định. Gọi ảnh theo thứ tự dán (extension chưa gõ được @tên của Flow).",
@@ -149,7 +149,7 @@
       }
     },
     "giu_giay": "The shoes are worn on the model's feet from the very first frame to the last; never show empty shoes, and the shoes never move on their own.",
-    "dang_chan": "The feet only stand still or walk naturally forward; no pivoting, twisting or lifting the foot to show the sole."
+    "dang_chan": "Natural walking steps with normal heel-to-toe movement are fine; the only thing to avoid is pivoting or twisting a foot in place, or deliberately turning a foot up to show the sole."
   },
   "dich": {
     "giày tây": "shoes",
