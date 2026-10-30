@@ -143,7 +143,7 @@ def test_script_built_from_template_without_gemini(tmp_path):
                                      product_color="Đen", chat_lieu_de="phylon"))
     text = hang_tiem.build_script(info, cfg)
     for part in ("[ASSETS]", "[PROMPT]", "[CONSTRAINTS]", "men's slip-on loafers in black", "soft pebbled cowhide leather",
-                 "lightweight phylon foam", cfg["boi_canh"]["nhom"]["tay"][0]["setting"], "Natural footsteps on stone",
+                 "lightweight phylon foam", cfg["boi_canh"]["nhom"]["tay"][0]["setting"], cfg["boi_canh"]["nhom"]["tay"][0]["sound"],
                  cfg["model"]["nam"]):
         assert part in text
     assert "Shopee" not in text and "{" not in text
@@ -226,7 +226,7 @@ def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
     hang_tiem.write_script("JH8918N", str(item), characters_dir=str(chars))
     info = read_info(str(item))
     assert len(info["anh_lien"]) == 6 and info["nguoi_mau_lien"] == "Nam-25t_tren.jpg"
-    assert "first 6 reference images" in (item / "JH8918N.txt").read_text(encoding="utf-8")
+    assert "Tạo video người mẫu nam mang đôi giày trong ảnh" in (item / "JH8918N.txt").read_text(encoding="utf-8")
     assert not (item / "Nam-25t.png").exists()  # không chép ảnh toàn thân (lộ giày người mẫu)
     slots = [f["slot"] for f in encode_flow_files("JH8918N", assets_dir=str(tmp_path))[0]["files"]]
     assert slots == ["product"] + [f"product_{i}" for i in range(2, 7)] + ["character", "script"]
@@ -256,8 +256,8 @@ def test_lace_up_type():
 
 def test_scene_text_and_sound_follow_chosen_scene():
     cfg = hang_tiem.load_config()
-    scene = cfg["boi_canh"]["nhom"]["tay"][1]
-    info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a.jpg"] * 6, boi_canh=scene["ten"])
+    scene = scene_named(cfg, "sanh_khach_san")
+    info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a.jpg"] * 6, boi_canh=scene["ten"], chuyen_dong="lui_ra")
     text = hang_tiem.build_script(info, cfg)
     assert scene["setting"] in text and scene["sound"] in text and scene["walk"] in text
     assert "stone" not in text
@@ -288,17 +288,21 @@ def test_combo_rotation_skips_used_and_disabled_motion():
     slip = build_info("A", ROW)  # xỏ chân
     lace = build_info("B", dict(ROW, product_name="Giày tây nam cột dây B"))
     assert "mang_giay" not in hang_tiem.motions_for(slip, cfg)  # bat: false → chỉ gọi tay
-    assert hang_tiem.motions_for(lace, cfg) == ["lui_ra", "tien_vao", "song_hanh", "got_mui", "dung_yen", "day_vao", "nguoi_toi"]
+    assert hang_tiem.motions_for(lace, cfg) == ["tu_nhien"]  # 30/10: chỉ kiểu tự nhiên trong xoay vòng
     first = hang_tiem.pick_combo(slip, cfg)
     second = hang_tiem.pick_combo(slip, cfg, used=[first])
-    assert first != second and first[0] != second[0] and first[1] != second[1]  # 2 lần liền khác cả kiểu lẫn cảnh
+    assert first != second and first[1] != second[1]  # 2 lần liền khác bối cảnh
     all_combos = hang_tiem.combos_for(slip, cfg)
     assert hang_tiem.pick_combo(slip, cfg, used=all_combos) is None
 
 
+def scene_named(cfg, name):
+    return next(sc for sc in cfg["boi_canh"]["nhom"]["tay"] if sc["ten"] == name)
+
+
 def test_each_motion_text_and_popup_label():
     cfg = hang_tiem.load_config()
-    scene = cfg["boi_canh"]["nhom"]["tay"][1]
+    scene = scene_named(cfg, "sanh_khach_san")
     for motion in ("lui_ra", "tien_vao", "song_hanh", "vong_quanh", "got_mui", "mang_giay", "dung_yen", "day_vao", "nguoi_toi"):
         info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a"] * 6, chuyen_dong=motion, boi_canh=scene["ten"])
         text = hang_tiem.build_script(info, cfg)
@@ -362,7 +366,7 @@ def test_collect_and_cleanup_use_numbered_name(tmp_path):
 
 def test_lui_ra_standard_text_and_made_script_saved(tmp_path):
     cfg = hang_tiem.load_config()
-    scene = cfg["boi_canh"]["nhom"]["tay"][0]
+    scene = scene_named(cfg, "pho_co")
     info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a"] * 6, chuyen_dong="lui_ra", boi_canh=scene["ten"])
     text = hang_tiem.build_script(info, cfg)
     assert f"{scene['setting']} The model walks slowly {scene['walk']}." in text  # như bản 2093ad4
@@ -375,3 +379,18 @@ def test_lui_ra_standard_text_and_made_script_saved(tmp_path):
     assert out.endswith("A_2.txt")
     saved = open(out, encoding="utf-8").read()
     assert saved.startswith("# A_2.mp4 · kiểu lien · lui_ra · bối cảnh pho_co") and text in saved
+
+
+
+def test_tu_nhien_short_vietnamese_prompt_is_default():
+    cfg = hang_tiem.load_config()
+    for group, scenes in cfg["boi_canh"]["nhom"].items():
+        assert all(sc.get("vi") and sc.get("nhan") for sc in scenes), group
+    scene = scene_named(cfg, "truong_cong_dinh")
+    info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="tu_nhien", boi_canh=scene["ten"])
+    text = hang_tiem.build_script(info, cfg)
+    assert text == ("Tạo video người mẫu nam mang đôi giày trong ảnh, bước đi trên đường Trương Công Định, Đà Lạt. "
+                    "Video dọc 9:16. Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết).\n")
+    female = hang_tiem.build_script(dict(info, gioi_tinh="nữ", boi_canh="ca_phe_san_vuon"), cfg)
+    assert female.startswith("Tạo video người mẫu nữ") and "trong quán cà phê sân vườn" in female
+    assert hang_tiem.popup_label(info, cfg) == "tự nhiên · đường Trương Công Định"

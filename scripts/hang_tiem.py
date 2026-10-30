@@ -410,6 +410,8 @@ def build_script_lien(info: Dict, cfg: Dict) -> str:
     lien = cfg["lien"]
     scene = scene_for(info, cfg)
     motion = lien["chuyen_dong"].get(info.get("chuyen_dong") or "lui_ra") or lien["chuyen_dong"]["lui_ra"]
+    if motion.get("prompt"):  # tu_nhien: 1 câu tiếng Việt ngắn, để tác nhân Flow tự dựng cảnh (anh Kha 30/10)
+        return motion["prompt"].format(gioi="nữ" if is_female(info) else "nam", **scene) + "\n"
     camera = motion["camera"].format(walk=scene["walk"])
     giu_giay = motion.get("giu_giay") or lien.get("giu_giay", "")
     setting_line = motion.get("cau_boi_canh", "{setting}").format(setting=scene["setting"], walk=scene["walk"])

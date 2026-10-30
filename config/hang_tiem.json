@@ -2,7 +2,7 @@
   "_ghi_chu": "Mẫu kịch bản hàng tiệm (Hiệu giày Hải Nancy), ghép bằng code, 0 Gemini. Kiểu dựng theo video anh Kha chọn 30/10 (32837D). Sửa từ ngữ ở đây, không sửa trong code. {shoe} = mô tả giày ghép từ info.json.",
   "shoe": "{type} in {color}, upper made of {material}, outsole made of {sole}",
   "boi_canh": {
-    "_ghi_chu": "Bối cảnh theo loại giày (anh Kha 30/10; Phân tích tạm đặt, anh duyệt qua video thử). Mỗi nhóm 2–3 cảnh, máy xoay vòng (chỉ số lưu data/.hang_tiem_boi_canh.json) để 2 mã liền nhau không trùng. theo_loai: loại giày lấy từ tên SP → nhóm; giày nữ không khớp loại nào → nhóm nu; còn lại → mac_dinh. walk = câu sau 'The model walks slowly …'; sound = câu âm thanh riêng của cảnh. nhan = tên tiếng Việt hiện trong popup.",
+    "_ghi_chu": "Bối cảnh theo loại giày (anh Kha 30/10; Phân tích tạm đặt, anh duyệt qua video thử). Mỗi nhóm 2–3 cảnh, máy xoay vòng (chỉ số lưu data/.hang_tiem_boi_canh.json) để 2 mã liền nhau không trùng. theo_loai: loại giày lấy từ tên SP → nhóm; giày nữ không khớp loại nào → nhóm nu; còn lại → mac_dinh. walk = câu sau 'The model walks slowly …'; sound = câu âm thanh riêng của cảnh. nhan = tên tiếng Việt hiện trong popup. vi = câu bối cảnh tiếng Việt cho kiểu tu_nhien (30/10, thêm đường phố Đà Lạt; Phân tích tạm đặt, anh duyệt qua video).",
     "theo_loai": {
       "giày thể thao": "the_thao",
       "giày sandal": "nu",
@@ -15,64 +15,128 @@
     "nhom": {
       "tay": [
         {
-          "ten": "pho_co",
-          "setting": "A quiet old-town street paved with weathered stone slabs on a soft misty morning, warm diffused light, colonial-style shopfronts softly blurred in the background.",
-          "walk": "along the stone-paved street",
-          "sound": "Natural footsteps on stone, soft ambient street sound, light background music.",
-          "nhan": "phố cổ"
+          "ten": "truong_cong_dinh",
+          "nhan": "đường Trương Công Định",
+          "vi": "trên đường Trương Công Định, Đà Lạt",
+          "setting": "Truong Cong Dinh street in Da Lat, Vietnam: a gently sloping old street with French colonial shopfronts, pine trees and cool morning light.",
+          "walk": "along the sloping street",
+          "sound": "Footsteps on pavement, a quiet Da Lat street ambience, light background music."
+        },
+        {
+          "ten": "hoa_binh",
+          "nhan": "phố Hoà Bình",
+          "vi": "trên phố Hoà Bình, Đà Lạt buổi sáng",
+          "setting": "Hoa Binh area in central Da Lat, Vietnam, in the morning: busy town square streets, colonial buildings and soft highland sunlight.",
+          "walk": "along the town street",
+          "sound": "Footsteps on pavement, a lively morning street ambience, light background music."
+        },
+        {
+          "ten": "ho_xuan_huong",
+          "nhan": "hồ Xuân Hương",
+          "vi": "quanh hồ Xuân Hương, Đà Lạt",
+          "setting": "The lakeside path around Xuan Huong Lake in Da Lat, Vietnam, with pine trees and calm water softly blurred in the background, fresh morning light.",
+          "walk": "along the lakeside path",
+          "sound": "Soft footsteps on the path, gentle breeze and birdsong, light background music."
         },
         {
           "ten": "sanh_khach_san",
+          "nhan": "sảnh khách sạn",
+          "vi": "trong sảnh khách sạn sang trọng",
           "setting": "An elegant hotel lobby with a polished marble floor, warm golden lighting, tall windows and soft-focus columns in the background.",
           "walk": "across the polished marble floor",
-          "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music.",
-          "nhan": "sảnh khách sạn"
+          "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music."
         },
         {
           "ten": "via_he_van_phong",
+          "nhan": "vỉa hè văn phòng",
+          "vi": "trên vỉa hè khu văn phòng buổi sáng",
           "setting": "A clean modern sidewalk in a business district on a bright morning, glass office buildings and street trees softly blurred in the background.",
           "walk": "along the sidewalk",
-          "sound": "Footsteps on pavement, light city traffic in the distance, upbeat soft background music.",
-          "nhan": "vỉa hè văn phòng"
+          "sound": "Footsteps on pavement, light city traffic in the distance, upbeat soft background music."
+        },
+        {
+          "ten": "pho_co",
+          "nhan": "phố cổ",
+          "vi": "trên con phố cổ lát đá buổi sáng sương mù",
+          "setting": "A quiet old-town street paved with weathered stone slabs on a soft misty morning, warm diffused light, colonial-style shopfronts softly blurred in the background.",
+          "walk": "along the stone-paved street",
+          "sound": "Natural footsteps on stone, soft ambient street sound, light background music."
         }
       ],
       "the_thao": [
         {
           "ten": "duong_chay_cong_vien",
+          "nhan": "đường chạy công viên",
+          "vi": "trên đường chạy bộ trong công viên buổi sáng sớm",
           "setting": "A park running path at sunrise, fresh green trees and dewy grass, golden morning light.",
           "walk": "along the park path",
-          "sound": "Light footsteps on the path, birdsong and a gentle breeze, energetic soft background music.",
-          "nhan": "đường chạy công viên"
+          "sound": "Light footsteps on the path, birdsong and a gentle breeze, energetic soft background music."
         },
         {
           "ten": "pho_di_bo",
+          "nhan": "phố đi bộ",
+          "vi": "trên phố đi bộ buổi chiều nắng",
           "setting": "A lively pedestrian street on a sunny afternoon, colorful shopfronts and people softly blurred in the background.",
           "walk": "along the pedestrian street",
-          "sound": "Footsteps on pavement, a cheerful street ambience, upbeat background music.",
-          "nhan": "phố đi bộ"
+          "sound": "Footsteps on pavement, a cheerful street ambience, upbeat background music."
+        },
+        {
+          "ten": "ho_xuan_huong",
+          "nhan": "hồ Xuân Hương",
+          "vi": "quanh hồ Xuân Hương, Đà Lạt",
+          "setting": "The lakeside path around Xuan Huong Lake in Da Lat, Vietnam, with pine trees and calm water softly blurred in the background, fresh morning light.",
+          "walk": "along the lakeside path",
+          "sound": "Soft footsteps on the path, gentle breeze and birdsong, light background music."
         }
       ],
       "nu": [
         {
           "ten": "pho_mua_sam",
+          "nhan": "phố mua sắm",
+          "vi": "trên phố mua sắm buổi chiều nắng",
           "setting": "A stylish shopping street on a sunny afternoon, boutique windows and warm light softly blurred in the background.",
           "walk": "past the boutique windows",
-          "sound": "Light footsteps on pavement, soft street ambience, chic light background music.",
-          "nhan": "phố mua sắm"
+          "sound": "Light footsteps on pavement, soft street ambience, chic light background music."
         },
         {
           "ten": "ca_phe_san_vuon",
+          "nhan": "cà phê sân vườn",
+          "vi": "trong quán cà phê sân vườn",
           "setting": "A garden café with a tiled path, green plants and wooden tables in soft afternoon light, softly blurred in the background.",
           "walk": "along the tiled garden path",
-          "sound": "Soft footsteps on tiles, birdsong and quiet café chatter, gentle acoustic background music.",
-          "nhan": "cà phê sân vườn"
+          "sound": "Soft footsteps on tiles, birdsong and quiet café chatter, gentle acoustic background music."
+        },
+        {
+          "ten": "truong_cong_dinh",
+          "nhan": "đường Trương Công Định",
+          "vi": "trên đường Trương Công Định, Đà Lạt",
+          "setting": "Truong Cong Dinh street in Da Lat, Vietnam: a gently sloping old street with French colonial shopfronts, pine trees and cool morning light.",
+          "walk": "along the sloping street",
+          "sound": "Footsteps on pavement, a quiet Da Lat street ambience, light background music."
+        },
+        {
+          "ten": "hoa_binh",
+          "nhan": "phố Hoà Bình",
+          "vi": "trên phố Hoà Bình, Đà Lạt buổi sáng",
+          "setting": "Hoa Binh area in central Da Lat, Vietnam, in the morning: busy town square streets, colonial buildings and soft highland sunlight.",
+          "walk": "along the town street",
+          "sound": "Footsteps on pavement, a lively morning street ambience, light background music."
+        },
+        {
+          "ten": "ho_xuan_huong",
+          "nhan": "hồ Xuân Hương",
+          "vi": "quanh hồ Xuân Hương, Đà Lạt",
+          "setting": "The lakeside path around Xuan Huong Lake in Da Lat, Vietnam, with pine trees and calm water softly blurred in the background, fresh morning light.",
+          "walk": "along the lakeside path",
+          "sound": "Soft footsteps on the path, gentle breeze and birdsong, light background music."
         },
         {
           "ten": "sanh_khach_san",
+          "nhan": "sảnh khách sạn",
+          "vi": "trong sảnh khách sạn sang trọng",
           "setting": "An elegant hotel lobby with a polished marble floor, warm golden lighting, tall windows and soft-focus columns in the background.",
           "walk": "across the polished marble floor",
-          "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music.",
-          "nhan": "sảnh khách sạn"
+          "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music."
         }
       ]
     }
@@ -115,19 +179,26 @@
       "Both feet wear the same pair. Keep the shoes identical to the shoe reference images from the first to the last frame."
     ],
     "chuyen_dong": {
-      "_ghi_chu": "Kiểu chuyển động máy (anh Kha 30/10 'nhiều video ở nhiều bối cảnh'; Phân tích tạm đặt, anh duyệt qua video). Tất cả 1 cú máy liền, không cắt. Mỗi mã xoay vòng kiểu × bối cảnh chưa dùng. chi_cho = chỉ dùng cho các loại giày này (tên SP); không có = mọi loại. {walk} = câu đi lại của bối cảnh. bat: false = không vào xoay vòng tự động, chỉ dùng khi gọi tay (HangTiem gõ tên kiểu, anh Kha 30/10: mang_giay dễ lỗi). giu_giay (câu giữ giày, 30/10 sau video 3J658N mở đầu bằng giày trống tự nhảy): mặc định ở lien.giu_giay; mang_giay có câu riêng vì cảnh xỏ chân phải thấy giày trước khi mang. dang_chan (30/10 sau MT5216D méo chân khi xoay gót): không xoay / vặn / nhấc chân khoe đế ở mọi kiểu; ảnh đế vẫn đưa để giữ chi tiết. 30/10 (anh Kha): lui_ra là bản chuẩn khoá chữ; vẫn xoay vòng cả 4 kiểu để thử. cau_boi_canh = câu bối cảnh riêng của kiểu (mặc định chỉ {setting}). nhan = tên hiện trong popup (không có thì dùng tên kiểu). 30/10 theo nghiên cứu 2026-10-30_kich_ban_chuyen_dong_giay.md: thêm dung_yen / day_vao / nguoi_toi (rủi ro thấp); tắt vong_quanh (rủi ro cao). co_buoc: true = kiểu có bước đi → thêm câu lien.buoc_di; lui_ra là bản chuẩn khoá chữ nên chưa thêm (chờ anh duyệt).",
+      "_ghi_chu": "Kiểu chuyển động máy (anh Kha 30/10 'nhiều video ở nhiều bối cảnh'; Phân tích tạm đặt, anh duyệt qua video). Tất cả 1 cú máy liền, không cắt. Mỗi mã xoay vòng kiểu × bối cảnh chưa dùng. chi_cho = chỉ dùng cho các loại giày này (tên SP); không có = mọi loại. {walk} = câu đi lại của bối cảnh. bat: false = không vào xoay vòng tự động, chỉ dùng khi gọi tay (HangTiem gõ tên kiểu, anh Kha 30/10: mang_giay dễ lỗi). giu_giay (câu giữ giày, 30/10 sau video 3J658N mở đầu bằng giày trống tự nhảy): mặc định ở lien.giu_giay; mang_giay có câu riêng vì cảnh xỏ chân phải thấy giày trước khi mang. dang_chan (30/10 sau MT5216D méo chân khi xoay gót): không xoay / vặn / nhấc chân khoe đế ở mọi kiểu; ảnh đế vẫn đưa để giữ chi tiết. 30/10 (anh Kha): lui_ra là bản chuẩn khoá chữ; vẫn xoay vòng cả 4 kiểu để thử. cau_boi_canh = câu bối cảnh riêng của kiểu (mặc định chỉ {setting}). nhan = tên hiện trong popup (không có thì dùng tên kiểu). 30/10 theo nghiên cứu 2026-10-30_kich_ban_chuyen_dong_giay.md: thêm dung_yen / day_vao / nguoi_toi (rủi ro thấp); tắt vong_quanh (rủi ro cao). co_buoc: true = kiểu có bước đi → thêm câu lien.buoc_di; lui_ra là bản chuẩn khoá chữ nên chưa thêm (chờ anh duyệt). 30/10 (anh Kha \"làm\"): bỏ kịch bản dài gò bó → tu_nhien (prompt tiếng Việt ngắn, để tác nhân Flow tự sáng tạo) là MẶC ĐỊNH, duy nhất trong xoay vòng; mọi kiểu cũ bat: false (gọi tay được). prompt = cả kịch bản của kiểu (thay lien.prompt).",
+      "tu_nhien": {
+        "nhan": "tự nhiên",
+        "prompt": "Tạo video người mẫu {gioi} mang đôi giày trong ảnh, bước đi {vi}. Video dọc 9:16. Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết)."
+      },
       "lui_ra": {
         "_ban_chuan": "bản chuẩn — không sửa chữ nếu anh chưa duyệt (anh Kha 30/10: khoá theo bản JH8918N đạt, commit 2093ad4; chỉ đổi câu mở đầu 'model's feet wearing the shoes', thêm giu_giay, dang_chan; bối cảnh xoay vòng qua {setting} / {walk} / {sound})",
         "cau_boi_canh": "{setting} The model walks slowly {walk}.",
-        "camera": "Handheld-style camera, one continuous move: it opens on an extreme close-up of the model's feet wearing the shoes, showing the leather and every detail, then slowly and continuously pulls back (dolly out) to gradually reveal the model walking {walk}. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame. The same shoes from the opening close-up remain on the model's feet throughout the pull-back."
+        "camera": "Handheld-style camera, one continuous move: it opens on an extreme close-up of the model's feet wearing the shoes, showing the leather and every detail, then slowly and continuously pulls back (dolly out) to gradually reveal the model walking {walk}. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame. The same shoes from the opening close-up remain on the model's feet throughout the pull-back.",
+        "bat": false
       },
       "tien_vao": {
         "camera": "Handheld-style camera, one continuous move: the model walks toward the camera {walk}, starting from a distance; the camera lowers and slowly moves in, keeping the shoes clearly visible, until the model stops and the shot ends on an extreme close-up of the toes of both shoes. The same shoes stay on the model's feet throughout the move.",
-        "co_buoc": true
+        "co_buoc": true,
+        "bat": false
       },
       "song_hanh": {
         "camera": "Handheld-style camera, one continuous move: the camera tracks alongside the model at ankle height, in rhythm with each step, as the model walks {walk}; the shoes fill most of the frame in side profile. At the end the model stops with both feet flat on the ground. The same shoes stay on the model's feet throughout the move.",
-        "co_buoc": true
+        "co_buoc": true,
+        "bat": false
       },
       "mang_giay": {
         "bat": false,
@@ -152,20 +223,24 @@
       "got_mui": {
         "nhan": "gót → mũi",
         "camera": "Handheld-style camera, one continuous move: the model stands still with both feet flat on the ground, wearing the shoes. The camera moves low and close to the shoes, gliding from behind the heels, around the side, to the front of the toes; only the camera moves, the feet stay still. From the front of the toes the camera then slowly pulls back as the model starts walking {walk} toward the camera. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame.",
-        "co_buoc": true
+        "co_buoc": true,
+        "bat": false
       },
       "dung_yen": {
         "nhan": "đứng yên",
-        "camera": "Static locked-off camera low at ankle height, framed from the knees down; the shoes stay large in the frame for the whole clip. The model stands still and gently shifts weight from one foot to the other."
+        "camera": "Static locked-off camera low at ankle height, framed from the knees down; the shoes stay large in the frame for the whole clip. The model stands still and gently shifts weight from one foot to the other.",
+        "bat": false
       },
       "day_vao": {
         "nhan": "đẩy vào",
-        "camera": "The model stands still with both feet flat on the ground, wearing the shoes. The camera starts at shin height, framed from the knees down, and slowly pushes in (dolly in) toward the shoes, ending on a close-up of the toes of both shoes."
+        "camera": "The model stands still with both feet flat on the ground, wearing the shoes. The camera starts at shin height, framed from the knees down, and slowly pushes in (dolly in) toward the shoes, ending on a close-up of the toes of both shoes.",
+        "bat": false
       },
       "nguoi_toi": {
         "nhan": "người tới",
         "co_buoc": true,
-        "camera": "Static locked-off camera low at shin height, framed from the knees down. The model walks slowly toward the camera {walk}, then stops with both feet close to the camera, the shoes large in the frame."
+        "camera": "Static locked-off camera low at shin height, framed from the knees down. The model walks slowly toward the camera {walk}, then stops with both feet close to the camera, the shoes large in the frame.",
+        "bat": false
       }
     },
     "giu_giay": "The shoes are worn on the model's feet from the very first frame to the last; never show empty shoes, and the shoes never move on their own.",
@@ -218,5 +293,6 @@
     "phylon": "lightweight phylon foam",
     "pu": "PU",
     "eva": "EVA foam"
-  }
+  },
+  "_ghi_chu_4_canh": "Kiểu 4 cảnh (shots / fidelity_rules…) tắt từ 30/10, chỉ chạy khi gọi tay --4-canh / HangTiem gõ 4."
 }
