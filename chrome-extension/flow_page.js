@@ -179,7 +179,9 @@
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: true, message: `⏳ Mã ${itemId}: đã bấm Tạo trên Flow.` });
       showToast(`⏳ Mã ${itemId}: đã bấm Tạo, chờ Flow hỏi phê duyệt…`);
 
-      const radio = await step("Phê duyệt", () => approveRadios().filter((r) => isNew(r, oldRadios) && r.getAttribute("aria-checked") !== "true").pop(), 120000);
+      // 30/10: dự án cũ "Test Omni" bị kẹt phiên tác nhân — gửi đi mà không có phản hồi → báo rõ sau 90 giây
+      const radio = await step("Phê duyệt", () => approveRadios().filter((r) => isNew(r, oldRadios) && r.getAttribute("aria-checked") !== "true").pop(), 90000)
+        .catch(() => { throw new Error("dự án Flow không phản hồi sau 90 giây (không thấy hỏi Phê duyệt) — anh thử tạo dự án Flow mới rồi bấm lại"); });
       await sleep(1000);
       radio.click();
       const approvedAt = Date.now();
