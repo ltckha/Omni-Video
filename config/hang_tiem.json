@@ -67,6 +67,24 @@
           "walk": "along the stone-paved street",
           "sound": "Natural footsteps on stone, soft ambient street sound, light background music.",
           "ngoi": "trên bậc thềm phố cổ lát đá"
+        },
+        {
+          "ten": "doc_nha_bo",
+          "nhan": "Dốc Nhà Bò",
+          "vi": "trên Dốc Nhà Bò, Đà Lạt",
+          "ngoi": "trên bậc thềm ở Dốc Nhà Bò, Đà Lạt",
+          "setting": "Doc Nha Bo, a steep old street in Da Lat, Vietnam, lined with small colourful houses and pine trees, cool highland morning light.",
+          "walk": "along the sloping street",
+          "sound": "Footsteps on pavement, a quiet hillside street ambience, light background music."
+        },
+        {
+          "ten": "doi_che_cau_dat",
+          "nhan": "Đồi chè Cầu Đất",
+          "vi": "giữa Đồi chè Cầu Đất, Đà Lạt",
+          "ngoi": "trên tảng đá giữa Đồi chè Cầu Đất, Đà Lạt",
+          "setting": "The Cau Dat tea hills near Da Lat, Vietnam: rolling rows of green tea bushes, morning mist and soft sunlight.",
+          "walk": "along the path between the tea rows",
+          "sound": "Soft footsteps on the dirt path, gentle breeze and birdsong, light background music."
         }
       ],
       "the_thao": [
@@ -96,6 +114,24 @@
           "walk": "along the lakeside path",
           "sound": "Soft footsteps on the path, gentle breeze and birdsong, light background music.",
           "ngoi": "trên ghế đá bên hồ Xuân Hương, Đà Lạt"
+        },
+        {
+          "ten": "doc_nha_bo",
+          "nhan": "Dốc Nhà Bò",
+          "vi": "trên Dốc Nhà Bò, Đà Lạt",
+          "ngoi": "trên bậc thềm ở Dốc Nhà Bò, Đà Lạt",
+          "setting": "Doc Nha Bo, a steep old street in Da Lat, Vietnam, lined with small colourful houses and pine trees, cool highland morning light.",
+          "walk": "along the sloping street",
+          "sound": "Footsteps on pavement, a quiet hillside street ambience, light background music."
+        },
+        {
+          "ten": "doi_che_cau_dat",
+          "nhan": "Đồi chè Cầu Đất",
+          "vi": "giữa Đồi chè Cầu Đất, Đà Lạt",
+          "ngoi": "trên tảng đá giữa Đồi chè Cầu Đất, Đà Lạt",
+          "setting": "The Cau Dat tea hills near Da Lat, Vietnam: rolling rows of green tea bushes, morning mist and soft sunlight.",
+          "walk": "along the path between the tea rows",
+          "sound": "Soft footsteps on the dirt path, gentle breeze and birdsong, light background music."
         }
       ],
       "nu": [
@@ -152,6 +188,24 @@
           "walk": "across the polished marble floor",
           "sound": "Crisp footsteps echoing on marble, a quiet lobby murmur, soft lounge piano music.",
           "ngoi": "trên ghế sofa sảnh khách sạn sang trọng"
+        },
+        {
+          "ten": "doc_nha_bo",
+          "nhan": "Dốc Nhà Bò",
+          "vi": "trên Dốc Nhà Bò, Đà Lạt",
+          "ngoi": "trên bậc thềm ở Dốc Nhà Bò, Đà Lạt",
+          "setting": "Doc Nha Bo, a steep old street in Da Lat, Vietnam, lined with small colourful houses and pine trees, cool highland morning light.",
+          "walk": "along the sloping street",
+          "sound": "Footsteps on pavement, a quiet hillside street ambience, light background music."
+        },
+        {
+          "ten": "doi_che_cau_dat",
+          "nhan": "Đồi chè Cầu Đất",
+          "vi": "giữa Đồi chè Cầu Đất, Đà Lạt",
+          "ngoi": "trên tảng đá giữa Đồi chè Cầu Đất, Đà Lạt",
+          "setting": "The Cau Dat tea hills near Da Lat, Vietnam: rolling rows of green tea bushes, morning mist and soft sunlight.",
+          "walk": "along the path between the tea rows",
+          "sound": "Soft footsteps on the dirt path, gentle breeze and birdsong, light background music."
         }
       ]
     }
