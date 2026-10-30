@@ -44,7 +44,8 @@
     const dt = new DataTransfer();
     for (const file of files) dt.items.add(new File([b64ToBytes(file.b64)], file.name, { type: file.mime }));
     paste(box, dt);
-    return waitFor(() => chipCount() >= before + files.length, 30000);
+    // 7 ảnh (6 giày + người mẫu) tải lên lâu hơn 2–3 ảnh → chờ tới 90 giây (30/10: 3J658N kẹt sau khi dán ảnh)
+    return waitFor(() => chipCount() >= before + files.length, 90000);
   }
 
   function showToast(msg, isError) {
@@ -68,11 +69,12 @@
     if (!(await pasteImages(box, images))) {
       return { status: "error", message: `Flow chưa nhận đủ ${images.length} ảnh (đang có ${chipCount()}) — anh tải lại trang Flow rồi thử lại.` };
     }
-    // Flow vẽ lại ô câu lệnh khi gắn ảnh -> tìm lại ô mới trước khi dán kịch bản, thử tối đa 3 lần
+    // Flow vẽ lại ô câu lệnh khi gắn ảnh (và có thể khoá ô khi ảnh còn đang tải lên) -> tìm lại ô mới rồi dán
+    // kịch bản, thử lại tới ~60 giây
     const scriptText = new TextDecoder().decode(b64ToBytes(byslot.script.b64));
     const hasScript = () => { const b = promptBox(); return b && b.innerText.trim().length > 50; };
-    for (let attempt = 0; attempt < 3 && !hasScript(); attempt++) {
-      await new Promise((r) => setTimeout(r, 1000));
+    for (let attempt = 0; attempt < 15 && !hasScript(); attempt++) {
+      await new Promise((r) => setTimeout(r, attempt < 3 ? 1000 : 3000));
       const current = promptBox();
       if (!current) continue;
       const dt = new DataTransfer();
@@ -81,7 +83,9 @@
       await waitFor(hasScript, 3000);
     }
     if (!hasScript()) {
-      return { status: "error", message: `Đã gắn ${images.length} ảnh nhưng chưa dán được kịch bản — anh mở Product_Assets/${message.itemId}/${message.itemId}.txt dán tay rồi bấm Tạo.` };
+      const b = promptBox();
+      console.warn("[Omni] chưa dán được kịch bản", { chips: chipCount(), box: !!b, text: b ? b.innerText.length : -1 });
+      return { status: "error", message: `Đã gắn ${chipCount()}/${images.length} ảnh nhưng chưa dán được kịch bản (ô câu lệnh ${b ? "có" : "không thấy"}) — anh mở Product_Assets/${message.itemId}/${message.itemId}.txt dán tay rồi bấm Tạo.` };
     }
     return { status: "success" };
   }
@@ -115,13 +119,14 @@
   const isNew = (el, oldSet) => !oldSet.has(el);
   const after = (el, ref) => !ref || (ref.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-  async function autoRun(itemId) {
+  async function autoRun(itemId, output) {
     try {
       const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled).pop(), 60000);
       await sleep(3000);  // chờ ảnh tải lên xong
       const oldRadios = new Set(approveRadios());
       const oldCards = new Set(videoCards());
       submit.click();
+      chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: true, message: `⏳ Mã ${itemId}: đã bấm Tạo trên Flow.` });
       showToast(`⏳ Mã ${itemId}: đã bấm Tạo, chờ Flow hỏi phê duyệt…`);
 
       const radio = await step("Phê duyệt", () => approveRadios().filter((r) => isNew(r, oldRadios) && r.getAttribute("aria-checked") !== "true").pop(), 120000);
@@ -141,14 +146,14 @@
       dl.click();
       const item720 = await step("chọn 720p", () => [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.includes("720p")), 10000);
       item720.click();
-      showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${itemId}.mp4 (Chrome hỏi Save thì anh bấm Save).`);
+      showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
 
       await sleep(5000);
       const done = byLabel("Đã chỉnh sửa xong cảnh")[0];
       if (done) done.click();
     } catch (e) {
       showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
-      chrome.storage.local.remove("flowActiveItem");
+      chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${itemId}: ${e.message}` });
     }
   }
 
@@ -159,7 +164,7 @@
         ? `✅ Đã điền mã ${message.itemId}: ${message.files.length - 1} ảnh + kịch bản. Đang tự bấm Tạo…`
         : `⚠️ ${resp.message}`, resp.status !== "success");
       sendResponse(resp);
-      if (resp.status === "success" && message.autoRun) autoRun(message.itemId);
+      if (resp.status === "success" && message.autoRun) autoRun(message.itemId, message.output || `${message.itemId}.mp4`);
     });
     return true;
   });

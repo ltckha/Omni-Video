@@ -27,6 +27,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
   } else if (message.action === "FLOW_FILL" && message.itemId) {
     fillFlowTool(message.itemId).then(sendResponse);
+  } else if (message.action === "FLOW_RESULT") {  // flow_page.js báo kết quả / lỗi các bước tự chạy
+    setFlowResult(message.ok, message.message);
+    if (!message.ok) chrome.storage.local.remove("flowActiveItem");
+    sendResponse({ status: "success" });
   } else if (message.action === "FLOW_CLEAR") {
     chrome.storage.local.remove("flowActiveItem", () => sendResponse({ status: "success" }));
   }
@@ -59,9 +63,33 @@ function loadFlowFiles(itemId) {
   });
 }
 
+// Popup đóng ngay khi tab Flow được đưa lên trước → mọi lỗi phải lưu flowLastResult để mở lại popup còn thấy (30/10)
+function setFlowResult(ok, message) {
+  chrome.storage.local.set({ flowLastResult: { ok: ok, message: message, at: Date.now() } });
+  chrome.action.setBadgeBackgroundColor({ color: ok ? "#2e7d32" : "#d32f2f" });
+  chrome.action.setBadgeText({ text: ok ? "OK" : "!" });
+}
+
+// Nhiều tab dự án Flow: ưu tiên tab đang mở trong cửa sổ vừa dùng, rồi tab Flow vừa xem gần nhất (không lấy [0])
+async function pickFlowTab() {
+  const isProject = (t) => /^https:\/\/flow\.google\.com\/project\//.test(t.url || "") && !/\/tool\//.test(t.url || "");
+  const [current] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (current && isProject(current)) return current;
+  const tabs = (await chrome.tabs.query({ url: "https://flow.google.com/project/*" })).filter(isProject);
+  tabs.sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+  return tabs[0] || null;
+}
+
 async function fillFlowTool(itemId) {
-  const tabs = await chrome.tabs.query({ url: "https://flow.google.com/project/*" });
-  const projectTab = tabs.find((t) => t.active) || tabs.find((t) => !/\/tool\//.test(t.url || "")) || tabs[0];
+  const resp = await fillFlowToolInner(itemId);
+  if (!resp || resp.status !== "success") {
+    setFlowResult(false, `⚠️ Mã ${itemId}: ${(resp && resp.message) || "lỗi không rõ"}`);
+  }
+  return resp;
+}
+
+async function fillFlowToolInner(itemId) {
+  const projectTab = await pickFlowTab();
   if (!projectTab) {
     return { status: "error", message: "Chưa mở dự án Google Flow — anh mở dự án (vd Omni-Video) trước." };
   }
@@ -72,7 +100,7 @@ async function fillFlowTool(itemId) {
   try {
     // Đặt trước tên file tải về: <itemId>.mp4, hàng tiệm <MÃ>_2.mp4… theo native host (content script tự chạy tới bước Tải)
     await chrome.storage.local.set({ flowActiveItem: { itemId: itemId, output: loaded.output || `${itemId}.mp4`, since: Date.now() } });
-    resp = await chrome.tabs.sendMessage(projectTab.id, { action: "FLOW_FILL", itemId: itemId, files: loaded.files, autoRun: true });
+    resp = await chrome.tabs.sendMessage(projectTab.id, { action: "FLOW_FILL", itemId: itemId, output: loaded.output, files: loaded.files, autoRun: true });
   } catch (e) {
     resp = { status: "error", message: "Trang Flow chưa nạp extension — anh tải lại trang Flow (Cmd+R) rồi bấm lại." };
   }
@@ -115,9 +143,7 @@ chrome.downloads.onChanged.addListener((delta) => {
     const ok = !chrome.runtime.lastError && resp && resp.status === "success";
     const detail = chrome.runtime.lastError ? chrome.runtime.lastError.message : (resp && resp.message) || "";
     const message = ok ? `✅ Đã lưu video: ${resp.movedTo || itemId + ".mp4"}` : `⚠️ Chưa chuyển được video ${itemId}: ${detail}`;
-    chrome.storage.local.set({ flowLastResult: { ok: ok, message: message, at: Date.now() } });
-    chrome.action.setBadgeBackgroundColor({ color: ok ? "#2e7d32" : "#d32f2f" });
-    chrome.action.setBadgeText({ text: ok ? "OK" : "!" });
+    setFlowResult(ok, message);
   });
 });
 
