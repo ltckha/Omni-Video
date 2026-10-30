@@ -124,7 +124,7 @@ def encode_flow_files(item_id: str, assets_dir: str = ASSETS_DIR, chunk_size: in
     item_dir = os.path.join(assets_dir, item_id)
     info = read_info(item_dir)
     if info.get("kieu") == "lien" and info.get("anh_lien"):
-        # hàng tiệm kiểu liền: 3 ảnh giày (chéo 3/4, ngang hông, đế) → người mẫu cắt từ thắt lưng → kịch bản
+        # hàng tiệm kiểu liền: ảnh giày đủ góc (thẳng → 3/4 → góc khác → đế) → người mẫu cắt từ thắt lưng → kịch bản
         ordered = [("product" if i == 1 else f"product_{i}", os.path.join(item_dir, name))
                    for i, name in enumerate(info["anh_lien"], start=1)]
         if info.get("nguoi_mau_lien"):

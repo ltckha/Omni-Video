@@ -24,16 +24,16 @@
     "No on-screen text, prices, shop names, logos or watermarks."
   ],
   "lien": {
-    "_ghi_chu": "Kiểu liền (HangTiem --lien, anh Kha 30/10 thử để so): 1 cảnh 10 giây không cắt; dán 3 ảnh giày (chéo 3/4 → ngang hông → đế) rồi ảnh người mẫu đã cắt từ thắt lưng trở lên (không lộ giày của người mẫu). Theo Ecosystem-Hub/docs/nghien_cuu/2026-10-30_prompt_omni_giu_giay.md: chỉ tả cái đang có, không liệt kê đồ vật trong câu phủ định. Gọi ảnh theo thứ tự dán (extension chưa gõ được @tên của Flow).",
+    "_ghi_chu": "Kiểu liền (HangTiem --lien, anh Kha 30/10 thử để so): 1 cảnh 10 giây không cắt; dán tối đa 6 ảnh giày đủ góc (nhìn thẳng → chéo 3/4 → góc khác → đế, anh Kha 30/10 muốn đủ góc) rồi ảnh người mẫu đã cắt từ thắt lưng trở lên (không lộ giày của người mẫu). Theo Ecosystem-Hub/docs/nghien_cuu/2026-10-30_prompt_omni_giu_giay.md: chỉ tả cái đang có, không liệt kê đồ vật trong câu phủ định. Gọi ảnh theo thứ tự dán (extension chưa gõ được @tên của Flow).",
     "cat_nguoi_mau": 0.5,
     "prompt": [
       "Vertical 9:16, 10 seconds, single continuous shot, no scene cuts.",
-      "The shoes are the {type} in {color} shown in the first three reference images: the first is a three-quarter view, the second is the side profile, the third is the sole. Upper made of {material}. These three images are the only source of truth for the shape and every detail of the shoes.",
-      "The fourth reference image is the {model_word} model, upper body only: use it for the face, body and outfit; the shoes come only from the first three images.",
+      "The shoes are the {type} in {color} shown in the first {n} reference images, which show the same pair from different angles (front, three-quarter, side, back, sole). Upper made of {material}. These shoe images are the only source of truth for the shape and every detail of the shoes.",
+      "The last reference image is the {model_word} model, upper body only: use it for the face, body and outfit; the shoes come only from the shoe images.",
       "{setting} The model walks slowly along the street.",
       "Handheld-style camera, one continuous move: it opens on an extreme close-up of the shoes, showing the leather and every detail, then slowly and continuously pulls back (dolly out) to gradually reveal the model walking along the street. It ends on a wider frame of the model walking, with the shoes still clearly visible in the lower half of the frame. The same shoes from the opening close-up remain on the model's feet throughout the pull-back.",
       "Shallow depth of field. Natural footsteps on stone, soft ambient street sound, light background music. No speech, no on-screen text.",
-      "Both feet wear the same pair. Keep the shoes identical to the first three reference images from the first to the last frame."
+      "Both feet wear the same pair. Keep the shoes identical to the shoe reference images from the first to the last frame."
     ]
   },
   "dich": {

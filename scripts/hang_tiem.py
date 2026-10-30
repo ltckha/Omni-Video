@@ -11,7 +11,7 @@ Video Flow cho giày tiệm Hiệu giày Hải Nancy, theo mã tiệm (vd JH8918
 3. Sau khi tải từ Flow, video để nguyên ~/Downloads/<mã>.mp4 cho luồng gom của HNC; thư mục tạm tự dọn khi video đã rời Downloads.
 
 Kiểu dựng (anh Kha 30/10 "thử 1 bản mới để so"): mặc định 4 cảnh + ảnh người mẫu; --lien = 1 cảnh liền 10 giây,
-3 ảnh giày (chéo 3/4, ngang hông, đế — chọn tự động, xem pick_lien_images) + ảnh người mẫu cắt từ thắt lưng trở lên.
+tối đa 6 ảnh giày đủ góc (thẳng → 3/4 → góc khác → đế, xem pick_lien_images) + ảnh người mẫu cắt từ thắt lưng trở lên.
 
 Dùng: python scripts/hang_tiem.py [--lien] <mã> [<mã> …]    (HangTiem.command hỏi mã + kiểu rồi chạy lệnh này)
 """
@@ -254,25 +254,34 @@ def _number_order(path: str) -> list:
     return [int(t) if t.isdigit() else t for t in re.split(r"(\d+)", os.path.basename(path).lower())]
 
 
-def pick_lien_images(item_dir: str, shape=image_shape) -> List[str]:
-    """3 ảnh giày cho kiểu liền: [chéo 3/4, ngang hông, đế].
+LIEN_MAX_SHOES = 6  # Flow nhận tối đa 7 ảnh (flow_helper.MAX_FLOW_IMAGES) = 6 ảnh giày + 1 ảnh người mẫu
+
+
+def pick_lien_images(item_dir: str, shape=image_shape, max_shoes: int = LIEN_MAX_SHOES) -> List[str]:
+    """Ảnh giày cho kiểu liền, đủ góc (anh Kha 30/10): cặp nhìn thẳng → chéo 3/4 → các góc còn lại (theo số) → đế cuối.
     - đế = ảnh số cuối (ảnh tiệm luôn chụp đế sau cùng: JH8918N_9, 32837N web 8);
-    - ngang hông = ảnh còn lại có khung giày bẹt nhất (rộng/cao lớn nhất);
-    - chéo 3/4 = trong ảnh rộng/cao 1,3–1,9 lấy ảnh độ đặc thấp nhất (1 chiếc đứng chéo, không phải cả đôi
-      chụp thẳng / chụp sau); không có thì lấy ảnh số nhỏ nhất còn lại.
-    Ít hơn 3 ảnh thì trả hết ảnh đang có."""
+    - nhìn thẳng = khung giày cao hơn rộng nhất (rộng/cao < 1,1);
+    - chéo 3/4 = trong ảnh rộng/cao 1,3–1,9 lấy ảnh độ đặc thấp nhất (1 chiếc đứng chéo);
+    - quá max_shoes thì bỏ dần ảnh ở giữa có tỉ lệ khung gần ảnh khác nhất (góc gần trùng)."""
     images = sorted((f for f in glob.glob(os.path.join(item_dir, "*"))
                      if f.lower().endswith(IMAGE_EXTS) and not os.path.basename(f).lower().startswith(("nu-", "nam-"))),
                     key=_number_order)
-    if len(images) <= 3:
+    if len(images) <= 2:
         return [os.path.basename(f) for f in images]
     sole, rest = images[-1], images[:-1]
     shapes = {f: shape(f) for f in rest}
-    side = max(rest, key=lambda f: shapes[f][0])
-    rest = [f for f in rest if f != side]
-    three_q = [f for f in rest if 1.3 <= shapes[f][0] <= 1.9]
-    angle = min(three_q, key=lambda f: shapes[f][1]) if three_q else rest[0]
-    return [os.path.basename(f) for f in (angle, side, sole)]
+    head = []
+    front = min(rest, key=lambda f: shapes[f][0])
+    if shapes[front][0] < 1.1:
+        head.append(front)
+    three_q = [f for f in rest if f not in head and 1.3 <= shapes[f][0] <= 1.9]
+    if three_q:
+        head.append(min(three_q, key=lambda f: shapes[f][1]))
+    middle = [f for f in rest if f not in head]
+    while middle and len(head) + len(middle) + 1 > max_shoes:
+        kept = head + middle
+        middle.remove(min(middle, key=lambda f: min(abs(shapes[f][0] - shapes[g][0]) for g in kept if g != f)))
+    return [os.path.basename(f) for f in head + middle + [sole]]
 
 
 def crop_model_upper(src: str, item_dir: str, keep: float) -> str:
@@ -285,10 +294,11 @@ def crop_model_upper(src: str, item_dir: str, keep: float) -> str:
 
 
 def build_script_lien(info: Dict, cfg: Dict) -> str:
-    """Kiểu liền: 1 cảnh 10 giây, chỉ tả đúng kiểu giày + màu + chất liệu mặt, gọi ảnh theo thứ tự dán (3 giày + người mẫu)."""
+    """Kiểu liền: 1 cảnh 10 giây, chỉ tả đúng kiểu giày + màu + chất liệu mặt, gọi ảnh theo thứ tự dán (ảnh giày trước, người mẫu sau cùng)."""
     p = describe_shoe(info, cfg)
     lien = cfg["lien"]
-    return "\n".join(line.format(**p, model_word="female" if is_female(info) else "male", setting=cfg["setting"])
+    return "\n".join(line.format(**p, n=len(info.get("anh_lien") or []) or "", setting=cfg["setting"],
+                                 model_word="female" if is_female(info) else "male")
                      for line in lien["prompt"]) + "\n"
 
 
@@ -385,7 +395,7 @@ def main(argv: List[str]) -> int:
             n_img = len([f for f in os.listdir(os.path.join(ASSETS_DIR, code)) if f.lower().endswith(IMAGE_EXTS)])
             chosen = read_info(item_dir).get("anh_lien")
             print(f"✅ {code}: {row.get('product_name', '').strip()} — "
-                  + (f"kiểu liền, 3 ảnh: {', '.join(chosen)}" if chosen else f"4 cảnh, {n_img} ảnh"))
+                  + (f"kiểu liền, {len(chosen)} ảnh giày + người mẫu: {', '.join(chosen)}" if chosen else f"4 cảnh, {n_img} ảnh"))
         else:
             print(f"❌ {code}: chưa có ảnh (NAS HNC_Master / web / image_01… đều trống) — bỏ qua.")
     print(f"\n📦 Sẵn sàng {len(ok)}/{len(codes)} mã. Đã có kịch bản — mở Flow, bấm extension → Tạo video.")
