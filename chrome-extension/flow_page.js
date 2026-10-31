@@ -183,15 +183,22 @@
     }
     return out;
   };
-  const topVideoKey = () => (gridVideos()[0] || {}).key || "";
-  // Video mới của mã đang làm = ô đầu lưới, và: khác ô đầu lúc bấm Tạo (beforeKey), hoặc (không có beforeKey, vd sau
-  // khi tải lại trang) trùng ảnh nút mở video của lượt cuối trong khung chat. Không chắc → null (không lấy video cũ).
-  const newGridVideo = (beforeKey) => {
-    const top = gridVideos()[0];
-    if (!top) return null;
-    if (typeof beforeKey === "string") return top.key !== beforeKey ? top : null;
+  const openButtons = () => [...document.querySelectorAll(`[aria-label="${OPEN_VIDEO}"]`)];
+  const chatKey = (btn) => (btn ? assetKey(btn.querySelector('img[src*="/asb/"]')) : "");
+  const turnSnapshot = () => ({ chatKey: chatKey(openButtons().pop()), openCount: openButtons().length });
+  // Video của lượt này — CHỐNG NHẦM (31/10: v1.8.0 tải nhầm video G2506N thành CT2637D_1). Phải đủ:
+  //  1. nút "Mở video trong trình chỉnh sửa" nằm sau "Phê duyệt" cuối khung chat, <id> ảnh khác nút cuối lúc bấm Tạo
+  //     (before.chatKey) và số nút tăng so với lúc bấm Tạo (before.openCount, khi còn biết);
+  //  2. trong lưới có ô video cùng <id> đó (tải đúng ô đó).
+  // (3. ≥ 60 giây sau Phê duyệt: vòng chờ trong autoRun.) Thiếu 1 điều → null, không tải.
+  const turnVideo = (before) => {
+    if (!before || typeof before.chatKey !== "string") return null;
     const chat = latestTurnVideo();
-    return chat && assetKey(chat.querySelector("img")) === top.key ? top : null;
+    const key = chatKey(chat);
+    if (!key || key === before.chatKey) return null;
+    if (typeof before.openCount === "number" && openButtons().length <= before.openCount) return null;
+    const tile = gridVideos().find((v) => v.key === key);
+    return tile ? { chat, key, tile } : null;
   };
   const QUEUED_TEXT = /hàng chờ xử lý|lượng yêu cầu cao|đang chờ xử lý/i;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -263,8 +270,12 @@
   async function gridDownload(tile) {
     let box = tile.el;  // khung ô chứa ảnh; nút ⋮ có thể nằm ở khung ngoài hơn
     for (let i = 0; i < 4 && box && !box.querySelector('[aria-label="Tuỳ chọn khác"]'); i++) box = box.parentElement;
-    const more = box && box.querySelector('[aria-label="Tuỳ chọn khác"]');
-    if (!more) return false;
+    if (!box) return false;
+    // khung phải là ĐÚNG 1 ô: 1 nút ⋮ và chỉ ảnh của video này — không thì có thể bấm ⋮ của ô khác
+    const keys = new Set([...box.querySelectorAll('img[src*="/asb/"]')].map(assetKey));
+    const mores = box.querySelectorAll('[aria-label="Tuỳ chọn khác"]');
+    if (mores.length !== 1 || keys.size !== 1 || !keys.has(tile.key)) return false;
+    const more = mores[0];
     box.scrollIntoView({ block: "center" });
     hover(box); hover(tile.el); hover(tile.caption);
     await sleep(600);
@@ -283,16 +294,18 @@
   // Tải video của lượt cuối: mở trình chỉnh sửa (/edit/…) → "Tải nội dung nghe nhìn xuống" → 720p (nếu có menu) →
   // background đặt tên <output> (onDeterminingFilename theo flowActiveItem) → "Xong" quay về dự án. Mỗi bước tự bấm lại
   // tới 3 lần nếu Flow chưa phản hồi. Lượt cuối chưa có video (Flow còn tạo / xếp hàng) → báo chưa có, không lấy video cũ.
-  async function downloadNew(itemId, output, beforeKey) {
-    const tile = newGridVideo(beforeKey);
-    if (tile && await gridDownload(tile)) {
+  async function downloadNew(itemId, output, before) {
+    if (!before || typeof before.chatKey !== "string")
+      throw new Error(`không chắc video nào là của mã ${itemId} (thiếu mốc lúc bấm Tạo) — anh tải tay, em ghi đã tải`);
+    const turn = turnVideo(before);
+    if (!turn) throw new Error(`chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
+    if (await gridDownload(turn.tile)) {
       showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
       return;
     }
-    // Dự phòng (B): mở trình chỉnh sửa từ nút của lượt cuối trong khung chat
-    if (!latestTurnVideo()) throw new Error(`chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
+    // Dự phòng (B): mở trình chỉnh sửa từ đúng nút của lượt này trong khung chat
     const dlBtn = () => byLabel("Tải nội dung nghe nhìn xuống")[0];
-    const dl = dlBtn() || await clickUntil(latestTurnVideo, dlBtn, 3, 10000);
+    const dl = await clickUntil(() => turn.chat, dlBtn, 3, 10000);
     if (!dl) throw new Error(`bấm "Mở video" 3 lần mà Flow chưa mở trình chỉnh sửa — anh mở video rồi bấm "⬇ Tải lại video"`);
     await sleep(1000);
     const t0 = Date.now();
@@ -320,9 +333,9 @@
       const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled && b.getAttribute("aria-disabled") !== "true").pop(), 60000);
       await sleep(3000);
       const oldRadios = new Set(approveRadios());
-      const beforeKey = topVideoKey();  // ô video đầu lưới lúc bấm Tạo; lưu lại cho nút "Tải lại" (kể cả sau khi tải lại trang)
+      const before = turnSnapshot();  // nút mở video cuối khung chat lúc bấm Tạo; lưu cho nút "Tải lại" (kể cả sau tải lại trang)
       chrome.storage.local.get(["flowLastItem"], (st) => {
-        if (st.flowLastItem && st.flowLastItem.itemId === itemId) chrome.storage.local.set({ flowLastItem: { ...st.flowLastItem, beforeKey } });
+        if (st.flowLastItem && st.flowLastItem.itemId === itemId) chrome.storage.local.set({ flowLastItem: { ...st.flowLastItem, beforeChatKey: before.chatKey } });
       });
       submit.click();
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: true, message: `⏳ Mã ${itemId}: đã bấm Tạo trên Flow.` });
@@ -353,12 +366,12 @@
           queued = true;
           showToast(`⏳ Mã ${itemId}: Flow đang xếp hàng (nhiều yêu cầu) — em chờ tới 30 phút, để tab này mở…`);
         }
-        if (waited > 30000 && (newGridVideo(beforeKey) || latestTurnVideo())) break;
+        if (waited > 60000 && turnVideo(before)) break;
         if (waited > (queued ? 30 : 15) * 60000) throw new Error(`quá hạn ở bước "chờ video xong" — video xong thì anh bấm "⬇ Tải lại video" trong khung Omni`);
         await sleep(2000);
       }
       await sleep(3000);
-      await downloadNew(itemId, output, beforeKey);
+      await downloadNew(itemId, output, before);
     } catch (e) {
       showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${itemId}: ${e.message}` });
@@ -380,7 +393,7 @@
       roles: pick("[role=radio],[role=dialog],[role=alertdialog],[role=menuitem],[role=option],[role=checkbox],[role=switch],[role=tab],[role=status],[role=alert],[role=log]")
         .map((el) => ({ role: el.getAttribute("role"), aria: el.getAttribute("aria-label"), checked: el.getAttribute("aria-checked"), text: short(el.textContent, 120) })),
       textboxes: pick("[contenteditable=true],textarea").map((el) => ({ aria: el.getAttribute("aria-label"), len: (el.innerText || el.value || "").length })),
-      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), turnVideo: !!latestTurnVideo(), gridTop: gridVideos().slice(0, 3).map((v) => v.key.slice(-30)), version: chrome.runtime.getManifest().version,
+      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), turnVideo: !!latestTurnVideo(), gridTop: gridVideos().slice(0, 3).map((v) => v.key.slice(-30)), chatLast: chatKey(openButtons().pop()).slice(-30), openCount: openButtons().length, version: chrome.runtime.getManifest().version,
       overlay: short((document.querySelector(".cdk-overlay-container") || {}).innerText, 400),
       media: pick("video,img", 60).map((m) => ({ tag: m.tagName, src: (m.currentSrc || m.src || "").slice(0, 90), w: m.naturalWidth || m.videoWidth || 0 })),
       tail: short(document.body.innerText.slice(-4000), 4000),
@@ -431,7 +444,7 @@
     }
     status.textContent = `⏳ Đang tải lại video mã ${item.itemId} (${item.output})…`;
     try {
-      await downloadNew(item.itemId, item.output, item.beforeKey);
+      await downloadNew(item.itemId, item.output, typeof item.beforeChatKey === "string" ? { chatKey: item.beforeChatKey } : null);
     } catch (e) {
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${item.itemId}: ${e.message}` });
       showToast(`⚠️ Mã ${item.itemId}: ${e.message}`, true);

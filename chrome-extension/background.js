@@ -41,7 +41,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       const last = st.flowLastItem || st.flowActiveItem;  // mã đang dở từ bản extension cũ chỉ có flowActiveItem
       if (!last || !last.itemId) return sendResponse({ status: "error", message: "Chưa có mã nào vừa làm." });
       await chrome.storage.local.set({ flowActiveItem: { itemId: last.itemId, output: last.output, since: Date.now() } });
-      sendResponse({ status: "success", itemId: last.itemId, output: last.output, beforeKey: last.beforeKey });
+      sendResponse({ status: "success", itemId: last.itemId, output: last.output, beforeChatKey: last.beforeChatKey });
     });
   } else if (message.action === "FLOW_CLEAR") {
     chrome.storage.local.remove("flowActiveItem", () => sendResponse({ status: "success" }));
