@@ -7,17 +7,17 @@ SCRIPTS_DIR = os.path.join(PROJECT_DIR, "scripts")
 if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
-import hang_tiem
-from hang_tiem import sanpham_rows, prepare, build_info, cleanup, read_info, is_hang_tiem
+import shop_products
+from shop_products import sanpham_rows, prepare, build_info, cleanup, read_info, is_hang_tiem
 
 import pytest
 
 
 @pytest.fixture(autouse=True)
 def _scene_state(tmp_path, monkeypatch):
-    """Không đụng file xoay vòng bối cảnh thật (data/.hang_tiem_boi_canh.json)."""
-    monkeypatch.setattr(hang_tiem, "SCENE_STATE", str(tmp_path / "boi_canh.json"))
-    monkeypatch.setattr(hang_tiem, "SCRIPTS_MADE_DIR", str(tmp_path / "kich_ban_da_tao"))
+    """Không đụng file xoay vòng bối cảnh thật (data/.shop_products_scene_state.json)."""
+    monkeypatch.setattr(shop_products, "SCENE_STATE", str(tmp_path / "boi_canh.json"))
+    monkeypatch.setattr(shop_products, "SCRIPTS_MADE_DIR", str(tmp_path / "made_scripts"))
 
 
 ROW = {"product_code": "JH8918N", "product_name": "Giày tây nam xỏ chân da bò JH8918N", "product_color": "Nâu",
@@ -111,7 +111,7 @@ def test_move_skips_shop_folder(tmp_path, monkeypatch):
 
 
 def test_web_images_until_404_saved_as_jpg(tmp_path, monkeypatch):
-    from hang_tiem import download_shop_web_images
+    from shop_products import download_shop_web_images
     jpg = b"\xff\xd8\xff" + b"0" * 10
     urls = []
     def fake_fetch(url):
@@ -133,15 +133,15 @@ def test_webp_converted_to_jpg_with_sips(tmp_path):
     if not png.exists():
         pytest.skip("không tạo được ảnh mẫu")
     out = tmp_path / "b.jpg"
-    hang_tiem._save_as_jpg(png.read_bytes(), str(out))
+    shop_products._save_as_jpg(png.read_bytes(), str(out))
     assert out.read_bytes()[:3] == b"\xff\xd8\xff"
 
 
 def test_script_built_from_template_without_gemini(tmp_path):
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     info = build_info("32837D", dict(ROW, product_name="Giày mọi nam xỏ chân da bò hạt mềm 32837D",
                                      product_color="Đen", chat_lieu_de="phylon"))
-    text = hang_tiem.build_script(info, cfg)
+    text = shop_products.build_script(info, cfg)
     for part in ("[ASSETS]", "[PROMPT]", "[CONSTRAINTS]", "men's slip-on loafers in black", "soft pebbled cowhide leather",
                  "lightweight phylon foam", cfg["boi_canh"]["nhom"]["tay"][0]["setting"], cfg["boi_canh"]["nhom"]["tay"][0]["sound"],
                  cfg["model"]["nam"]):
@@ -150,9 +150,9 @@ def test_script_built_from_template_without_gemini(tmp_path):
     assert "dress shoes" not in text and "only source of truth" in text
     assert "full-body" not in text and "knees down" in text and "own footwear" in text
     assert "pivoting or twisting a foot in place" in text and "heel lifts" not in text
-    plain = hang_tiem.build_script(build_info("X", dict(ROW, product_name="Giày tây nam da bò X")), cfg)
+    plain = shop_products.build_script(build_info("X", dict(ROW, product_name="Giày tây nam da bò X")), cfg)
     assert "men's shoes in brown" in plain and "dress shoes" not in plain
-    female = hang_tiem.build_script(build_info("X", dict(ROW, gioi_tinh="nữ")), cfg)
+    female = shop_products.build_script(build_info("X", dict(ROW, gioi_tinh="nữ")), cfg)
     assert cfg["model"]["nu"] in female and "women's slip-on loafers in brown" in female
 
 
@@ -164,7 +164,7 @@ def test_write_script_copies_model_by_gender(tmp_path):
     d = tmp_path / "JH8918N"
     d.mkdir()
     (d / "info.json").write_text(json.dumps(build_info("JH8918N", ROW)))
-    path = hang_tiem.write_script("JH8918N", str(d), characters_dir=str(chars))
+    path = shop_products.write_script("JH8918N", str(d), characters_dir=str(chars))
     assert path.endswith("JH8918N.txt") and (d / "Nam-25t.png").exists() and not (d / "Nu-25t.png").exists()
 
 
@@ -190,17 +190,17 @@ def test_pick_lien_images_all_angles_front_first_sole_last(tmp_path):
     (tmp_path / "Nam-25t.png").write_bytes(b"x")
     shape = lambda p: SHAPES[os.path.basename(p)]
     # 7 ảnh giày, tối đa 6: bỏ JH8918N_4 (chéo 3/4 gần trùng ảnh 6)
-    assert hang_tiem.pick_lien_images(str(tmp_path), shape=shape) == [
+    assert shop_products.pick_lien_images(str(tmp_path), shape=shape) == [
         "JH8918N_2.jpg", "JH8918N_6.jpg", "JH8918N_1.jpg", "JH8918N_7.jpg", "JH8918N_8.jpg", "JH8918N_9.jpg"]
     (tmp_path / "JH8918N_10.jpg").write_bytes(b"x")  # đế = số cuối theo số, không theo chữ (10 sau 9)
-    picked = hang_tiem.pick_lien_images(str(tmp_path), shape=shape)
+    picked = shop_products.pick_lien_images(str(tmp_path), shape=shape)
     assert len(picked) == 6 and picked[-1] == "JH8918N_10.jpg"
 
 
 def test_lien_script_single_shot_no_object_negatives():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     info = dict(build_info("JH8918N", ROW), kieu="lien", anh_lien=["a.jpg"] * 6)
-    text = hang_tiem.build_script(info, cfg)
+    text = shop_products.build_script(info, cfg)
     assert "single continuous shot" in text and "first 6 reference images" in text
     assert "last reference image is the male model" in text
     assert "men's slip-on loafers in brown" in text and "Input Image" not in text and "{" not in text
@@ -211,7 +211,7 @@ def test_lien_script_single_shot_no_object_negatives():
 def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
     import shutil as sh
     import pytest
-    if not os.path.exists(hang_tiem.FFMPEG):
+    if not os.path.exists(shop_products.FFMPEG):
         pytest.skip("không có ffmpeg")
     from flow_helper import encode_flow_files
     item = tmp_path / "JH8918N"
@@ -222,8 +222,8 @@ def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
     sh.copy(src, chars / "Nam-25t.png")
     for i in range(1, 9):
         sh.copy(src, item / f"JH8918N_{i}.jpg")  # nội dung không quan trọng, chỉ cần ảnh đọc được
-    hang_tiem.write_info(str(item), dict(build_info("JH8918N", ROW), kieu="lien"))
-    hang_tiem.write_script("JH8918N", str(item), characters_dir=str(chars))
+    shop_products.write_info(str(item), dict(build_info("JH8918N", ROW), kieu="lien"))
+    shop_products.write_script("JH8918N", str(item), characters_dir=str(chars))
     info = read_info(str(item))
     assert len(info["anh_lien"]) == 6 and info["nguoi_mau_lien"] == "Nam-25t_tren.jpg"
     assert "Tạo video người mẫu nam mang đôi giày trong ảnh" in (item / "JH8918N.txt").read_text(encoding="utf-8")
@@ -233,67 +233,67 @@ def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
 
 
 def test_scene_rotates_per_shoe_group():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     tay = build_info("A", ROW)
     sneaker = build_info("B", dict(ROW, product_name="Giày thể thao nam B"))
     heels = build_info("C", dict(ROW, product_name="Giày cao gót C", gioi_tinh="nữ"))
     names = [sc["ten"] for sc in cfg["boi_canh"]["nhom"]["tay"]]
-    picked = [hang_tiem.pick_scene(tay, cfg) for _ in range(len(names) + 1)]
+    picked = [shop_products.pick_scene(tay, cfg) for _ in range(len(names) + 1)]
     assert picked == names + names[:1]  # 2 mã liền nhau không trùng, hết vòng quay lại
-    assert hang_tiem.pick_scene(sneaker, cfg) == cfg["boi_canh"]["nhom"]["the_thao"][0]["ten"]
-    assert hang_tiem.scene_group(heels, cfg) == "nu"
-    assert hang_tiem.scene_group(build_info("D", dict(ROW, product_name="Giày D", gioi_tinh="nữ")), cfg) == "nu"
-    assert hang_tiem.scene_group(build_info("E", dict(ROW, product_name="Dép nam E")), cfg) == "tay"
+    assert shop_products.pick_scene(sneaker, cfg) == cfg["boi_canh"]["nhom"]["the_thao"][0]["ten"]
+    assert shop_products.scene_group(heels, cfg) == "nu"
+    assert shop_products.scene_group(build_info("D", dict(ROW, product_name="Giày D", gioi_tinh="nữ")), cfg) == "nu"
+    assert shop_products.scene_group(build_info("E", dict(ROW, product_name="Dép nam E")), cfg) == "tay"
 
 
 def test_lace_up_type():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     info = build_info("G", dict(ROW, product_name="Giày tây nam cột dây Hải Nancy da bò cao cấp G2506N"))
-    assert hang_tiem.describe_shoe(info, cfg)["type"] == "men's lace-up shoes"
+    assert shop_products.describe_shoe(info, cfg)["type"] == "men's lace-up shoes"
     info["kieu_giay_tay"] = "Derby (buộc dây hở), đục lỗ (brogue)"
-    assert hang_tiem.describe_shoe(info, cfg)["type"] == "men's lace-up shoes (Derby, brogue)"
+    assert shop_products.describe_shoe(info, cfg)["type"] == "men's lace-up shoes (Derby, brogue)"
 
 
 def test_scene_text_and_sound_follow_chosen_scene():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     scene = scene_named(cfg, "sanh_khach_san")
     info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a.jpg"] * 6, boi_canh=scene["ten"], chuyen_dong="lui_ra")
-    text = hang_tiem.build_script(info, cfg)
+    text = shop_products.build_script(info, cfg)
     assert scene["setting"] in text and scene["sound"] in text and scene["walk"] in text
     assert "stone" not in text
-    four = hang_tiem.build_script(dict(info, kieu="4_canh"), cfg)
+    four = shop_products.build_script(dict(info, kieu="4_canh"), cfg)
     assert scene["setting"] in four and scene["sound"] in four and "stone" not in four
 
 
 def test_lien_is_default_style(monkeypatch, tmp_path):
     seen = {}
-    monkeypatch.setattr(hang_tiem, "cleanup", lambda: [])
-    monkeypatch.setattr(hang_tiem, "read_sanpham", lambda codes: {c: ROW for c in codes})
-    monkeypatch.setattr(hang_tiem, "ASSETS_DIR", str(tmp_path))
+    monkeypatch.setattr(shop_products, "cleanup", lambda: [])
+    monkeypatch.setattr(shop_products, "read_sanpham", lambda codes: {c: ROW for c in codes})
+    monkeypatch.setattr(shop_products, "ASSETS_DIR", str(tmp_path))
     def fake_prepare(code, row):
         d = tmp_path / code
         d.mkdir(exist_ok=True)
-        hang_tiem.write_info(str(d), build_info(code, row))
+        shop_products.write_info(str(d), build_info(code, row))
         return str(d)
-    monkeypatch.setattr(hang_tiem, "prepare", fake_prepare)
-    monkeypatch.setattr(hang_tiem, "write_script", lambda code, d, **kw: seen.setdefault(code, read_info(d)["kieu"]))
-    hang_tiem.main(["jh8918n"])
-    hang_tiem.main(["--4-canh", "X1"])
+    monkeypatch.setattr(shop_products, "prepare", fake_prepare)
+    monkeypatch.setattr(shop_products, "write_script", lambda code, d, **kw: seen.setdefault(code, read_info(d)["kieu"]))
+    shop_products.main(["jh8918n"])
+    shop_products.main(["--4-canh", "X1"])
     assert seen == {"JH8918N": "lien", "X1": "4_canh"}
 
 
 
 def test_combo_rotation_skips_used_and_disabled_motion():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     slip = build_info("A", ROW)  # xỏ chân
     lace = build_info("B", dict(ROW, product_name="Giày tây nam cột dây B"))
-    assert "mang_giay" not in hang_tiem.motions_for(slip, cfg)  # bat: false → chỉ gọi tay
-    assert hang_tiem.motions_for(lace, cfg) == ["tu_nhien", "san_pham", "ngoi_dung"]  # 30/10: 2 loại đã chốt + ngồi → đứng
-    first = hang_tiem.pick_combo(slip, cfg)
-    second = hang_tiem.pick_combo(slip, cfg, used=[first])
+    assert "mang_giay" not in shop_products.motions_for(slip, cfg)  # bat: false → chỉ gọi tay
+    assert shop_products.motions_for(lace, cfg) == ["tu_nhien", "san_pham", "ngoi_dung"]  # 30/10: 2 loại đã chốt + ngồi → đứng
+    first = shop_products.pick_combo(slip, cfg)
+    second = shop_products.pick_combo(slip, cfg, used=[first])
     assert first[0] != second[0] and first[1] != second[1]  # 2 lần liền xen kẽ loại, khác bối cảnh
-    all_combos = hang_tiem.combos_for(slip, cfg)
-    assert hang_tiem.pick_combo(slip, cfg, used=all_combos) is None
+    all_combos = shop_products.combos_for(slip, cfg)
+    assert shop_products.pick_combo(slip, cfg, used=all_combos) is None
 
 
 def scene_named(cfg, name):
@@ -301,11 +301,11 @@ def scene_named(cfg, name):
 
 
 def test_each_motion_text_and_popup_label():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     scene = scene_named(cfg, "sanh_khach_san")
     for motion in ("lui_ra", "tien_vao", "song_hanh", "vong_quanh", "got_mui", "mang_giay", "dung_yen", "day_vao", "nguoi_toi"):
         info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a"] * 6, chuyen_dong=motion, boi_canh=scene["ten"])
-        text = hang_tiem.build_script(info, cfg)
+        text = shop_products.build_script(info, cfg)
         assert cfg["lien"]["chuyen_dong"][motion]["camera"].format(walk=scene["walk"]) in text
         assert "single continuous shot" in text and "{" not in text
         assert "never move on their own" in text
@@ -314,16 +314,16 @@ def test_each_motion_text_and_popup_label():
             assert "never show empty shoes" in text
         assert ("heel lands first" in text) == bool(cfg["lien"]["chuyen_dong"][motion].get("co_buoc"))
         assert "\n\n" not in text
-    assert hang_tiem.popup_label(dict(info, chuyen_dong="mang_giay"), cfg) == "mang_giay · sảnh khách sạn"
-    assert hang_tiem.popup_label(dict(info, chuyen_dong="got_mui"), cfg) == "gót → mũi · sảnh khách sạn"
+    assert shop_products.popup_label(dict(info, chuyen_dong="mang_giay"), cfg) == "mang_giay · sảnh khách sạn"
+    assert shop_products.popup_label(dict(info, chuyen_dong="got_mui"), cfg) == "gót → mũi · sảnh khách sạn"
 
 
 def test_manual_motion_overrides_rotation(tmp_path):
     item = tmp_path / "A"
     item.mkdir()
     (item / "A_1.jpg").write_bytes(b"x")
-    hang_tiem.write_info(str(item), dict(build_info("A", ROW), kieu="lien"))
-    hang_tiem.write_script("A", str(item), characters_dir=str(tmp_path / "none"), motion="mang_giay")
+    shop_products.write_info(str(item), dict(build_info("A", ROW), kieu="lien"))
+    shop_products.write_script("A", str(item), characters_dir=str(tmp_path / "none"), motion="mang_giay")
     assert read_info(str(item))["chuyen_dong"] == "mang_giay"
 
 
@@ -332,15 +332,15 @@ def test_video_name_numbers_after_existing_videos(tmp_path):
     media, dl = tmp_path / "media", tmp_path / "dl"
     (media / "JH8918N").mkdir(parents=True)
     dl.mkdir()
-    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_1.mp4"
+    assert shop_products.video_name("JH8918N", str(media), str(dl)) == "JH8918N_1.mp4"
     (media / "JH8918N" / "JH8918N.mp4").write_bytes(b"v")  # tên cũ không hậu tố = 1 video
     (media / "JH8918N" / "JH8918N_1.jpg").write_bytes(b"i")  # ảnh không tính
-    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_2.mp4"
+    assert shop_products.video_name("JH8918N", str(media), str(dl)) == "JH8918N_2.mp4"
     (dl / "JH8918N_2.mp4").write_bytes(b"v")
     (dl / "JH8918N_20.mp4.crdownload").write_bytes(b"v")
-    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_3.mp4"
+    assert shop_products.video_name("JH8918N", str(media), str(dl)) == "JH8918N_3.mp4"
     (dl / "JH8918N_4.mp4").write_bytes(b"v")  # có lỗ: 3 video → số 4 đã có → 5
-    assert hang_tiem.video_name("JH8918N", str(media), str(dl)) == "JH8918N_5.mp4"
+    assert shop_products.video_name("JH8918N", str(media), str(dl)) == "JH8918N_5.mp4"
 
 
 def test_collect_and_cleanup_use_numbered_name(tmp_path):
@@ -351,7 +351,7 @@ def test_collect_and_cleanup_use_numbered_name(tmp_path):
     dl.mkdir()
     (item / "JH8918N.txt").write_text("x")
     (item / "JH8918N_1.jpg").write_bytes(b"i")
-    hang_tiem.write_info(str(item), dict(build_info("JH8918N", ROW), kieu="lien", anh_lien=["JH8918N_1.jpg"],
+    shop_products.write_info(str(item), dict(build_info("JH8918N", ROW), kieu="lien", anh_lien=["JH8918N_1.jpg"],
                                          ten_video="JH8918N_2.mp4"))
     assert encode_flow_files("JH8918N", assets_dir=str(assets))[0]["output"] == "JH8918N_2.mp4"
     (dl / "JH8918N.mp4").write_bytes(b"old")
@@ -365,17 +365,17 @@ def test_collect_and_cleanup_use_numbered_name(tmp_path):
 
 
 def test_lui_ra_standard_text_and_made_script_saved(tmp_path):
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     scene = scene_named(cfg, "pho_co")
     info = dict(build_info("A", ROW), kieu="lien", anh_lien=["a"] * 6, chuyen_dong="lui_ra", boi_canh=scene["ten"])
-    text = hang_tiem.build_script(info, cfg)
+    text = shop_products.build_script(info, cfg)
     assert f"{scene['setting']} The model walks slowly {scene['walk']}." in text  # như bản 2093ad4
     assert "opens on an extreme close-up of the model's feet wearing the shoes" in text
     item = tmp_path / "A"
     item.mkdir()
     (item / "A.txt").write_text(text, encoding="utf-8")
-    hang_tiem.write_info(str(item), dict(info, ten_video="A_2.mp4"))
-    out = hang_tiem.save_made_script(str(item), str(tmp_path / "made"))
+    shop_products.write_info(str(item), dict(info, ten_video="A_2.mp4"))
+    out = shop_products.save_made_script(str(item), str(tmp_path / "made"))
     assert out.endswith("A_2.txt")
     saved = open(out, encoding="utf-8").read()
     assert saved.startswith("# A_2.mp4 · kiểu lien · lui_ra · bối cảnh pho_co") and text in saved
@@ -383,51 +383,51 @@ def test_lui_ra_standard_text_and_made_script_saved(tmp_path):
 
 
 def test_tu_nhien_short_vietnamese_prompt_is_default():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     for group, scenes in cfg["boi_canh"]["nhom"].items():
         assert all(sc.get("vi") and sc.get("nhan") for sc in scenes), group
     scene = scene_named(cfg, "truong_cong_dinh")
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="tu_nhien", boi_canh=scene["ten"])
-    text = hang_tiem.build_script(info, cfg)
+    text = shop_products.build_script(info, cfg)
     assert text == "Tạo video người mẫu nam mang đôi giày trong ảnh, dạo bước trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n"
-    female = hang_tiem.build_script(dict(info, gioi_tinh="nữ", boi_canh="ca_phe_san_vuon"), cfg)
+    female = shop_products.build_script(dict(info, gioi_tinh="nữ", boi_canh="ca_phe_san_vuon"), cfg)
     assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n"
-    assert hang_tiem.pick_mood(cfg, "tu_nhien") is None
-    assert hang_tiem.popup_label(info, cfg) == "tự nhiên · đường Trương Công Định"
+    assert shop_products.pick_mood(cfg, "tu_nhien") is None
+    assert shop_products.popup_label(info, cfg) == "tự nhiên · đường Trương Công Định"
 
 
 
 def test_san_pham_prompt_text():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="san_pham", boi_canh="truong_cong_dinh")
-    assert hang_tiem.build_script(info, cfg) == (
+    assert shop_products.build_script(info, cfg) == (
         "Tạo video người mẫu nam mang đôi giày trong ảnh, bước đi trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. "
         "Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết).\n")
-    assert hang_tiem.popup_label(info, cfg) == "sản phẩm · đường Trương Công Định"
+    assert shop_products.popup_label(info, cfg) == "sản phẩm · đường Trương Công Định"
 
 
 
 def test_ngoi_dung_prompt_uses_seat_of_scene():
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     for scenes in cfg["boi_canh"]["nhom"].values():
         assert all(sc.get("ngoi") for sc in scenes)
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="ngoi_dung", boi_canh="ho_xuan_huong")
-    assert hang_tiem.build_script(info, cfg) == (
+    assert shop_products.build_script(info, cfg) == (
         "Tạo video người mẫu nam mang đôi giày trong ảnh, đang ngồi trên ghế đá bên hồ Xuân Hương, Đà Lạt, máy quay tập trung "
         "vào đôi giày, rồi người mẫu đứng dậy bước đi, quay cả người. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n")
-    assert hang_tiem.popup_label(info, cfg) == "ngồi → đứng · hồ Xuân Hương"
+    assert shop_products.popup_label(info, cfg) == "ngồi → đứng · hồ Xuân Hương"
 
 
 def test_model_image_uses_standard_file_per_motion(tmp_path):
     chars = tmp_path / "chars"
-    (chars / "chuan").mkdir(parents=True)
-    (chars / "chuan" / "Nam-25t_toan_than.jpg").write_bytes(b"TT")
-    (chars / "chuan" / "Nam-25t_tren.jpg").write_bytes(b"TR")
+    (chars / "standard").mkdir(parents=True)
+    (chars / "standard" / "Nam-25t_toan_than.jpg").write_bytes(b"TT")
+    (chars / "standard" / "Nam-25t_tren.jpg").write_bytes(b"TR")
     item = tmp_path / "item"
     item.mkdir()
-    lien = hang_tiem.load_config()["lien"]
+    lien = shop_products.load_config()["lien"]
     src = str(chars / "Nam-25t.png")
-    assert os.path.basename(hang_tiem.model_image(src, str(item), lien, "tu_nhien")) == "Nam-25t_toan_than.jpg"
+    assert os.path.basename(shop_products.model_image(src, str(item), lien, "tu_nhien")) == "Nam-25t_toan_than.jpg"
     assert (item / "Nam-25t_toan_than.jpg").read_bytes() == b"TT"  # chép nguyên file chuẩn, không cắt lại
-    assert os.path.basename(hang_tiem.model_image(src, str(item), lien, "san_pham")) == "Nam-25t_tren.jpg"
-    assert os.path.basename(hang_tiem.model_image(src, str(item), lien, "ngoi_dung")) == "Nam-25t_tren.jpg"
+    assert os.path.basename(shop_products.model_image(src, str(item), lien, "san_pham")) == "Nam-25t_tren.jpg"
+    assert os.path.basename(shop_products.model_image(src, str(item), lien, "ngoi_dung")) == "Nam-25t_tren.jpg"

@@ -15,7 +15,7 @@ import sys
 from typing import Dict, List, Set
 
 sys.path.insert(0, os.path.dirname(__file__))
-from rank_products import score_row  # cùng công thức với bảng gợi ý trong Nhap.command
+from rank_products import score_row  # cùng công thức với bảng gợi ý trong Import_Products.command
 
 # tên cột Shopee (đã bỏ khoảng trắng, chữ thường) -> tên cột src_omni
 COLUMN_MAP = {

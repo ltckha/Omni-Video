@@ -2,7 +2,7 @@
   "_ghi_chu": "Mẫu kịch bản hàng tiệm (Hiệu giày Hải Nancy), ghép bằng code, 0 Gemini. Kiểu dựng theo video anh Kha chọn 30/10 (32837D). Sửa từ ngữ ở đây, không sửa trong code. {shoe} = mô tả giày ghép từ info.json.",
   "shoe": "{type} in {color}, upper made of {material}, outsole made of {sole}",
   "boi_canh": {
-    "_ghi_chu": "Bối cảnh theo loại giày (anh Kha 30/10; Phân tích tạm đặt, anh duyệt qua video thử). Mỗi nhóm 2–3 cảnh, máy xoay vòng (chỉ số lưu data/.hang_tiem_boi_canh.json) để 2 mã liền nhau không trùng. theo_loai: loại giày lấy từ tên SP → nhóm; giày nữ không khớp loại nào → nhóm nu; còn lại → mac_dinh. walk = câu sau 'The model walks slowly …'; sound = câu âm thanh riêng của cảnh. nhan = tên tiếng Việt hiện trong popup. vi = câu bối cảnh tiếng Việt cho kiểu tu_nhien (30/10, thêm đường phố Đà Lạt; Phân tích tạm đặt, anh duyệt qua video). ngoi = chỗ ngồi cho kiểu ngoi_dung (Phân tích tạm đặt 30/10, anh duyệt qua video).",
+    "_ghi_chu": "Bối cảnh theo loại giày (anh Kha 30/10; Phân tích tạm đặt, anh duyệt qua video thử). Mỗi nhóm 2–3 cảnh, máy xoay vòng (chỉ số lưu data/.shop_products_scene_state.json) để 2 mã liền nhau không trùng. theo_loai: loại giày lấy từ tên SP → nhóm; giày nữ không khớp loại nào → nhóm nu; còn lại → mac_dinh. walk = câu sau 'The model walks slowly …'; sound = câu âm thanh riêng của cảnh. nhan = tên tiếng Việt hiện trong popup. vi = câu bối cảnh tiếng Việt cho kiểu tu_nhien (30/10, thêm đường phố Đà Lạt; Phân tích tạm đặt, anh duyệt qua video). ngoi = chỗ ngồi cho kiểu ngoi_dung (Phân tích tạm đặt 30/10, anh duyệt qua video).",
     "theo_loai": {
       "giày thể thao": "the_thao",
       "giày sandal": "nu",
@@ -236,9 +236,9 @@
     "_ghi_chu": "Kiểu liền (MẶC ĐỊNH từ 30/10; Tiem gõ 4 / --4-canh = kiểu 4 cảnh): 1 cảnh 10 giây không cắt; dán tối đa 6 ảnh giày đủ góc (nhìn thẳng → chéo 3/4 → góc khác → đế, anh Kha 30/10 muốn đủ góc) rồi ảnh người mẫu chuẩn theo kiểu (lien.anh_chuan, 31/10). Theo Ecosystem-Hub/docs/research/2026-10-30_prompt_omni_giu_giay.md: chỉ tả cái đang có, không liệt kê đồ vật trong câu phủ định. Gọi ảnh theo thứ tự dán (extension chưa gõ được @tên của Flow).",
     "cat_nguoi_mau": 0.5,
     "anh_chuan": {
-      "_ban_chuan": "ẢNH CHUẨN — không đổi khi anh chưa duyệt (anh Kha 31/10: video nào chạy tốt thì giữ lại hình ảnh và prompt của nó). Ảnh cố định trong characters/chuan/<tên>_<loại>.jpg, dán nguyên file, không cắt lại.",
+      "_ban_chuan": "ẢNH CHUẨN — không đổi khi anh chưa duyệt (anh Kha 31/10: video nào chạy tốt thì giữ lại hình ảnh và prompt của nó). Ảnh cố định trong characters/standard/<tên>_<loại>.jpg, dán nguyên file, không cắt lại.",
       "_ghi_chu": "Theo đúng ảnh của các bản ĐẠT: tu_nhien → toan_than (1 người toàn thân, cắt ngay trên mắt cá; JH8918N_3, 32837N_2 ngày 31/10); san_pham, ngoi_dung → tren (tờ 2 hình cắt nửa trên, tới thắt lưng; MT5216D_1, MH642V_1, G2506N_1 ngày 30/10). Bản nguyên tờ 2 hình (b078c60) ra sai giày MT2187N; bản chỉ đầu + cổ chưa dùng. Ảnh chưa có trong thư mục chuẩn → cắt nửa trên như cũ (cat_nguoi_mau).",
-      "thu_muc": "characters/chuan",
+      "thu_muc": "characters/standard",
       "theo_kieu": {"tu_nhien": "toan_than", "san_pham": "tren", "ngoi_dung": "tren"},
       "mac_dinh": "tren"
     },

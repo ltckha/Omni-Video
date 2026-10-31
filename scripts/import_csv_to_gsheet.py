@@ -201,7 +201,7 @@ def upload_csv_to_gsheet(csv_filepath: Path):
     organize_all_root_csvs()
     return ok
 
-# ===== N29 (bật 28/10, anh Kha chốt X01): Nhap.command nhập MỌI file CSV chưa nhập, file đã nhập không nhập lại =====
+# ===== N29 (bật 28/10, anh Kha chốt X01): Import_Products.command nhập MỌI file CSV chưa nhập, file đã nhập không nhập lại =====
 # Lỗi cũ: mỗi lần chỉ nhập 1 file mới nhất, rồi organize_all_root_csvs() chuyển cả file CHƯA nhập vào data/
 # → lần sau lại chọn file mới nhất, file cũ hơn không bao giờ lên Sheet.
 # Sổ data/.imported_csv.json ghi tên file đã nhập; lần đầu chạy ghi sẵn mọi file đang có trong data/ là "đã nhập"
@@ -254,7 +254,7 @@ def import_all_new() -> int:
 
 
 if __name__ == "__main__":
-    # Không truyền file (Nhap.command) -> chỉ nhập file chưa có trong sổ, để dòng anh Kha xoá tay
+    # Không truyền file (Import_Products.command) -> chỉ nhập file chưa có trong sổ, để dòng anh Kha xoá tay
     # (vd 5 SP Nesty trong data/DépNestyT1.csv, 28/10) không quay lại. Truyền đường dẫn file = cố ý nhập lại file đó.
     args = [a for a in sys.argv[1:] if a != "--all-new"]
     if not args:

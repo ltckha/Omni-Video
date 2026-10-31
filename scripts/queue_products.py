@@ -4,8 +4,8 @@
 Omni Video - hàng chờ tự động hàng tiệm (anh Kha nói "làm" 30/10/2026 qua Phân tích · Xưởng video).
 Giữ đúng SO_MA_CHO mã hàng tiệm đang chờ Tạo video trong Product_Assets, 0 Gemini:
 1. Ổ Media (NAS) không cắm / ~/Downloads không đọc được / Sheet lỗi → không làm gì, ghi log, không xoá.
-2. hang_tiem.cleanup: dọn mã đã tải video mà HNC đã gom (như Tiem.command).
-3. Đếm mã chờ do hàng chờ tạo (info.json "hang_cho": true, chưa tải video). Mã anh làm tay bằng Tiem.command
+2. shop_products.cleanup: dọn mã đã tải video mà HNC đã gom (như Shop_Products.command).
+3. Đếm mã chờ do hàng chờ tạo (info.json "hang_cho": true, chưa tải video). Mã anh làm tay bằng Shop_Products.command
    không tính, không đụng.
 4. Thiếu thì lấy thêm từ tab SANPHAM (tiêu đề hàng 2): mã chưa có video trước, MỚI NHẤT trước; hết mã mới thì lấy mã đã
    có video (ít video trước, tối đa TRAN_VIDEO / mã), mỗi lần 1 tổ hợp kiểu chuyển động × bối cảnh CHƯA dùng cho mã đó
@@ -14,13 +14,13 @@ Giữ đúng SO_MA_CHO mã hàng tiệm đang chờ Tạo video trong Product_As
    cột này thì bỏ qua điều kiện); còn hàng trên web giayhainancy.vn (trang SP có trong sitemap.xml, dữ liệu sản phẩm
    schema.org "availability" = InStock; SANPHAM không có cột tồn kho, trang SP đã gỡ chuyển 301 về danh mục → coi như
    không bán, bỏ qua để không tốn credit); tên SP có loại giày (giày tây / lười / mọi / thể thao…) và có product_color;
-   chưa có thư mục Product_Assets (video cũ của mã vẫn ở Downloads cũng được: tên đầu ra có số, không trùng); sổ data/.hang_cho_da_lam.json ghi từng lần (mã, kiểu, bối cảnh);
+   chưa có thư mục Product_Assets (video cũ của mã vẫn ở Downloads cũng được: tên đầu ra có số, không trùng); sổ data/.queue_products_ledger.json ghi từng lần (mã, kiểu, bối cảnh);
    có ảnh (NAS HNC_Master → web giayhainancy.vn → image_01… SANPHAM). Thiếu ảnh / thông tin → bỏ qua, ghi log.
-5. Mỗi mã: kiểu liền, kiểu chuyển động × bối cảnh xoay vòng (hang_tiem.pick_combo), như Tiem.command.
+5. Mỗi mã: kiểu liền, kiểu chuyển động × bối cảnh xoay vòng (shop_products.pick_combo), như Shop_Products.command.
 
-Chạy: launchd vn.giayhainancy.omni.hangcho 13:30 hằng ngày (sau HNC gom video 13:00), hoặc Cho.command.
-Nhật ký: data/logs/hang_cho.log. Lịch chạy với --truc-ca: cuối job ghi 1 dòng sổ trực ca (Ecosystem-Hub log_health.sh,
-mã omni.hangcho, ok / loi + ghi chú ngắn; 31/10 anh Kha "làm", qua Phân tích · Xưởng video). Chạy tay không ghi.
+Chạy: launchd vn.giayhainancy.omni.queue_products 13:30 hằng ngày (sau HNC gom video 13:00), hoặc Fill_Queue.command.
+Nhật ký: data/logs/queue_products.log. Lịch chạy với --log-health: cuối job ghi 1 dòng sổ trực ca (Ecosystem-Hub log_health.sh,
+mã omni.queue_products, ok / loi + ghi chú ngắn; 31/10 anh Kha "làm", qua Phân tích · Xưởng video). Chạy tay không ghi.
 """
 
 import json
@@ -34,24 +34,24 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import hang_tiem
-from hang_tiem import ASSETS_DIR, DOWNLOADS_DIR, HNC_MEDIA_DIR, SANPHAM_HEADER_ROW, SHOE_TYPES, read_info
+import shop_products
+from shop_products import ASSETS_DIR, DOWNLOADS_DIR, HNC_MEDIA_DIR, SANPHAM_HEADER_ROW, SHOE_TYPES, read_info
 
 SO_MA_CHO = 5
 TRAN_VIDEO = 3  # tối đa 3 video / mã (Phân tích tạm đặt 30/10, chờ anh Kha duyệt)
 SO_MA_THU_TOI_DA = 40  # mỗi lần chạy thử tối đa bấy nhiêu mã (tránh tải web quá nhiều khi nhiều mã thiếu ảnh)
-LEDGER = os.path.join(hang_tiem.PROJECT_DIR, "data", ".hang_cho_da_lam.json")
-LOG_PATH = os.path.join(hang_tiem.PROJECT_DIR, "data", "logs", "hang_cho.log")
+LEDGER = os.path.join(shop_products.PROJECT_DIR, "data", ".queue_products_ledger.json")
+LOG_PATH = os.path.join(shop_products.PROJECT_DIR, "data", "logs", "queue_products.log")
 
 
 WEB_SITEMAP = "https://giayhainancy.vn/sitemap.xml"
 USER_AGENT = "OmniVideo/1.0 (Hieu giay Hai Nancy)"
 TRUC_CA = os.path.expanduser("~/Developer/Ecosystem-Hub/commands/log_health.sh")
-MA_TRUC_CA = "omni.hangcho"
+MA_TRUC_CA = "omni.queue_products"
 
 
 def fetch_text(url: str) -> str:
-    from omni_env import google_ssl_context  # certifi, như tải ảnh web (hang_tiem._fetch_image)
+    from omni_env import google_ssl_context  # certifi, như tải ảnh web (shop_products._fetch_image)
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=30, context=google_ssl_context()) as r:
         return r.read().decode("utf-8", "replace")
@@ -157,7 +157,7 @@ def candidates(values: List[List[str]]) -> List[Dict[str, str]]:
     return rows
 
 
-def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, fetch=fetch_text, assets_dir: str = ASSETS_DIR,
+def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_item, fetch=fetch_text, assets_dir: str = ASSETS_DIR,
         downloads_dir: str = DOWNLOADS_DIR, media_dir: str = HNC_MEDIA_DIR, ledger_path: Optional[str] = None,
         log_fn=log) -> List[str]:
     if not os.path.isdir(media_dir):
@@ -178,7 +178,7 @@ def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, fetch
     except (urllib.error.URLError, OSError) as e:
         log_fn(f"⏸ Lỗi đọc sitemap web ({e.__class__.__name__}) — không kiểm được còn hàng, không làm gì.")
         return []
-    for code in hang_tiem.cleanup(assets_dir, downloads_dir):
+    for code in shop_products.cleanup(assets_dir, downloads_dir):
         log_fn(f"🧹 Dọn {code} (HNC đã gom video).")
     waiting = pending_codes(assets_dir)
     need = SO_MA_CHO - len(waiting)
@@ -186,7 +186,7 @@ def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, fetch
         log_fn(f"✅ Đủ {len(waiting)} mã chờ: {', '.join(waiting)}")
         return []
     done = load_ledger(ledger_path)
-    cfg = hang_tiem.load_config()
+    cfg = shop_products.load_config()
     added, tried = [], 0
     for row in ordered(candidates(values), done):
         if len(added) >= need or tried >= SO_MA_THU_TOI_DA:
@@ -197,8 +197,8 @@ def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, fetch
         if video_count(row, done) >= TRAN_VIDEO or why_not(row):
             continue  # lý do trên Sheet: không ghi log từng dòng (hàng nghìn dòng)
         used = [(e["chuyen_dong"], e["boi_canh"]) for e in done if e.get("ma") == code and e.get("boi_canh")]
-        info = hang_tiem.build_info(code, row)
-        if not [c for c in hang_tiem.combos_for(info, cfg) if c not in used]:
+        info = shop_products.build_info(code, row)
+        if not [c for c in shop_products.combos_for(info, cfg) if c not in used]:
             continue  # đã dùng hết kiểu × bối cảnh cho mã này
         tried += 1
         stock = web_stock(code, web_urls, fetch)
@@ -238,7 +238,7 @@ def write_shift(kq: str, note: str) -> None:
 
 
 def main(argv: List[str]) -> None:
-    if "--truc-ca" not in argv:
+    if "--log-health" not in argv:
         run()
         return
     msgs: List[str] = []

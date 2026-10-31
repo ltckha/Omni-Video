@@ -5,8 +5,8 @@ import sys
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 sys.path.insert(0, os.path.join(PROJECT_DIR, "scripts"))
 
-import hang_cho
-import hang_tiem
+import queue_products
+import shop_products
 
 HEAD = [["nhóm"] * 6, ["product_code", "product_name", "product_color", "content_files", "web_in_stock", "gioi_tinh"]]
 
@@ -15,7 +15,7 @@ def fake_fetch(out_of_stock=(), not_on_web=()):
     """Web giả: sitemap có mọi mã A*/B*/Q*/Z* trừ not_on_web; trang SP ghi InStock / OutOfStock."""
     codes = [f"{p}{i}" for p in "ABQZ" for i in range(10)]
     def fetch(url):
-        if url == hang_cho.WEB_SITEMAP:
+        if url == queue_products.WEB_SITEMAP:
             return "".join(f"<url><loc>https://giayhainancy.vn/product/giay-tay-nam-{c.lower()}-{n}</loc></url>"
                            for n, c in enumerate(codes) if c not in not_on_web)
         code = url.rsplit("-", 2)[-2].upper()
@@ -42,7 +42,7 @@ def fake_make(calls, no_image=()):
             return None
         item = os.path.join(assets_dir, code)
         os.makedirs(item)
-        hang_tiem.write_info(item, dict(hang_tiem.build_info(code, r), **extra, chuyen_dong="lui_ra",
+        shop_products.write_info(item, dict(shop_products.build_info(code, r), **extra, chuyen_dong="lui_ra",
                                         boi_canh=f"bc{len(used)}"))
         return item
     return make
@@ -55,7 +55,7 @@ def test_fills_to_five_newest_first_with_filters(tmp_path):
     (d["dl"] / "B1.mp4").write_bytes(b"v")          # video cũ chờ HNC gom: vẫn vào được (tên mới B1_2.mp4)
     (d["assets"] / "A9").mkdir()                     # mã anh làm tay
     calls, logs = [], []
-    added = hang_cho.run(values_fn=lambda: values, make=fake_make(calls, no_image={"A8"}), fetch=fake_fetch(), assets_dir=str(d["assets"]),
+    added = queue_products.run(values_fn=lambda: values, make=fake_make(calls, no_image={"A8"}), fetch=fake_fetch(), assets_dir=str(d["assets"]),
                          downloads_dir=str(d["dl"]), media_dir=str(d["media"]),
                          ledger_path=str(tmp_path / "ledger.json"), log_fn=logs.append)
     # mã chưa có video trước (mới nhất trước), rồi mới tới A2 (đã có video trên Sheet)
@@ -70,12 +70,12 @@ def test_keeps_exactly_five_and_ignores_manual(tmp_path):
     for i in range(5):
         item = d["assets"] / f"Q{i}"
         item.mkdir()
-        hang_tiem.write_info(str(item), {"hang_tiem": True, "hang_cho": True})
+        shop_products.write_info(str(item), {"hang_tiem": True, "hang_cho": True})
     manual = d["assets"] / "M1"
     manual.mkdir()
-    hang_tiem.write_info(str(manual), {"hang_tiem": True})
+    shop_products.write_info(str(manual), {"hang_tiem": True})
     calls = []
-    hang_cho.run(values_fn=lambda: HEAD + [row("Z1")], make=fake_make(calls), fetch=fake_fetch(), assets_dir=str(d["assets"]),
+    queue_products.run(values_fn=lambda: HEAD + [row("Z1")], make=fake_make(calls), fetch=fake_fetch(), assets_dir=str(d["assets"]),
                  downloads_dir=str(d["dl"]), media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"),
                  log_fn=lambda m: None)
     assert calls == [] and manual.exists()
@@ -85,35 +85,35 @@ def test_downloaded_item_frees_slot_after_hnc_gom(tmp_path):
     d = setup(tmp_path)
     item = d["assets"] / "Q1"
     item.mkdir()
-    hang_tiem.write_info(str(item), {"hang_tiem": True, "hang_cho": True, "da_tai": "2026-10-30 10:00"})
-    hang_cho.save_ledger(["Q1"], str(tmp_path / "l.json"))  # Q1 do hàng chờ tạo trước đó → không tạo lại
+    shop_products.write_info(str(item), {"hang_tiem": True, "hang_cho": True, "da_tai": "2026-10-30 10:00"})
+    queue_products.save_ledger(["Q1"], str(tmp_path / "l.json"))  # Q1 do hàng chờ tạo trước đó → không tạo lại
     calls = []
-    hang_cho.run(values_fn=lambda: HEAD + [row("Q1"), row("Z1")], make=fake_make(calls), fetch=fake_fetch(), assets_dir=str(d["assets"]),
+    queue_products.run(values_fn=lambda: HEAD + [row("Q1"), row("Z1")], make=fake_make(calls), fetch=fake_fetch(), assets_dir=str(d["assets"]),
                  downloads_dir=str(d["dl"]), media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"),
                  log_fn=lambda m: None)
     assert [c for c, _ in calls] == ["Z1", "Q1"]  # Q1 đã dọn; mã mới Z1 trước, rồi Q1 làm video thứ 2
-    assert hang_cho.load_ledger(str(tmp_path / "l.json"))[-1]["ma"] == "Q1"
+    assert queue_products.load_ledger(str(tmp_path / "l.json"))[-1]["ma"] == "Q1"
 
 
 def test_no_media_or_sheet_error_does_nothing(tmp_path):
     d = setup(tmp_path)
     item = d["assets"] / "Q1"
     item.mkdir()
-    hang_tiem.write_info(str(item), {"hang_tiem": True, "hang_cho": True, "da_tai": "x"})
+    shop_products.write_info(str(item), {"hang_tiem": True, "hang_cho": True, "da_tai": "x"})
     logs = []
     kw = dict(make=fake_make([]), fetch=fake_fetch(), assets_dir=str(d["assets"]), downloads_dir=str(d["dl"]),
               ledger_path=str(tmp_path / "l.json"), log_fn=logs.append)
-    assert hang_cho.run(values_fn=lambda: HEAD, media_dir=str(tmp_path / "khong_co"), **kw) == []
+    assert queue_products.run(values_fn=lambda: HEAD, media_dir=str(tmp_path / "khong_co"), **kw) == []
     def boom():
         raise RuntimeError("mất mạng")
-    assert hang_cho.run(values_fn=boom, media_dir=str(d["media"]), **kw) == []
+    assert queue_products.run(values_fn=boom, media_dir=str(d["media"]), **kw) == []
     assert item.exists() and len(logs) == 2 and all("⏸" in l for l in logs)
 
 
 def test_skips_out_of_stock_or_not_on_web(tmp_path):
     d = setup(tmp_path)
     calls, logs = [], []
-    added = hang_cho.run(values_fn=lambda: HEAD + [row("A1"), row("A2"), row("A3")], make=fake_make(calls),
+    added = queue_products.run(values_fn=lambda: HEAD + [row("A1"), row("A2"), row("A3")], make=fake_make(calls),
                          fetch=fake_fetch(out_of_stock={"A3"}, not_on_web={"A2"}), assets_dir=str(d["assets"]),
                          downloads_dir=str(d["dl"]), media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"),
                          log_fn=logs.append)
@@ -127,7 +127,7 @@ def test_sitemap_error_does_nothing(tmp_path):
     def broken(url):
         raise urllib.error.URLError("mất mạng")
     logs = []
-    assert hang_cho.run(values_fn=lambda: HEAD + [row("A1")], make=fake_make([]), fetch=broken,
+    assert queue_products.run(values_fn=lambda: HEAD + [row("A1")], make=fake_make([]), fetch=broken,
                         assets_dir=str(d["assets"]), downloads_dir=str(d["dl"]), media_dir=str(d["media"]),
                         ledger_path=str(tmp_path / "l.json"), log_fn=logs.append) == []
     assert "sitemap" in logs[0]
@@ -136,20 +136,20 @@ def test_sitemap_error_does_nothing(tmp_path):
 def test_web_product_urls_parses_code_from_link():
     sm = ("<loc>https://giayhainancy.vn/product/giay-tay-nam-cot-day-da-bo-cao-cap-3j658n-4755</loc>"
           "<loc>https://giayhainancy.vn/product/mh642v-101135</loc><loc>https://giayhainancy.vn/product-cat/x-6</loc>")
-    assert hang_cho.web_product_urls(sm) == {"3J658N": "https://giayhainancy.vn/product/giay-tay-nam-cot-day-da-bo-cao-cap-3j658n-4755",
+    assert queue_products.web_product_urls(sm) == {"3J658N": "https://giayhainancy.vn/product/giay-tay-nam-cot-day-da-bo-cao-cap-3j658n-4755",
                                              "MH642V": "https://giayhainancy.vn/product/mh642v-101135"}
 
 
 def test_cap_three_videos_and_unused_combo(tmp_path):
     d = setup(tmp_path)
     ledger = str(tmp_path / "l.json")
-    hang_cho.save_ledger([{"ma": "Q1", "chuyen_dong": "lui_ra", "boi_canh": "pho_co"}] * 3
+    queue_products.save_ledger([{"ma": "Q1", "chuyen_dong": "lui_ra", "boi_canh": "pho_co"}] * 3
                          + [{"ma": "Q2", "chuyen_dong": "lui_ra", "boi_canh": "pho_co"}], ledger)
     seen = {}
     def make(code, r, lien, extra, used=(), **kw):
         seen[code] = list(used)
         return None
-    hang_cho.run(values_fn=lambda: HEAD + [row("Q1"), row("Q2")], make=make, fetch=fake_fetch(),
+    queue_products.run(values_fn=lambda: HEAD + [row("Q1"), row("Q2")], make=make, fetch=fake_fetch(),
                  assets_dir=str(d["assets"]), downloads_dir=str(d["dl"]), media_dir=str(d["media"]),
                  ledger_path=ledger, log_fn=lambda m: None)
     assert seen == {"Q2": [("lui_ra", "pho_co")]}  # Q1 đủ 3 video → bỏ; Q2 tránh tổ hợp đã dùng
@@ -160,30 +160,30 @@ def test_old_ledger_of_codes_still_reads():
     path = os.path.join(tempfile.mkdtemp(), "l.json")
     with open(path, "w") as f:
         json.dump(["A1", "B2"], f)
-    assert hang_cho.load_ledger(path) == [{"ma": "A1"}, {"ma": "B2"}]
+    assert queue_products.load_ledger(path) == [{"ma": "A1"}, {"ma": "B2"}]
 
 
 def test_queue_after_existing_video_reaches_a2(tmp_path):
     d = setup(tmp_path)
     calls = []
-    added = hang_cho.run(values_fn=lambda: HEAD + [row("A2", files="VIDEO, IMG"), row("A1")], make=fake_make(calls),
+    added = queue_products.run(values_fn=lambda: HEAD + [row("A2", files="VIDEO, IMG"), row("A1")], make=fake_make(calls),
                          fetch=fake_fetch(), assets_dir=str(d["assets"]), downloads_dir=str(d["dl"]),
                          media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"), log_fn=lambda m: None)
     assert added == ["A1", "A2"]  # mã chưa có video trước, mã đã có video sau
 
 
 def test_shift_note_ok_and_stop():
-    assert hang_cho.shift_note(["📦 Thêm 2 mã"], ["A", "B"], 5) == ("ok", "thêm 2 mã, chờ 5")
-    assert hang_cho.shift_note(["⏸ Lỗi đọc tab SANPHAM (X) — không làm gì.", "⏸ khác"], [], 3) == \
+    assert queue_products.shift_note(["📦 Thêm 2 mã"], ["A", "B"], 5) == ("ok", "thêm 2 mã, chờ 5")
+    assert queue_products.shift_note(["⏸ Lỗi đọc tab SANPHAM (X) — không làm gì.", "⏸ khác"], [], 3) == \
         ("loi", "Lỗi đọc tab SANPHAM (X) — không làm gì.")
 
 
 def test_main_writes_shift_only_with_flag(monkeypatch):
     shifts = []
-    monkeypatch.setattr(hang_cho, "run", lambda log_fn=None: (log_fn("⏸ Không thấy ổ Media") if log_fn else None) or [])
-    monkeypatch.setattr(hang_cho, "log", lambda msg: None)
-    monkeypatch.setattr(hang_cho, "write_shift", lambda kq, note: shifts.append((kq, note)))
-    hang_cho.main([])
+    monkeypatch.setattr(queue_products, "run", lambda log_fn=None: (log_fn("⏸ Không thấy ổ Media") if log_fn else None) or [])
+    monkeypatch.setattr(queue_products, "log", lambda msg: None)
+    monkeypatch.setattr(queue_products, "write_shift", lambda kq, note: shifts.append((kq, note)))
+    queue_products.main([])
     assert shifts == []
-    hang_cho.main(["--truc-ca"])
+    queue_products.main(["--log-health"])
     assert shifts == [("loi", "Không thấy ổ Media")]

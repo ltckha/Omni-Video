@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Omni Video - P4 lịch mùa (anh Kha 17/10/2026). Cấu hình: config/mua_vu.json.
+Omni Video - P4 lịch mùa (anh Kha 17/10/2026). Cấu hình: config/seasons.json.
 - Gắn mùa cho dòng src_omni (cột `season`, mã mùa) theo từ khoá trong tên SP — chỉ ô đang trống.
 - Hết mùa (đã qua đợt gần nhất, chưa tới lúc nhắc đợt sau) -> status = "Hết mùa" (Video-Post bỏ qua khi đăng).
 - Mùa quay lại (đang diễn ra / sắp tới) mà status = "Hết mùa" -> trả lại "Đã tạo Video" (có video_path) hoặc "Đã chọn ảnh".
@@ -21,7 +21,7 @@ from datetime import date, timedelta
 from typing import Dict, List, Optional, Tuple
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "mua_vu.json")
+CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "seasons.json")
 STATUS_OFF_SEASON = "Hết mùa"
 STATUS_DONE = "Đã tạo Video"
 STATUS_NEW = "Đã chọn ảnh"

@@ -326,9 +326,9 @@ def save_story_angle(item_dir, angle_name):
 
 def generate_prompt_for_item(item_id, item_dir, exclude_angles=()):
     """Sinh <item_id>.txt. Trả về tên góc sáng tạo đã dùng (truthy) hoặc False."""
-    from hang_tiem import read_info, write_script
+    from shop_products import read_info, write_script
     if read_info(item_dir).get("hang_tiem"):
-        # Hàng tiệm: ghép kịch bản từ mẫu config/hang_tiem.json, 0 Gemini, không ghi Sheet (không có dòng src_omni)
+        # Hàng tiệm: ghép kịch bản từ mẫu config/shop_products.json, 0 Gemini, không ghi Sheet (không có dòng src_omni)
         print(f"👞 Hàng tiệm {item_id}: {write_script(item_id, item_dir)}")
         return "Hàng tiệm"
     print(f"\n🎬 Đang xử lý sinh Master Prompt UGC cho Mã SP: {item_id}...")

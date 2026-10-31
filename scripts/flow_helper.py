@@ -6,7 +6,7 @@ Omni Video - Google Flow helper (bán tự động, anh Kha tự bấm Tạo / T
 2. encode_flow_files(): 3 file (ảnh SP, ảnh người mẫu, kịch bản .txt) gửi cho extension dán vào Flow.
 3. collect_flow_video(): video tải về ~/Downloads/<itemId>.mp4 -> Product_Assets/<itemId>/<itemId>.mp4
    (hàng tiệm: để nguyên ở ~/Downloads cho luồng gom HNC, chỉ đánh dấu đã tải).
-Không gọi API, không đụng Google Sheet (Len_NAS.command cập nhật Sheet như cũ).
+Không gọi API, không đụng Google Sheet (Move_To_NAS.command cập nhật Sheet như cũ).
 """
 
 import os
@@ -18,7 +18,7 @@ import subprocess
 import tempfile
 from typing import Optional, List, Dict
 
-from hang_tiem import read_info, mark_downloaded, output_name, save_made_script
+from shop_products import read_info, mark_downloaded, output_name, save_made_script
 
 
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -63,7 +63,7 @@ def _product_title(item_dir: str) -> str:
             info = json.load(f)
         title = str(info.get("productName") or info.get("title") or "").strip()
         if info.get("hang_tiem"):  # anh biết đang tạo bản nào: "· tien_vao · sảnh khách sạn · <tên>"
-            from hang_tiem import popup_label
+            from shop_products import popup_label
             title = f"· {popup_label(info)} · {title}"
         return title
     except Exception:

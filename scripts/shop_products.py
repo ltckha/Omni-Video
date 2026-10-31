@@ -5,19 +5,19 @@ Omni Video - chế độ hàng tiệm (anh Kha nói "làm" 30/10/2026 qua Phân 
 Video Flow cho giày tiệm Hiệu giày Hải Nancy, theo mã tiệm (vd JH8918N):
 1. Tạo Product_Assets/<mã>/: ảnh từ NAS /Volumes/Media/HNC_Master/<mã>/ (chỉ ảnh) → web giayhainancy.vn/img/<mã>/<n>-1000.webp
    (n = 1, 2… tới khi 404; đổi sang JPG cho Flow) → image_01… của tab SANPHAM.
-2. info.json lấy tên / màu / chất liệu từ SANPHAM + cờ hang_tiem = true. KHÔNG tạo dòng src_omni (Video-Post nhận video qua SANPHAM).
-   Kịch bản <mã>.txt ghép từ mẫu config/hang_tiem.json + info.json bằng code, 0 Gemini (anh Kha 30/10: dùng Flow
+2. info.json lấy tên / màu / chất liệu từ SANPHAM + cờ shop_products = true. KHÔNG tạo dòng src_omni (Video-Post nhận video qua SANPHAM).
+   Kịch bản <mã>.txt ghép từ mẫu config/shop_products.json + info.json bằng code, 0 Gemini (anh Kha 30/10: dùng Flow
    trên trình duyệt, không qua API) + chép ảnh người mẫu Nam- / Nu- theo giới tính → mở Flow bấm Tạo video luôn.
 3. Sau khi tải từ Flow, video để nguyên ~/Downloads/<mã>.mp4 cho luồng gom của HNC; thư mục tạm tự dọn khi video đã rời Downloads.
 
 Kiểu dựng (anh Kha 30/10): mặc định "liền" = 1 cảnh liền 10 giây (máy lùi dần từ giày ra người mẫu),
 tối đa 6 ảnh giày đủ góc (thẳng → 3/4 → góc khác → đế, xem pick_lien_images) + ảnh người mẫu cắt từ thắt lưng trở lên.
 
---4-canh = kiểu 4 cảnh + ảnh người mẫu. Bối cảnh xoay vòng theo loại giày (config/hang_tiem.json "boi_canh").
+--4-canh = kiểu 4 cảnh + ảnh người mẫu. Bối cảnh xoay vòng theo loại giày (config/shop_products.json "boi_canh").
 
 Kiểu chuyển động (kiểu liền) xoay vòng cùng bối cảnh; --chuyen-dong=<tên> chọn tay 1 kiểu (kể cả mang_giay đang tắt).
 
-Dùng: python scripts/hang_tiem.py [--4-canh | --chuyen-dong=<tên>] <mã> [<mã> …]    (Tiem.command hỏi mã + kiểu rồi chạy lệnh này)
+Dùng: python scripts/shop_products.py [--4-canh | --chuyen-dong=<tên>] <mã> [<mã> …]    (Shop_Products.command hỏi mã + kiểu rồi chạy lệnh này)
 """
 
 import glob
@@ -219,9 +219,9 @@ def prepare(code: str, row: Dict[str, str], assets_dir: str = ASSETS_DIR, media_
     return item_dir
 
 
-SCENE_STATE = os.path.join(PROJECT_DIR, "data", ".hang_tiem_boi_canh.json")  # chỉ số bối cảnh kế tiếp theo nhóm
+SCENE_STATE = os.path.join(PROJECT_DIR, "data", ".shop_products_scene_state.json")  # chỉ số bối cảnh kế tiếp theo nhóm
 FFMPEG = shutil.which("ffmpeg") or "/opt/homebrew/bin/ffmpeg"
-CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "hang_tiem.json")
+CONFIG_PATH = os.path.join(PROJECT_DIR, "config", "shop_products.json")
 CHARACTERS_DIR = os.path.join(PROJECT_DIR, "characters")
 # thứ tự = ưu tiên: kiểu cụ thể ("xỏ chân") thắng "giày tây" chung (giày tây → "shoes", không ghi dress shoes vì Flow vẽ giày buộc dây)
 SHOE_TYPES = ("xỏ chân", "giày lười", "giày mọi", "cột dây", "giày thể thao", "giày sandal", "giày cao gót", "giày búp bê",
@@ -420,12 +420,12 @@ def crop_model(src: str, item_dir: str, lien: Dict) -> str:
 
 def model_image(src: str, item_dir: str, lien: Dict, motion: Optional[str]) -> str:
     """Ảnh người mẫu dán vào Flow = ẢNH CHUẨN theo kiểu (lien.anh_chuan, anh Kha 31/10: giữ đúng ảnh của bản đạt):
-    chép nguyên file characters/chuan/<tên>_<loại>.jpg (tu_nhien → toan_than, san_pham / ngoi_dung → tren).
+    chép nguyên file characters/standard/<tên>_<loại>.jpg (tu_nhien → toan_than, san_pham / ngoi_dung → tren).
     Chưa có ảnh chuẩn → cắt nửa trên như cũ."""
     chuan = lien.get("anh_chuan") or {}
     kind = (chuan.get("theo_kieu") or {}).get(motion or "", chuan.get("mac_dinh", "tren"))
     name = os.path.splitext(os.path.basename(src))[0]
-    std = os.path.join(os.path.dirname(src), os.path.basename(chuan.get("thu_muc", "chuan")), f"{name}_{kind}.jpg")
+    std = os.path.join(os.path.dirname(src), os.path.basename(chuan.get("thu_muc", "standard")), f"{name}_{kind}.jpg")
     if os.path.isfile(std):
         out = os.path.join(item_dir, os.path.basename(std))
         shutil.copy2(std, out)
@@ -529,11 +529,11 @@ def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, character
     return path
 
 
-SCRIPTS_MADE_DIR = os.path.join(PROJECT_DIR, "data", "kich_ban_da_tao")
+SCRIPTS_MADE_DIR = os.path.join(PROJECT_DIR, "data", "made_scripts")
 
 
 def save_made_script(item_dir: str, out_dir: Optional[str] = None) -> Optional[str]:
-    """Chép kịch bản của video vừa tải về data/kich_ban_da_tao/<tên video>.txt (kèm kiểu, bối cảnh, ngày) để so sau."""
+    """Chép kịch bản của video vừa tải về data/made_scripts/<tên video>.txt (kèm kiểu, bối cảnh, ngày) để so sau."""
     info = read_info(item_dir)
     code = info.get("itemId") or os.path.basename(item_dir)
     src = os.path.join(item_dir, f"{code}.txt")
@@ -572,7 +572,7 @@ def cleanup(assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) ->
 
 def make_item(code: str, row: Dict[str, str], lien: bool = True, extra: Optional[Dict] = None, used=(),
               motion: Optional[str] = None, **prepare_kw) -> Optional[str]:
-    """Ảnh + info.json + kịch bản cho 1 mã (dùng chung cho Tiem.command và hàng chờ tự động). None = không có ảnh."""
+    """Ảnh + info.json + kịch bản cho 1 mã (dùng chung cho Shop_Products.command và hàng chờ tự động). None = không có ảnh."""
     item_dir = prepare(code, row, **prepare_kw)
     if not item_dir:
         return None

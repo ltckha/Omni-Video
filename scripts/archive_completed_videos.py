@@ -172,7 +172,7 @@ def archive_completed_folders(review=None):
 
     archived_count = 0
 
-    from hang_tiem import is_hang_tiem, cleanup
+    from shop_products import is_hang_tiem, cleanup
     for code in cleanup(ASSETS_DIR, DOWNLOADS_DIR):
         print(f"🧹 Hàng tiệm {code}: video đã được HNC gom, đã dọn thư mục tạm.")
 
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     print("============================================================")
     print(f"📁 Thư mục đích: {TARGET_MEDIA_DIR}\n")
     
-    # Chạy từ Len_NAS.command (có cửa sổ Terminal) thì hỏi từng video; chạy nền thì chuyển như cũ
+    # Chạy từ Move_To_NAS.command (có cửa sổ Terminal) thì hỏi từng video; chạy nền thì chuyển như cũ
     count = archive_completed_folders(review=review_video if sys.stdin.isatty() else None)
     print("\n============================================================")
     if count > 0:

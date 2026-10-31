@@ -22,10 +22,10 @@ Product_Assets/
 .env.local
 data/*.csv
 data/.imported_csv.json
-data/.hang_tiem_boi_canh.json
-data/.hang_cho_da_lam.json
+data/.shop_products_scene_state.json
+data/.queue_products_ledger.json
 data/logs/
-data/kich_ban_da_tao/
+data/made_scripts/
 *service*.json
 config/*service*.json
 

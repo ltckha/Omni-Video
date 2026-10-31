@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Omni Video - N17: tờ ảnh 10 khung để anh Kha xem nhanh video trước khi Move (gắn vào Len_NAS.command 28/10/2026).
+Omni Video - N17: tờ ảnh 10 khung để anh Kha xem nhanh video trước khi Move (gắn vào Move_To_NAS.command 28/10/2026).
 Mỗi giây 1 khung, ghép 5 × 2, cạnh ngắn 240 px — thấy được lỗi đồ vật biến dạng / biến mất giữa cảnh
 (vd nắp hũ nến tách ra ở video 27958810119 ngày 15/10). Dùng ffmpeg, 0 Gemini, không sửa video.
 

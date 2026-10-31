@@ -54,7 +54,7 @@ def handle_flow_action(msg):
     try:
         if action == "FLOW_LIST":
             reminders = []
-            try:  # P4: nhắc mùa đang diễn ra / sắp tới (config/mua_vu.json), không đọc Sheet
+            try:  # P4: nhắc mùa đang diễn ra / sắp tới (config/seasons.json), không đọc Sheet
                 from datetime import date
                 import season
                 reminders = season.reminders(season.load_config(), date.today())
