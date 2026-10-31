@@ -409,21 +409,28 @@ def pick_lien_images(item_dir: str, shape=image_shape, max_shoes: int = LIEN_MAX
 
 
 def crop_model(src: str, item_dir: str, lien: Dict) -> str:
-    """Ảnh người mẫu dán vào Flow; ảnh gốc giữ nguyên. Ảnh characters/ là tờ 2 hình (chân dung + toàn thân, giày của mẫu).
-    Ảnh có vùng trong lien.cat_chan (anh Kha 31/10 chiều: giống luồng Omni Shopee, nguyên tờ) → cắt bỏ dải dưới cùng chứa
-    bàn chân / giày của mẫu, ngang trên mắt cá → <tên>_cat_chan.jpg. Ảnh chưa khai vùng → như cũ: giữ `cat_nguoi_mau`
-    phần trên → <tên>_tren.jpg."""
+    """Cắt nửa trên tờ người mẫu (giữ `cat_nguoi_mau` phần trên, tới thắt lưng) → <tên>_tren.jpg; ảnh gốc giữ nguyên.
+    Chỉ dùng khi chưa có ảnh chuẩn (model_image)."""
     name = os.path.splitext(os.path.basename(src))[0]
-    box = (lien.get("cat_chan") or {}).get(name)
-    if box:
-        x, y, w, h = box
-        out = os.path.join(item_dir, name + "_cat_chan.jpg")
-        vf = f"crop=trunc(iw*{w}/2)*2:trunc(ih*{h}/2)*2:trunc(iw*{x}):trunc(ih*{y})"
-    else:
-        out = os.path.join(item_dir, name + "_tren.jpg")
-        vf = f"crop=iw:trunc(ih*{lien['cat_nguoi_mau']}/2)*2:0:0"
-    subprocess.run([FFMPEG, "-loglevel", "error", "-y", "-i", src, "-vf", vf, "-q:v", "3", out], check=True)
+    out = os.path.join(item_dir, name + "_tren.jpg")
+    subprocess.run([FFMPEG, "-loglevel", "error", "-y", "-i", src, "-vf", f"crop=iw:trunc(ih*{lien['cat_nguoi_mau']}/2)*2:0:0",
+                    "-q:v", "3", out], check=True)
     return out
+
+
+def model_image(src: str, item_dir: str, lien: Dict, motion: Optional[str]) -> str:
+    """Ảnh người mẫu dán vào Flow = ẢNH CHUẨN theo kiểu (lien.anh_chuan, anh Kha 31/10: giữ đúng ảnh của bản đạt):
+    chép nguyên file characters/chuan/<tên>_<loại>.jpg (tu_nhien → toan_than, san_pham / ngoi_dung → tren).
+    Chưa có ảnh chuẩn → cắt nửa trên như cũ."""
+    chuan = lien.get("anh_chuan") or {}
+    kind = (chuan.get("theo_kieu") or {}).get(motion or "", chuan.get("mac_dinh", "tren"))
+    name = os.path.splitext(os.path.basename(src))[0]
+    std = os.path.join(os.path.dirname(src), os.path.basename(chuan.get("thu_muc", "chuan")), f"{name}_{kind}.jpg")
+    if os.path.isfile(std):
+        out = os.path.join(item_dir, os.path.basename(std))
+        shutil.copy2(std, out)
+        return out
+    return crop_model(src, item_dir, lien)
 
 
 def build_script_lien(info: Dict, cfg: Dict) -> str:
@@ -513,7 +520,7 @@ def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, character
     chars = sorted(f for f in glob.glob(os.path.join(characters_dir, "*")) if os.path.basename(f).lower().startswith(prefix))
     if info.get("kieu") == "lien":
         if chars:
-            info["nguoi_mau_lien"] = os.path.basename(crop_model(chars[-1], item_dir, cfg["lien"]))
+            info["nguoi_mau_lien"] = os.path.basename(model_image(chars[-1], item_dir, cfg["lien"], info.get("chuyen_dong")))
             write_info(item_dir, info)
         return path
     have = [f for f in os.listdir(item_dir) if f.lower().startswith(("nu-", "nam-")) and not re.search(r"_(tren|toan_than|chan_dung|cat_chan)\.", f.lower())]
@@ -536,7 +543,8 @@ def save_made_script(item_dir: str, out_dir: Optional[str] = None) -> Optional[s
     os.makedirs(out_dir, exist_ok=True)
     dst = os.path.join(out_dir, os.path.splitext(output_name(info, code))[0] + ".txt")
     head = (f"# {output_name(info, code)} · kiểu {info.get('kieu')} · {info.get('chuyen_dong', '')} · "
-            f"bối cảnh {info.get('boi_canh', '')} · tải {datetime.now():%Y-%m-%d %H:%M}\n")
+            f"bối cảnh {info.get('boi_canh', '')} · người mẫu {info.get('nguoi_mau_lien', '')} · "
+            f"tải {datetime.now():%Y-%m-%d %H:%M}\n")
     with open(src, "r", encoding="utf-8") as f, open(dst, "w", encoding="utf-8") as g:
         g.write(head + f.read())
     return dst
