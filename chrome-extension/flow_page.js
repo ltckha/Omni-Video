@@ -139,7 +139,8 @@
 
   // ===== Tự chạy các bước sau khi điền =====
   const visible = (el) => el && el.offsetParent !== null;
-  const byLabel = (label) => [...document.querySelectorAll(`button[aria-label="${label}"]`)].filter(visible);
+  // cả <button> lẫn <div role=button> (31/10: nút "Mở video trong trình chỉnh sửa" của khung chat là div role=button)
+  const byLabel = (label) => [...document.querySelectorAll(`button[aria-label="${label}"], [role=button][aria-label="${label}"]`)].filter(visible);
   const approveRadios = () => [...document.querySelectorAll("[role=radio]")].filter((r) => r.textContent.trim().endsWith("Phê duyệt") && !r.textContent.includes("Luôn"));
   // 31/10: giao diện tác nhân — ảnh / video của Flow nằm ở https://flow.google.com/asb/<id> (file chụp 13:29: thẻ
   // <video src=…/asb/…> 720 px trong lưới "Tất cả nội dung", ảnh nhỏ cùng <id> trong ô có biểu tượng play_circle; khung
