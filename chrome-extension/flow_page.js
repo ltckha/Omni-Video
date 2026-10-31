@@ -187,22 +187,63 @@
   const isNew = (el, oldSet) => !oldSet.has(el);
   const after = (el, ref) => !ref || (ref.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-    // Tải video của lượt cuối: mở trình chỉnh sửa (/edit/…) → "Tải nội dung nghe nhìn xuống" → 720p (nếu có menu) →
-  // background đặt tên <output> (onDeterminingFilename theo flowActiveItem) → "Xong" quay về dự án.
-  // Lượt cuối chưa có video (Flow còn tạo / xếp hàng) → báo chưa có, không lấy video cũ.
+    // Bấm như người: Flow nhiều chỗ chỉ nghe pointerdown / mousedown, .click() trơn có khi không ăn
+  // (31/10 anh Kha: "phải nhấn 2-3 lần vô mới tải về").
+  function realClick(el) {
+    el.scrollIntoView({ block: "center" });
+    const r = el.getBoundingClientRect();
+    const opt = { bubbles: true, cancelable: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0 };
+    el.dispatchEvent(new PointerEvent("pointerdown", { ...opt, pointerType: "mouse", isPrimary: true }));
+    el.dispatchEvent(new MouseEvent("mousedown", opt));
+    el.dispatchEvent(new PointerEvent("pointerup", { ...opt, pointerType: "mouse", isPrimary: true }));
+    el.dispatchEvent(new MouseEvent("mouseup", opt));
+    el.dispatchEvent(new MouseEvent("click", opt));
+  }
+
+  // Bấm rồi chờ kết quả; chưa có thì bấm lại (tối đa `tries` lần). Trả kết quả hoặc null.
+  async function clickUntil(getEl, check, tries, waitMs) {
+    for (let i = 0; i < tries; i++) {
+      const el = getEl();
+      if (!el) return null;
+      realClick(el);
+      const start = Date.now();
+      while (Date.now() - start < waitMs) {
+        const got = await check();
+        if (got) return got;
+        await sleep(500);
+      }
+    }
+    return null;
+  }
+
+  // background ghi flowDownloadStartedAt mỗi khi Chrome bắt đầu 1 lượt tải (chrome.downloads.onCreated)
+  const downloadStartedSince = (t) => new Promise((r) => chrome.storage.local.get(["flowDownloadStartedAt"], (st) => r((st.flowDownloadStartedAt || 0) > t)));
+  const menu720 = () => [...document.querySelectorAll("[role=menuitem], [role=menuitemradio], [role=option], li, button")]
+    .filter(visible).find((m) => /720p/.test(m.textContent) && m.textContent.length < 80);
+
+  // Tải video của lượt cuối: mở trình chỉnh sửa (/edit/…) → "Tải nội dung nghe nhìn xuống" → 720p (nếu có menu) →
+  // background đặt tên <output> (onDeterminingFilename theo flowActiveItem) → "Xong" quay về dự án. Mỗi bước tự bấm lại
+  // tới 3 lần nếu Flow chưa phản hồi. Lượt cuối chưa có video (Flow còn tạo / xếp hàng) → báo chưa có, không lấy video cũ.
   async function downloadNew(itemId, output) {
-    const open = latestTurnVideo();
-    if (!open) throw new Error(`chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
-    open.click();
-    const dl = await step("mở Tải xuống", () => byLabel("Tải nội dung nghe nhìn xuống")[0], 30000);
+    if (!latestTurnVideo()) throw new Error(`chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
+    const dlBtn = () => byLabel("Tải nội dung nghe nhìn xuống")[0];
+    const dl = dlBtn() || await clickUntil(latestTurnVideo, dlBtn, 3, 10000);
+    if (!dl) throw new Error(`bấm "Mở video" 3 lần mà Flow chưa mở trình chỉnh sửa — anh mở video rồi bấm "⬇ Tải lại video"`);
     await sleep(1000);
-    dl.click();
-    const item720 = await step("chọn 720p", () => [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.includes("720p")), 8000).catch(() => null);
-    if (item720) item720.click();
+    const t0 = Date.now();
+    const started = () => downloadStartedSince(t0);
+    let ok = false;
+    for (let i = 0; i < 3 && !ok; i++) {
+      const item = await clickUntil(dlBtn, async () => menu720() || (await started() && "started"), 1, 5000);
+      if (item && item !== "started") {
+        ok = !!(await clickUntil(() => menu720(), started, 2, 6000));
+      } else ok = item === "started" || await started();
+    }
+    if (!ok) throw new Error(`đã bấm "Tải xuống" 3 lần mà Chrome chưa tải — anh bấm tay Tải xuống (tên file vẫn tự đặt ${output})`);
     showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
-    await sleep(5000);
+    await sleep(4000);
     const done = byLabel("Đã chỉnh sửa xong cảnh")[0];
-    if (done) done.click();
+    if (done) realClick(done);
   }
 
   async function autoRun(itemId, output, nImages) {

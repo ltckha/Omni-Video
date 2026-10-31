@@ -149,6 +149,9 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
   return true;
 });
 
+// flow_page.js biết lượt bấm Tải xuống đã ăn (không bấm thêm, tránh tải trùng)
+chrome.downloads.onCreated.addListener(() => chrome.storage.local.set({ flowDownloadStartedAt: Date.now() }));
+
 chrome.downloads.onChanged.addListener((delta) => {
   const itemId = flowDownloads[delta.id];
   if (!itemId || !delta.state || delta.state.current !== "complete") return;
