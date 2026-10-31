@@ -389,9 +389,9 @@ def test_tu_nhien_short_vietnamese_prompt_is_default():
     scene = scene_named(cfg, "truong_cong_dinh")
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="tu_nhien", boi_canh=scene["ten"])
     text = hang_tiem.build_script(info, cfg)
-    assert text == "Tạo video người mẫu nam mang đôi giày trong ảnh, dạo bước trên đường Trương Công Định, Đà Lạt. Video dọc 9:16.\n"
+    assert text == "Tạo video người mẫu nam mang đôi giày trong ảnh, dạo bước trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. Trang phục giữ nguyên như ảnh người mẫu suốt video.\n"
     female = hang_tiem.build_script(dict(info, gioi_tinh="nữ", boi_canh="ca_phe_san_vuon"), cfg)
-    assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16.\n"
+    assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16. Trang phục giữ nguyên như ảnh người mẫu suốt video.\n"
     assert hang_tiem.pick_mood(cfg, "tu_nhien") is None
     assert hang_tiem.popup_label(info, cfg) == "tự nhiên · đường Trương Công Định"
 
@@ -402,7 +402,7 @@ def test_san_pham_prompt_text():
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="san_pham", boi_canh="truong_cong_dinh")
     assert hang_tiem.build_script(info, cfg) == (
         "Tạo video người mẫu nam mang đôi giày trong ảnh, bước đi trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. "
-        "Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết).\n")
+        "Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết). Trang phục giữ nguyên như ảnh người mẫu suốt video.\n")
     assert hang_tiem.popup_label(info, cfg) == "sản phẩm · đường Trương Công Định"
 
 
@@ -414,5 +414,5 @@ def test_ngoi_dung_prompt_uses_seat_of_scene():
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="ngoi_dung", boi_canh="ho_xuan_huong")
     assert hang_tiem.build_script(info, cfg) == (
         "Tạo video người mẫu nam mang đôi giày trong ảnh, đang ngồi trên ghế đá bên hồ Xuân Hương, Đà Lạt, máy quay tập trung "
-        "vào đôi giày, rồi người mẫu đứng dậy bước đi, quay cả người. Video dọc 9:16.\n")
+        "vào đôi giày, rồi người mẫu đứng dậy bước đi, quay cả người. Video dọc 9:16. Trang phục giữ nguyên như ảnh người mẫu suốt video.\n")
     assert hang_tiem.popup_label(info, cfg) == "ngồi → đứng · hồ Xuân Hương"
