@@ -3,7 +3,7 @@
 """
 Omni Video - N18 (bản nháp, 23/10/2026): xếp sản phẩm trong file Product Offer của Shopee Affiliate
 (CSV: Mã sản phẩm, Tên, Giá, Doanh thu / Đã bán, Tên cửa hàng, Tỉ lệ hoa hồng, Hoa hồng, Link sản phẩm, Link ưu đãi)
-theo hoa hồng (đ) × lượt bán, đánh dấu SP đã có trong src_omni — để chọn món nên làm TRƯỚC khi Alt+S / Import.
+theo hoa hồng (đ) × lượt bán, đánh dấu SP đã có trong src_omni — để chọn món nên làm TRƯỚC khi Alt+S / Nhap.
 Chỉ đọc (CSV + tab src_omni nếu có mạng), 0 Gemini, không ghi gì.
 
 Dùng: python scripts/rank_offers.py <file.csv> [file2.csv …] [--top 20] [--offline]
@@ -15,7 +15,7 @@ import sys
 from typing import Dict, List, Set
 
 sys.path.insert(0, os.path.dirname(__file__))
-from rank_products import score_row  # cùng công thức với bảng gợi ý trong Import.command
+from rank_products import score_row  # cùng công thức với bảng gợi ý trong Nhap.command
 
 # tên cột Shopee (đã bỏ khoảng trắng, chữ thường) -> tên cột src_omni
 COLUMN_MAP = {

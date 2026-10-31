@@ -13,7 +13,7 @@ Lỗi kiểu nắp hũ tách ra ở bản nến lỗi ngày 15/10 lộ rõ ngay 
 
 ## Đề xuất gắn vào luồng (cần anh chọn, đụng luồng đang chạy)
 1. **Khi video tải về xong** (native host `FLOW_COLLECT`): tạo `<Mã_SP>_xem.jpg` cạnh video, popup / Finder mở cho anh xem. — Anh thấy ngay sau khi Tạo video.
-2. **Trong Move.command:** trước khi chuyển, mở tờ ảnh từng video, anh bấm Enter = Move, gõ `b` = bỏ qua (để làm lại).
+2. **Trong Len_NAS.command:** trước khi chuyển, mở tờ ảnh từng video, anh bấm Enter = Move, gõ `b` = bỏ qua (để làm lại).
 3. Cả hai.
 
 Ghi chú: tờ ảnh có hình nhân vật AI → chỉ để trên máy / NAS, không đưa lên trang artifact (luật chung 16).

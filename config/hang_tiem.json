@@ -233,7 +233,7 @@
     "Natural walking steps with normal heel-to-toe movement are fine; the only thing to avoid is pivoting or twisting a foot in place, or deliberately turning a foot up to show the sole."
   ],
   "lien": {
-    "_ghi_chu": "Kiểu liền (MẶC ĐỊNH từ 30/10; HangTiem gõ 4 / --4-canh = kiểu 4 cảnh): 1 cảnh 10 giây không cắt; dán tối đa 6 ảnh giày đủ góc (nhìn thẳng → chéo 3/4 → góc khác → đế, anh Kha 30/10 muốn đủ góc) rồi ảnh người mẫu đã cắt từ thắt lưng trở lên (không lộ giày của người mẫu). Theo Ecosystem-Hub/docs/nghien_cuu/2026-10-30_prompt_omni_giu_giay.md: chỉ tả cái đang có, không liệt kê đồ vật trong câu phủ định. Gọi ảnh theo thứ tự dán (extension chưa gõ được @tên của Flow).",
+    "_ghi_chu": "Kiểu liền (MẶC ĐỊNH từ 30/10; Tiem gõ 4 / --4-canh = kiểu 4 cảnh): 1 cảnh 10 giây không cắt; dán tối đa 6 ảnh giày đủ góc (nhìn thẳng → chéo 3/4 → góc khác → đế, anh Kha 30/10 muốn đủ góc) rồi ảnh người mẫu đã cắt từ thắt lưng trở lên (không lộ giày của người mẫu). Theo Ecosystem-Hub/docs/nghien_cuu/2026-10-30_prompt_omni_giu_giay.md: chỉ tả cái đang có, không liệt kê đồ vật trong câu phủ định. Gọi ảnh theo thứ tự dán (extension chưa gõ được @tên của Flow).",
     "cat_nguoi_mau": 0.5,
     "prompt": [
       "Vertical 9:16, 10 seconds, single continuous shot, no scene cuts.",
@@ -375,5 +375,5 @@
     "pu": "PU",
     "eva": "EVA foam"
   },
-  "_ghi_chu_4_canh": "Kiểu 4 cảnh (shots / fidelity_rules…) tắt từ 30/10, chỉ chạy khi gọi tay --4-canh / HangTiem gõ 4."
+  "_ghi_chu_4_canh": "Kiểu 4 cảnh (shots / fidelity_rules…) tắt từ 30/10, chỉ chạy khi gọi tay --4-canh / Tiem gõ 4."
 }

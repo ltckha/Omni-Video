@@ -5,7 +5,7 @@ Tự động quét các thư mục sản phẩm trong Product_Assets/ (và ~/Dow
 1. Thư mục đã có video .mp4 -> xoá ảnh character, info.json, prompt_backups/.
 2. Di chuyển toàn bộ thư mục sản phẩm hoàn thành về /Volumes/Media/Omni-Video/<Mã_SP>/
 3. Cập nhật trạng thái trên Google Sheet thành "Đã tạo Video" + video_path.
-Trước khi chuyển, mở tờ ảnh 10 khung <Mã_SP>_xem.jpg (N17) để anh Kha xem: Enter = Move, b = bỏ qua.
+Trước khi chuyển, mở tờ ảnh 10 khung <Mã_SP>_xem.jpg (N17) để anh Kha xem: Enter = lên NAS, b = bỏ qua.
 (Chế độ QA Gemini + tự học prompt đã chuyển vào archive/ ngày 21/10/2026.)
 """
 
@@ -130,7 +130,7 @@ def safe_move_path(src_path: str, dst_path: str):
             pass
 
 def review_video(item_id, item_path, video_file, ask=input, show=None):
-    """N17 (anh Kha chốt 28/10): tờ ảnh 10 khung trước khi Move. Trả về True = Move, False = bỏ qua.
+    """N17 (anh Kha chốt 28/10): tờ ảnh 10 khung trước khi lên NAS. Trả về True = lên NAS, False = bỏ qua.
     Tờ ảnh đi theo thư mục lên NAS; bỏ qua thì xoá tờ ảnh để thư mục chỉ còn nguyên liệu (làm lại không lẫn ảnh SP)."""
     sheet = os.path.join(item_path, f"{item_id}_xem.jpg")
     try:
@@ -141,7 +141,7 @@ def review_video(item_id, item_path, video_file, ask=input, show=None):
     except Exception as e:
         sheet = None
         print(f"  ⚠️ Không tạo được tờ ảnh ({e}) — anh xem thẳng video: {video_file}")
-    answer = ask("  👉 Enter = Move · b = bỏ qua (để làm lại): ").strip().lower()
+    answer = ask("  👉 Enter = lên NAS · b = bỏ qua (để làm lại): ").strip().lower()
     if answer.startswith("b"):
         if sheet and os.path.exists(sheet):
             os.remove(sheet)
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     print("============================================================")
     print(f"📁 Thư mục đích: {TARGET_MEDIA_DIR}\n")
     
-    # Chạy từ Move.command (có cửa sổ Terminal) thì hỏi từng video; chạy nền thì Move như cũ
+    # Chạy từ Len_NAS.command (có cửa sổ Terminal) thì hỏi từng video; chạy nền thì chuyển như cũ
     count = archive_completed_folders(review=review_video if sys.stdin.isatty() else None)
     print("\n============================================================")
     if count > 0:

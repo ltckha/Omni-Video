@@ -15,9 +15,9 @@ flowchart LR
     NH[Native host<br/>omni_native_host.py]
     PA[(Product_Assets/&lt;Mã_SP&gt;/<br/>ảnh · info.json · nhân vật<br/>&lt;Mã_SP&gt;.txt · &lt;Mã_SP&gt;.mp4)]
     DL[(~/Downloads)]
-    IMP[Import.command<br/>gom ảnh · nhập CSV · điền link<br/>tạo file Custom Link · mùa · gợi ý]
-    PR[Prompt.command<br/>generate_ugc_prompt]
-    MV[Move.command<br/>archive_completed_videos]
+    IMP[Nhap.command<br/>gom ảnh · nhập CSV · điền link<br/>tạo file Custom Link · mùa · gợi ý]
+    PR[Kich_Ban.command<br/>generate_ugc_prompt]
+    MV[Len_NAS.command<br/>archive_completed_videos]
   end
 
   subgraph G[Google]
@@ -30,7 +30,7 @@ flowchart LR
   HNCNAS[(NAS /Volumes/Media/HNC_Master/&lt;mã&gt;/<br/>ảnh giày tiệm)]
   WEB[giayhainancy.vn/img/&lt;mã&gt;/&lt;n&gt;-1000.webp]
   SANPHAM[(Sheet HNC_Control_Center<br/>tab SANPHAM)]
-  HT[HangTiem.command<br/>hang_tiem.py]
+  HT[Tiem.command<br/>hang_tiem.py]
   HNC[Kho hàng gomvideo<br/>→ SANPHAM → Video-Post]
   VP[Video-Post<br/>src_omni → master → đăng FB/YT/TikTok<br/>không Shopee]
   AVF[AVF<br/>links/ → aff_links]
@@ -60,32 +60,32 @@ flowchart LR
 | Bước | Anh làm | Script | Kết quả |
 |---|---|---|---|
 | 0 | `Alt+S` trên trang SP Shopee | `content.js` → `omni_native_host.py` → `sheet_sync.py` | Ảnh + `info.json` vào `Product_Assets/<Mã_SP>/`; dòng `src_omni` (giá / lượt bán / shop đọc theo chữ trên trang); bấm lại không đổi status |
-| 1 | `Import.command` | `auto_organize_downloads` → `import_csv_to_gsheet --all-new` → `fill_aff_links --apply` → `make_batch_links` → `season --apply` → `rank_products` | Gom ảnh; nhập mọi CSV Shopee Affiliate chưa nhập (sổ `data/.imported_csv.json`; file đã nhập không nhập lại → dòng anh xoá tay không quay lại); điền `shopee_link` (+ giá / % hoa hồng / shop ô trống) từ `aff_links`; còn dòng thiếu link thì tạo `~/Downloads/Omni_BatchCustomLinks_<giờ>.xlsx` (Sub_id1 = job_id) để anh tải lên Shopee Affiliate, file kết quả thả `~/agent_mailbox/auto-video-factory/affiliate/links/`; gắn mùa / "Hết mùa" (> 10 dòng thì dừng hỏi); in gợi ý SP theo hoa hồng (đ) × lượt bán |
-| 2 | `Prompt.command` | `generate_ugc_prompt.py` | `<Mã_SP>.txt` + ảnh nhân vật (1 lượt Gemini / SP) |
+| 1 | `Nhap.command` | `auto_organize_downloads` → `import_csv_to_gsheet --all-new` → `fill_aff_links --apply` → `make_batch_links` → `season --apply` → `rank_products` | Gom ảnh; nhập mọi CSV Shopee Affiliate chưa nhập (sổ `data/.imported_csv.json`; file đã nhập không nhập lại → dòng anh xoá tay không quay lại); điền `shopee_link` (+ giá / % hoa hồng / shop ô trống) từ `aff_links`; còn dòng thiếu link thì tạo `~/Downloads/Omni_BatchCustomLinks_<giờ>.xlsx` (Sub_id1 = job_id) để anh tải lên Shopee Affiliate, file kết quả thả `~/agent_mailbox/auto-video-factory/affiliate/links/`; gắn mùa / "Hết mùa" (> 10 dòng thì dừng hỏi); in gợi ý SP theo hoa hồng (đ) × lượt bán |
+| 2 | `Kich_Ban.command` | `generate_ugc_prompt.py` | `<Mã_SP>.txt` + ảnh nhân vật (1 lượt Gemini / SP) |
 | 2b | `python scripts/make_variants.py <Mã_SP> --count 3` (khi cần) | `make_variants.py` | Thư mục + dòng `src_omni` `<Mã_SP>-2`, `-3`, kịch bản khác góc |
 | 3 | Mở dự án Flow (ô câu lệnh trống) → extension → **Tạo video** | `flow_page.js` + `flow_helper.py` | Dán ảnh (1 = SP lớn nhất, 2 = người mẫu, 3.. = SP còn lại, ≤ 7) + kịch bản → Tạo → Phê duyệt → chờ → Tải 720p `<Mã_SP>.mp4` (Chrome hỏi Save thì bấm Save) → vào `Product_Assets/<Mã_SP>/` |
-| 4 | `Move.command` | `archive_completed_videos.py` + `contact_sheet.py` | Mỗi video mở tờ ảnh 10 khung `<Mã_SP>_xem.jpg` (ffmpeg, 0 Gemini): Enter = Move, `b` = bỏ qua (xoá tờ ảnh, thư mục giữ nguyên để làm lại). Move: xoá `info.json` + ảnh nhân vật, chuyển thư mục về NAS, Sheet "Đã tạo Video" + `video_path` |
+| 4 | `Len_NAS.command` | `archive_completed_videos.py` + `contact_sheet.py` | Mỗi video mở tờ ảnh 10 khung `<Mã_SP>_xem.jpg` (ffmpeg, 0 Gemini): Enter = Move, `b` = bỏ qua (xoá tờ ảnh, thư mục giữ nguyên để làm lại). Move: xoá `info.json` + ảnh nhân vật, chuyển thư mục về NAS, Sheet "Đã tạo Video" + `video_path` |
 
 ### Hàng tiệm (Hiệu giày Hải Nancy, từ 30/10)
 | Bước | Anh làm | Script | Kết quả |
 |---|---|---|---|
-| H1 | `HangTiem.command` → gõ mã (vd `JH8918N 32837D`) | `hang_tiem.py` | `Product_Assets/<mã>/`: ảnh theo thứ tự NAS `HNC_Master/<mã>/` (chỉ ảnh) → web `giayhainancy.vn/img/<mã>/<n>-1000.webp` (n = 1, 2… tới 404, đổi sang JPG) → `image_01…` SANPHAM; `info.json` (`hang_tiem: true`, tên / màu / chất liệu / đế / giới tính từ SANPHAM, tiêu đề hàng 2). Kịch bản `<mã>.txt` **ghép bằng code từ mẫu `config/hang_tiem.json`, 0 Gemini** **Từ 30/10 mặc định kiểu `tu_nhien`** (anh Kha: kịch bản dài gò bó, Flow tự dựng đẹp hơn): 1 câu tiếng Việt ngắn "Tạo video người mẫu nam/nữ mang đôi giày trong ảnh, bước đi <bối cảnh>…"; mọi kiểu máy cũ và 4 cảnh tắt khỏi xoay vòng (`bat: false`), gọi tay được. **Bối cảnh xoay vòng theo loại giày** (`boi_canh` trong config: giày tây / lười / mọi = phố cổ lát đá, sảnh khách sạn, vỉa hè khu văn phòng; thể thao = đường chạy công viên, phố đi bộ; giày nữ / sandal / cao gót = phố mua sắm, cà phê sân vườn, sảnh khách sạn; mỗi cảnh có câu âm thanh riêng; chỉ số kế tiếp lưu `data/.hang_tiem_boi_canh.json` để 2 mã liền nhau không trùng). Hai kiểu: **4 cảnh** (gõ `4` / `--4-canh`: mọi cảnh từ gối trở xuống, cận mũi, lật đế, kết ở cận giày; chép mọi chi tiết theo ảnh; loại giày lấy theo tên SP, "xỏ chân" / "lười" / "mọi" → slip-on loafers; bảng `dich` đổi màu / chất liệu sang tiếng Anh) + ảnh người mẫu Nam- / Nu- theo giới tính; **liền** (MẶC ĐỊNH từ 30/10, Enter; kiểu máy xoay vòng cùng bối cảnh: `lui_ra` cận giày → lùi ra, `tien_vao` người mẫu bước tới → cận mũi, `song_hanh` máy đi ngang mắt cá → xoay gót thấy đế, `vong_quanh` máy vòng nửa vòng → bước đi; `mang_giay` xỏ chân vào giày đang tắt, chỉ gọi tay bằng tên kiểu; popup ghi `<mã> · <kiểu> · <bối cảnh>`; 1 cảnh 10 giây không cắt, mở ở cận giày rồi máy lùi dần ra người mẫu bước đi; dán tối đa 6 ảnh giày đủ góc theo thứ tự nhìn thẳng (khung rộng/cao < 1,1) → chéo 3/4 (rộng/cao 1,3–1,9, ít đặc nhất) → góc khác theo số → đế (ảnh số cuối); thừa thì bỏ ảnh góc gần trùng — rồi ảnh người mẫu cắt từ thắt lưng trở lên `<tên>_tren.jpg`, không lộ giày người mẫu). Không lời, không nhép môi. Mã không có ảnh → báo, bỏ qua. **Không tạo dòng `src_omni`**. (`Prompt.command` gặp thư mục hàng tiệm cũng ghép lại từ mẫu, không gọi Gemini) |
+| H1 | `Tiem.command` → gõ mã (vd `JH8918N 32837D`) | `hang_tiem.py` | `Product_Assets/<mã>/`: ảnh theo thứ tự NAS `HNC_Master/<mã>/` (chỉ ảnh) → web `giayhainancy.vn/img/<mã>/<n>-1000.webp` (n = 1, 2… tới 404, đổi sang JPG) → `image_01…` SANPHAM; `info.json` (`hang_tiem: true`, tên / màu / chất liệu / đế / giới tính từ SANPHAM, tiêu đề hàng 2). Kịch bản `<mã>.txt` **ghép bằng code từ mẫu `config/hang_tiem.json`, 0 Gemini** **Từ 30/10 mặc định kiểu `tu_nhien`** (anh Kha: kịch bản dài gò bó, Flow tự dựng đẹp hơn): 1 câu tiếng Việt ngắn "Tạo video người mẫu nam/nữ mang đôi giày trong ảnh, bước đi <bối cảnh>…"; mọi kiểu máy cũ và 4 cảnh tắt khỏi xoay vòng (`bat: false`), gọi tay được. **Bối cảnh xoay vòng theo loại giày** (`boi_canh` trong config: giày tây / lười / mọi = phố cổ lát đá, sảnh khách sạn, vỉa hè khu văn phòng; thể thao = đường chạy công viên, phố đi bộ; giày nữ / sandal / cao gót = phố mua sắm, cà phê sân vườn, sảnh khách sạn; mỗi cảnh có câu âm thanh riêng; chỉ số kế tiếp lưu `data/.hang_tiem_boi_canh.json` để 2 mã liền nhau không trùng). Hai kiểu: **4 cảnh** (gõ `4` / `--4-canh`: mọi cảnh từ gối trở xuống, cận mũi, lật đế, kết ở cận giày; chép mọi chi tiết theo ảnh; loại giày lấy theo tên SP, "xỏ chân" / "lười" / "mọi" → slip-on loafers; bảng `dich` đổi màu / chất liệu sang tiếng Anh) + ảnh người mẫu Nam- / Nu- theo giới tính; **liền** (MẶC ĐỊNH từ 30/10, Enter; kiểu máy xoay vòng cùng bối cảnh: `lui_ra` cận giày → lùi ra, `tien_vao` người mẫu bước tới → cận mũi, `song_hanh` máy đi ngang mắt cá → xoay gót thấy đế, `vong_quanh` máy vòng nửa vòng → bước đi; `mang_giay` xỏ chân vào giày đang tắt, chỉ gọi tay bằng tên kiểu; popup ghi `<mã> · <kiểu> · <bối cảnh>`; 1 cảnh 10 giây không cắt, mở ở cận giày rồi máy lùi dần ra người mẫu bước đi; dán tối đa 6 ảnh giày đủ góc theo thứ tự nhìn thẳng (khung rộng/cao < 1,1) → chéo 3/4 (rộng/cao 1,3–1,9, ít đặc nhất) → góc khác theo số → đế (ảnh số cuối); thừa thì bỏ ảnh góc gần trùng — rồi ảnh người mẫu cắt từ thắt lưng trở lên `<tên>_tren.jpg`, không lộ giày người mẫu). Không lời, không nhép môi. Mã không có ảnh → báo, bỏ qua. **Không tạo dòng `src_omni`**. (`Kich_Ban.command` gặp thư mục hàng tiệm cũng ghép lại từ mẫu, không gọi Gemini) |
 | H3 | Flow → extension → **Tạo video** | như bước 3 | Video **để nguyên** `~/Downloads/<mã>.mp4` (ghi `da_tai` vào info.json, mã biến khỏi popup) → Kho hàng gom vào SANPHAM → Video-Post |
-| H0 | (tự động 13:30, launchd `vn.giayhainancy.omni.hangcho`; tay: `HangCho.command`) | `hang_cho.py` | Giữ **5 mã chờ** hàng tiệm (`info.json` `hang_cho: true`; mã làm tay không tính, không đụng). Dọn mã HNC đã gom rồi bù từ SANPHAM: mã chưa có video trước, rồi mã đã có video (ít video trước, tối đa 3 video / mã, mỗi lần 1 tổ hợp kiểu máy × bối cảnh chưa dùng; tên video đầu ra đặt sẵn `info.json` `ten_video`: số video mã đang có trong NAS `HNC_Master/<mã>/` + Downloads, +1, luôn có hậu tố → `<MÃ>_1.mp4`, `<MÃ>_2.mp4`… (`<MÃ>.mp4` cũ tính là 1); extension lưu đúng tên đó, popup hiện tên), **dòng dưới cùng trở lên** (tab không có cột ngày; mã mới thêm ở cuối): `web_in_stock` ≠ no (nếu có cột), còn hàng trên web (trang SP trong `sitemap.xml`, schema.org `availability` = InStock; SANPHAM không có cột tồn kho), tên có loại giày + có màu, chưa có thư mục / video Downloads, sổ `data/.hang_cho_da_lam.json` ghi từng lần (mã, kiểu, bối cảnh), có ảnh. Kiểu liền + bối cảnh xoay vòng, 0 Gemini. Ổ Media không cắm / Downloads không đọc được / Sheet lỗi → không làm gì. Nhật ký `data/logs/hang_cho.log` |
-| — | (tự động) | `hang_tiem.cleanup` (chạy đầu `HangTiem.command`, `hang_cho.py` và `Move.command`) | Video đã rời Downloads → xoá `Product_Assets/<mã>/`. Move bỏ qua thư mục hàng tiệm (không lên NAS Omni, không quét Downloads theo mã) |
+| H0 | (tự động 13:30, launchd `vn.giayhainancy.omni.hangcho`; tay: `Cho.command`) | `hang_cho.py` | Giữ **5 mã chờ** hàng tiệm (`info.json` `hang_cho: true`; mã làm tay không tính, không đụng). Dọn mã HNC đã gom rồi bù từ SANPHAM: mã chưa có video trước, rồi mã đã có video (ít video trước, tối đa 3 video / mã, mỗi lần 1 tổ hợp kiểu máy × bối cảnh chưa dùng; tên video đầu ra đặt sẵn `info.json` `ten_video`: số video mã đang có trong NAS `HNC_Master/<mã>/` + Downloads, +1, luôn có hậu tố → `<MÃ>_1.mp4`, `<MÃ>_2.mp4`… (`<MÃ>.mp4` cũ tính là 1); extension lưu đúng tên đó, popup hiện tên), **dòng dưới cùng trở lên** (tab không có cột ngày; mã mới thêm ở cuối): `web_in_stock` ≠ no (nếu có cột), còn hàng trên web (trang SP trong `sitemap.xml`, schema.org `availability` = InStock; SANPHAM không có cột tồn kho), tên có loại giày + có màu, chưa có thư mục / video Downloads, sổ `data/.hang_cho_da_lam.json` ghi từng lần (mã, kiểu, bối cảnh), có ảnh. Kiểu liền + bối cảnh xoay vòng, 0 Gemini. Ổ Media không cắm / Downloads không đọc được / Sheet lỗi → không làm gì. Nhật ký `data/logs/hang_cho.log` |
+| — | (tự động) | `hang_tiem.cleanup` (chạy đầu `Tiem.command`, `hang_cho.py` và `Len_NAS.command`) | Video đã rời Downloads → xoá `Product_Assets/<mã>/`. Len_NAS bỏ qua thư mục hàng tiệm (không lên NAS Omni, không quét Downloads theo mã) |
 
 Không có cron / LaunchAgent / n8n của Omni — mọi bước chỉ chạy khi anh bấm.
 
 ## Đọc / ghi gì
 | Nơi | Đọc | Ghi | Ai |
 |---|---|---|---|
-| Sheet `src_omni` | ✔ | ✔ chỉ ô đổi, theo tên cột | `sheet_sync`, `import_csv_to_gsheet`, `fill_aff_links`, `season`, native host, Move |
+| Sheet `src_omni` | ✔ | ✔ chỉ ô đổi, theo tên cột | `sheet_sync`, `import_csv_to_gsheet`, `fill_aff_links`, `season`, native host, Len_NAS |
 | Sheet `aff_links` (AVF giữ; khoá aff_id + sub_id) | ✔ | ✘ | `fill_aff_links`: Sub_id = job_id → link gốc → link Sub_id = itemId |
 | Sheet `brands` (AVF giữ) | ✔ `official_name` của `yenyen_deals` | ✘ | `determine_default_brand` |
-| `~/Downloads` | ảnh Alt+S, CSV, video Flow | file Custom Link, tên video tải về | extension, native host, Import, Move |
+| `~/Downloads` | ảnh Alt+S, CSV, video Flow | file Custom Link, tên video tải về | extension, native host, Nhap, Len_NAS |
 | `Product_Assets/<Mã_SP>/` (không commit) | ✔ | ✔ | mọi bước |
 | `config/prompt_rules.json`, `config/mua_vu.json`, `config/templates/` | ✔ | ✘ | kịch bản, lịch mùa, mẫu file Shopee |
-| NAS `/Volumes/Media/Omni-Video/<Mã_SP>/` | — | ✔ | Move |
+| NAS `/Volumes/Media/Omni-Video/<Mã_SP>/` | — | ✔ | Len_NAS |
 | NAS `/Volumes/Media/HNC_Master/<mã>/` | ✔ chỉ ảnh | ✘ | `hang_tiem.py` |
 | Sheet HNC_Control_Center tab `SANPHAM` (Kho hàng giữ; tiêu đề hàng 2) | ✔ theo tên cột | ✘ | `hang_tiem.py` |
 | `config/hang_tiem.json` | ✔ | ✘ | lời dặn kịch bản hàng tiệm |
@@ -107,7 +107,7 @@ Không có cron / LaunchAgent / n8n của Omni — mọi bước chỉ chạy kh
 
 ## Chỗ hay nhầm
 - Extension chỉ đổi tên + chuyển video khi bấm **Tạo video** từ popup; tải tay từ Flow thì tự đặt tên `<Mã_SP>.mp4`.
-- Thư mục SP đã có `.mp4` (kể cả video lỗi) thì không hiện trong popup và Move sẽ chuyển nó lên NAS — xoá / đổi tên video lỗi trước.
+- Thư mục SP đã có `.mp4` (kể cả video lỗi) thì không hiện trong popup và Len_NAS sẽ chuyển nó lên NAS — xoá / đổi tên video lỗi trước.
 - Ô câu lệnh Flow phải trống trước khi bấm; Flow giữ nút / video của phiên cũ, extension chỉ nhận cái mới sau khi bấm Tạo.
 - Sửa code extension xong phải **Reload** ở `chrome://extensions` và tải lại trang Flow.
 - Phần đã lưu trữ (video API, QA Gemini, Spark Drive): `archive/README.md`.

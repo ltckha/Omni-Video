@@ -5,7 +5,7 @@ Omni Video - P1 (anh Kha 17/10/2026): tạo file Batch Custom Links (Shopee Affi
 chưa có link tiếp thị s.shopee.vn. Sub_id1 = job_id để đo video nào ra đơn (P2, AVF).
 
 Anh làm tiếp: affiliate.shopee.vn → Custom Link hàng loạt → tải file này lên → tải file kết quả về
-→ thả vào ~/agent_mailbox/auto-video-factory/affiliate/links/ → AVF nạp vào aff_links → Import.command
+→ thả vào ~/agent_mailbox/auto-video-factory/affiliate/links/ → AVF nạp vào aff_links → Nhap.command
 (fill_aff_links.py) điền src_omni.shopee_link.
 
 Dùng: python scripts/make_batch_links.py        # ghi ~/Downloads/Omni_BatchCustomLinks_<ngày giờ>.xlsx
@@ -101,7 +101,7 @@ def main() -> int:
     write_batch_xlsx(rows, out)
     print(f"✅ Đã tạo {out} ({len(rows)} sản phẩm, Sub_id1 = job_id).")
     print("👉 Tiếp theo: affiliate.shopee.vn → Custom Link hàng loạt → tải file lên → tải file kết quả về")
-    print("   → thả vào ~/agent_mailbox/auto-video-factory/affiliate/links/ → sáng hôm sau AVF nạp → bấm Import.command.")
+    print("   → thả vào ~/agent_mailbox/auto-video-factory/affiliate/links/ → sáng hôm sau AVF nạp → bấm Nhap.command.")
     return 0
 
 

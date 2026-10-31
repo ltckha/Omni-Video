@@ -10,7 +10,7 @@ Anh Kha chốt 15/10/2026 (kế hoạch Ecosystem-Hub/docs/ke_hoach/omni-video/2
 - Đọc/ghi theo tên cột hàng 1. Bảng aff_links trống thì không làm gì. 0 Gemini.
 
 Dùng: python scripts/fill_aff_links.py            # chạy thử, chỉ báo số ô sẽ ghi
-      python scripts/fill_aff_links.py --apply    # ghi thật (Import.command gọi ở cuối)
+      python scripts/fill_aff_links.py --apply    # ghi thật (Nhap.command gọi ở cuối)
 """
 
 import re

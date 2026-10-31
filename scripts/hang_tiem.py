@@ -17,7 +17,7 @@ tối đa 6 ảnh giày đủ góc (thẳng → 3/4 → góc khác → đế, xe
 
 Kiểu chuyển động (kiểu liền) xoay vòng cùng bối cảnh; --chuyen-dong=<tên> chọn tay 1 kiểu (kể cả mang_giay đang tắt).
 
-Dùng: python scripts/hang_tiem.py [--4-canh | --chuyen-dong=<tên>] <mã> [<mã> …]    (HangTiem.command hỏi mã + kiểu rồi chạy lệnh này)
+Dùng: python scripts/hang_tiem.py [--4-canh | --chuyen-dong=<tên>] <mã> [<mã> …]    (Tiem.command hỏi mã + kiểu rồi chạy lệnh này)
 """
 
 import glob
@@ -555,7 +555,7 @@ def cleanup(assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) ->
 
 def make_item(code: str, row: Dict[str, str], lien: bool = True, extra: Optional[Dict] = None, used=(),
               motion: Optional[str] = None, **prepare_kw) -> Optional[str]:
-    """Ảnh + info.json + kịch bản cho 1 mã (dùng chung cho HangTiem.command và hàng chờ tự động). None = không có ảnh."""
+    """Ảnh + info.json + kịch bản cho 1 mã (dùng chung cho Tiem.command và hàng chờ tự động). None = không có ảnh."""
     item_dir = prepare(code, row, **prepare_kw)
     if not item_dir:
         return None

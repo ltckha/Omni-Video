@@ -4,8 +4,8 @@
 Omni Video - hàng chờ tự động hàng tiệm (anh Kha nói "làm" 30/10/2026 qua Phân tích · Xưởng video).
 Giữ đúng SO_MA_CHO mã hàng tiệm đang chờ Tạo video trong Product_Assets, 0 Gemini:
 1. Ổ Media (NAS) không cắm / ~/Downloads không đọc được / Sheet lỗi → không làm gì, ghi log, không xoá.
-2. hang_tiem.cleanup: dọn mã đã tải video mà HNC đã gom (như HangTiem.command).
-3. Đếm mã chờ do hàng chờ tạo (info.json "hang_cho": true, chưa tải video). Mã anh làm tay bằng HangTiem.command
+2. hang_tiem.cleanup: dọn mã đã tải video mà HNC đã gom (như Tiem.command).
+3. Đếm mã chờ do hàng chờ tạo (info.json "hang_cho": true, chưa tải video). Mã anh làm tay bằng Tiem.command
    không tính, không đụng.
 4. Thiếu thì lấy thêm từ tab SANPHAM (tiêu đề hàng 2): mã chưa có video trước, MỚI NHẤT trước; hết mã mới thì lấy mã đã
    có video (ít video trước, tối đa TRAN_VIDEO / mã), mỗi lần 1 tổ hợp kiểu chuyển động × bối cảnh CHƯA dùng cho mã đó
@@ -16,9 +16,9 @@ Giữ đúng SO_MA_CHO mã hàng tiệm đang chờ Tạo video trong Product_As
    không bán, bỏ qua để không tốn credit); tên SP có loại giày (giày tây / lười / mọi / thể thao…) và có product_color;
    chưa có thư mục Product_Assets (video cũ của mã vẫn ở Downloads cũng được: tên đầu ra có số, không trùng); sổ data/.hang_cho_da_lam.json ghi từng lần (mã, kiểu, bối cảnh);
    có ảnh (NAS HNC_Master → web giayhainancy.vn → image_01… SANPHAM). Thiếu ảnh / thông tin → bỏ qua, ghi log.
-5. Mỗi mã: kiểu liền, kiểu chuyển động × bối cảnh xoay vòng (hang_tiem.pick_combo), như HangTiem.command.
+5. Mỗi mã: kiểu liền, kiểu chuyển động × bối cảnh xoay vòng (hang_tiem.pick_combo), như Tiem.command.
 
-Chạy: launchd vn.giayhainancy.omni.hangcho 13:30 hằng ngày (sau HNC gom video 13:00), hoặc HangCho.command.
+Chạy: launchd vn.giayhainancy.omni.hangcho 13:30 hằng ngày (sau HNC gom video 13:00), hoặc Cho.command.
 Nhật ký: data/logs/hang_cho.log
 """
 
