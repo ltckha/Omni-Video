@@ -408,12 +408,20 @@ def pick_lien_images(item_dir: str, shape=image_shape, max_shoes: int = LIEN_MAX
     return [os.path.basename(f) for f in head + middle + [sole]]
 
 
-def crop_model_upper(src: str, item_dir: str, keep: float) -> str:
-    """Bản cắt ảnh người mẫu từ thắt lưng trở lên (giữ `keep` phần trên, cả bề ngang) → <tên>_tren.jpg; ảnh gốc giữ nguyên.
-    Ảnh characters/ là tờ 2 hình (chân dung + toàn thân, giày nâu); bỏ phần dưới để Flow không lấy giày của người mẫu."""
-    out = os.path.join(item_dir, os.path.splitext(os.path.basename(src))[0] + "_tren.jpg")
-    subprocess.run([FFMPEG, "-loglevel", "error", "-y", "-i", src, "-vf", f"crop=iw:trunc(ih*{keep}/2)*2:0:0",
-                    "-q:v", "3", out], check=True)
+def crop_model(src: str, item_dir: str, lien: Dict) -> str:
+    """Ảnh người mẫu dán vào Flow; ảnh gốc giữ nguyên. Ảnh characters/ là tờ 2 hình (chân dung + toàn thân, giày của mẫu).
+    Ảnh có vùng trong lien.toan_than (anh Kha 31/10) → cắt riêng hình toàn thân, ngang ngay trên mắt cá (bỏ giày của
+    người mẫu) → <tên>_toan_than.jpg. Ảnh chưa khai vùng → như cũ: giữ `cat_nguoi_mau` phần trên → <tên>_tren.jpg."""
+    name = os.path.splitext(os.path.basename(src))[0]
+    box = (lien.get("toan_than") or {}).get(name)
+    if box:
+        x, y, w, h = box
+        out = os.path.join(item_dir, name + "_toan_than.jpg")
+        vf = f"crop=trunc(iw*{w}/2)*2:trunc(ih*{h}/2)*2:trunc(iw*{x}):trunc(ih*{y})"
+    else:
+        out = os.path.join(item_dir, name + "_tren.jpg")
+        vf = f"crop=iw:trunc(ih*{lien['cat_nguoi_mau']}/2)*2:0:0"
+    subprocess.run([FFMPEG, "-loglevel", "error", "-y", "-i", src, "-vf", vf, "-q:v", "3", out], check=True)
     return out
 
 
@@ -504,10 +512,10 @@ def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, character
     chars = sorted(f for f in glob.glob(os.path.join(characters_dir, "*")) if os.path.basename(f).lower().startswith(prefix))
     if info.get("kieu") == "lien":
         if chars:
-            info["nguoi_mau_lien"] = os.path.basename(crop_model_upper(chars[-1], item_dir, cfg["lien"]["cat_nguoi_mau"]))
+            info["nguoi_mau_lien"] = os.path.basename(crop_model(chars[-1], item_dir, cfg["lien"]))
             write_info(item_dir, info)
         return path
-    have = [f for f in os.listdir(item_dir) if f.lower().startswith(("nu-", "nam-")) and "_tren" not in f.lower()]
+    have = [f for f in os.listdir(item_dir) if f.lower().startswith(("nu-", "nam-")) and not re.search(r"_(tren|toan_than)\.", f.lower())]
     if chars and not have:  # Nu-25t / Nam-25t (bản 25 tuổi đứng sau khi sắp xếp), giống kịch bản Omni
         shutil.copy2(chars[-1], os.path.join(item_dir, os.path.basename(chars[-1])))
     return path

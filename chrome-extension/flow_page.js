@@ -149,7 +149,8 @@
   const videoCards = () => {
     const out = [];
     for (const m of document.querySelectorAll("video, img")) {
-      if (!visible(m) || m.closest("#" + PANEL_ID) || !MEDIA_SRC.test(m.currentSrc || m.src || m.poster || "")) continue;
+      // thẻ <video> nhận mọi địa chỉ (kể cả blob:); ảnh thì phải là ảnh của Flow
+      if (!visible(m) || m.closest("#" + PANEL_ID) || (m.tagName !== "VIDEO" && !MEDIA_SRC.test(m.currentSrc || m.src || ""))) continue;
       const box = m.closest("div.video-container, [role=button], button, a, .clickable");
       if (!box) continue;
       // ảnh tĩnh (ảnh giày vừa dán) không phải video: chỉ nhận thẻ <video>, ô video-container, hoặc ô có biểu tượng ▶
@@ -236,9 +237,17 @@
 
       // Video mới: địa chỉ ảnh / video chưa có trước khi bấm Tạo, ít nhất 60 giây sau khi phê duyệt.
       // Chờ 15 phút; Flow báo "hàng chờ xử lý" (nhiều người dùng) thì chờ tới 30 phút (31/10).
-      let queued = false;
+      // Mỗi 30 giây ghi tiến độ lên khung nổi (biết tự chạy còn sống); 5 phút chưa thấy video thì tự chụp trang 1 lần
+      // (data/logs/flow_snapshot_*_cho_<mã>.json) để sửa khi Flow đổi giao diện (31/10: bản 98d8edf vẫn không tải).
+      let queued = false, lastBeat = 0, snapped = false;
       while (true) {
         const waited = Date.now() - approvedAt;
+        if (waited - lastBeat >= 30000) {
+          lastBeat = waited;
+          chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: true,
+            message: `⏳ Mã ${itemId}: chờ video ${Math.round(waited / 60000)} phút${queued ? " (Flow đang xếp hàng)" : ""} · thấy ${newVideos(oldKeys).length} video mới / ${videoCards().length} ô video` });
+        }
+        if (!snapped && waited > 5 * 60000) { snapped = true; saveSnapshot(`cho_${itemId}`); }
         if (!queued && QUEUED_TEXT.test(document.body.innerText.slice(-6000))) {
           queued = true;
           showToast(`⏳ Mã ${itemId}: Flow đang xếp hàng (nhiều yêu cầu) — em chờ tới 30 phút, để tab này mở…`);
@@ -270,7 +279,7 @@
       roles: pick("[role=radio],[role=dialog],[role=alertdialog],[role=menuitem],[role=option],[role=checkbox],[role=switch],[role=tab],[role=status],[role=alert],[role=log]")
         .map((el) => ({ role: el.getAttribute("role"), aria: el.getAttribute("aria-label"), checked: el.getAttribute("aria-checked"), text: short(el.textContent, 120) })),
       textboxes: pick("[contenteditable=true],textarea").map((el) => ({ aria: el.getAttribute("aria-label"), len: (el.innerText || el.value || "").length })),
-      chips: chipCount(), videoCards: videoCards().length,
+      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), oldKeys: lastRun ? [...lastRun.oldKeys].map((k) => k.slice(-60)) : [],
       media: pick("video,img", 60).map((m) => ({ tag: m.tagName, src: (m.currentSrc || m.src || "").slice(0, 90), w: m.naturalWidth || m.videoWidth || 0 })),
       tail: short(document.body.innerText.slice(-4000), 4000),
     };

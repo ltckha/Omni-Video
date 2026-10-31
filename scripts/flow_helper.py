@@ -47,7 +47,7 @@ def find_character_image(item_dir: str) -> Optional[str]:
     for ext in ("*.png", "*.jpg", "*.jpeg", "*.webp"):
         for f in glob.glob(os.path.join(item_dir, ext)):
             name = os.path.basename(f).lower()
-            if (name.startswith("nu-") or name.startswith("nam-") or "character" in name) and "_tren" not in name:
+            if (name.startswith("nu-") or name.startswith("nam-") or "character" in name) and "_tren" not in name and "_toan_than" not in name:
                 return f
     for ext in ("*.png", "*.jpg", "*.jpeg", "*.webp"):
         chars = sorted(glob.glob(os.path.join(CHARACTERS_DIR, ext)))
