@@ -141,27 +141,26 @@
   const visible = (el) => el && el.offsetParent !== null;
   const byLabel = (label) => [...document.querySelectorAll(`button[aria-label="${label}"]`)].filter(visible);
   const approveRadios = () => [...document.querySelectorAll("[role=radio]")].filter((r) => r.textContent.trim().endsWith("Phê duyệt") && !r.textContent.includes("Luôn"));
-  // 31/10: giao diện tác nhân — video mới hiện ở lưới "Tất cả nội dung" VÀ khung chat, không chắc còn
-  // div.video-container.clickable. Nhận mọi ảnh / video của Flow (flow-content) nằm trong 1 ô bấm được; phân biệt
-  // video mới bằng địa chỉ ảnh (src), không bằng phần tử (Flow vẽ lại phần tử cũ).
-  const MEDIA_SRC = /flow-content\.google|usercontent\.goog|googleusercontent\.com|storage\.googleapis\.com/;
+  // 31/10: giao diện tác nhân — ảnh / video của Flow nằm ở https://flow.google.com/asb/<id> (file chụp 13:29: thẻ
+  // <video src=…/asb/…> 720 px trong lưới "Tất cả nội dung", ảnh nhỏ cùng <id> trong ô có biểu tượng play_circle; khung
+  // chat có nút "Mở video trong trình chỉnh sửa"). Phân biệt video mới bằng <id> (Flow vẽ lại phần tử cũ).
+  const MEDIA_SRC = /flow\.google\.com\/asb\/|flow-content\.google|usercontent\.goog|googleusercontent\.com|storage\.googleapis\.com/;
   const mediaKey = (m) => (m.currentSrc || m.src || m.poster || "").split("?")[0];
   const videoCards = () => {
     const out = [];
     for (const m of document.querySelectorAll("video, img")) {
-      // thẻ <video> nhận mọi địa chỉ (kể cả blob:); ảnh thì phải là ảnh của Flow
-      if (!visible(m) || m.closest("#" + PANEL_ID) || (m.tagName !== "VIDEO" && !MEDIA_SRC.test(m.currentSrc || m.src || ""))) continue;
-      const box = m.closest("div.video-container, [role=button], button, a, .clickable");
-      if (!box) continue;
-      // ảnh tĩnh (ảnh giày vừa dán) không phải video: chỉ nhận thẻ <video>, ô video-container, hoặc ô có biểu tượng ▶
-      const isVideo = m.tagName === "VIDEO" || box.matches("div.video-container") || box.querySelector("video") ||
-        /play_arrow|play_circle|▶/.test(box.textContent);
-      if (isVideo) out.push({ key: mediaKey(m), el: box });
+      const src = m.currentSrc || m.src || "";
+      if (m.closest("#" + PANEL_ID) || !MEDIA_SRC.test(src)) continue;
+      const box = m.closest("button, [role=button], a, div.video-container, .clickable");
+      // ảnh tĩnh (ảnh giày vừa dán) không phải video: chỉ nhận thẻ <video>, hoặc ảnh nhỏ trong ô có biểu tượng ▶
+      const isVideo = m.tagName === "VIDEO" || (box && (box.matches("div.video-container") || /play_circle|play_arrow|▶/.test(box.textContent)));
+      if (isVideo) out.push({ key: mediaKey(m), el: box || m, url: m.tagName === "VIDEO" ? src : null });
     }
     return out;
   };
   const videoKeys = () => new Set(videoCards().map((c) => c.key));
   const newVideos = (oldKeys) => videoCards().filter((c) => c.key && !oldKeys.has(c.key));
+  const videoUrl = (key) => (videoCards().find((c) => c.key === key && c.url) || {}).url;
   const QUEUED_TEXT = /hàng chờ xử lý|lượng yêu cầu cao|đang chờ xử lý/i;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -186,31 +185,34 @@
 
   let lastRun = null;  // { itemId, oldKeys } của lần tự chạy gần nhất trên tab này (cho nút Tải lại)
 
-  const downloadButton = () => byLabel("Tải nội dung nghe nhìn xuống")[0];
-
-  // Mở video mới (thử từng ô: lưới rồi khung chat) tới khi thấy nút Tải xuống, rồi chọn 720p.
-  // Anh đã tự mở video (nút Tải xuống đang hiện) thì bấm luôn.
+    // Tải video mới: lấy thẳng địa chỉ thẻ <video> (…/asb/<id>, bản 720p) → background tải về Downloads/<output>
+  // (cùng đường đặt tên + chuyển vào thư mục mã như khi bấm Tải xuống). Chỉ có ảnh nhỏ → bấm mở ô đó chờ thẻ <video>.
+  // oldKeys null (nút "Tải lại" sau khi tải lại trang) → video mới nhất = nút "Mở video trong trình chỉnh sửa" cuối khung chat.
   async function downloadNew(itemId, output, oldKeys) {
-    let dl = downloadButton();
-    if (!dl) {
-      const cands = oldKeys ? newVideos(oldKeys) : [];
-      for (const c of cands) {
-        c.el.click();
-        dl = await step("mở Tải xuống", downloadButton, 15000).catch(() => null);
-        if (dl) break;
-        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
-        await sleep(1000);
+    let keys = oldKeys ? newVideos(oldKeys).map((c) => c.key) : [];
+    if (!oldKeys) {
+      const open = byLabel("Mở video trong trình chỉnh sửa").pop();
+      const media = open && open.querySelector("video, img");
+      if (media) keys = [mediaKey(media)];
+      else if (open) {  // ô không có ảnh: mở ra, nhận thẻ <video> vừa hiện
+        const before = videoKeys();
+        open.click();
+        const fresh = await step("mở video", () => newVideos(before).find((c) => c.url), 20000).catch(() => null);
+        if (fresh) keys = [fresh.key];
       }
     }
-    if (!dl) throw new Error(`không mở được video mới để tải — anh bấm mở video của mã ${itemId} rồi bấm "⬇ Tải lại video" trong khung Omni`);
-    await sleep(1000);
-    dl.click();
-    const item720 = await step("chọn 720p", () => [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.includes("720p")), 10000);
-    item720.click();
+    let url = keys.map(videoUrl).find(Boolean);
+    for (const key of keys) {
+      if (url) break;
+      const card = videoCards().find((c) => c.key === key);
+      if (!card) continue;
+      card.el.click();
+      url = await step("mở video", () => videoUrl(key), 20000).catch(() => null);
+    }
+    if (!url) throw new Error(`không tìm thấy video mới để tải — anh bấm mở video của mã ${itemId} rồi bấm "⬇ Tải lại video" trong khung Omni`);
+    const r = await new Promise((res) => chrome.runtime.sendMessage({ action: "FLOW_DOWNLOAD", url, output, itemId }, res));
+    if (!r || r.status !== "success") throw new Error(`Chrome không tải được video: ${r ? r.message : "không gọi được extension"}`);
     showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
-    await sleep(5000);
-    const done = byLabel("Đã chỉnh sửa xong cảnh")[0];
-    if (done) done.click();
   }
 
   async function autoRun(itemId, output, nImages) {
@@ -252,7 +254,9 @@
           queued = true;
           showToast(`⏳ Mã ${itemId}: Flow đang xếp hàng (nhiều yêu cầu) — em chờ tới 30 phút, để tab này mở…`);
         }
-        if (waited > 60000 && newVideos(oldKeys).length) break;
+        // chờ tới khi video mới đã có thẻ <video> (địa chỉ tải được); hết giờ mà chỉ có ảnh nhỏ thì vẫn thử mở ra tải
+        if (waited > 60000 && newVideos(oldKeys).some((c) => c.url)) break;
+        if (waited > (queued ? 30 : 15) * 60000 && newVideos(oldKeys).length) break;
         if (waited > (queued ? 30 : 15) * 60000) throw new Error(`quá hạn ở bước "chờ video xong" — video xong thì anh bấm "⬇ Tải lại video" trong khung Omni`);
         await sleep(2000);
       }

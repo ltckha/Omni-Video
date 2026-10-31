@@ -43,6 +43,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await chrome.storage.local.set({ flowActiveItem: { itemId: last.itemId, output: last.output, since: Date.now() } });
       sendResponse({ status: "success", itemId: last.itemId, output: last.output });
     });
+  } else if (message.action === "FLOW_DOWNLOAD" && message.url) {  // flow_page.js: tải thẳng video mới (…/asb/<id>)
+    // tên file do onDeterminingFilename đặt theo flowActiveItem (→ FLOW_COLLECT); filename ở đây chỉ để dự phòng
+    chrome.downloads.download({ url: message.url, filename: message.output, conflictAction: "uniquify" }, (id) => {
+      const err = chrome.runtime.lastError;
+      if (!err && id && message.itemId) {  // ghi luôn để FLOW_COLLECT chạy khi tải xong (không phụ thuộc onDeterminingFilename)
+        flowDownloads[id] = message.itemId;
+        chrome.storage.local.remove("flowActiveItem");
+      }
+      sendResponse(err || !id ? { status: "error", message: err ? err.message : "không có mã tải" } : { status: "success", downloadId: id });
+    });
   } else if (message.action === "FLOW_CLEAR") {
     chrome.storage.local.remove("flowActiveItem", () => sendResponse({ status: "success" }));
   }
