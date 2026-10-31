@@ -1,6 +1,6 @@
 #!/bin/bash
 # Hàng chờ hàng tiệm (30/10/2026): chạy tay đúng việc lịch 13:30 làm — dọn mã HNC đã gom, bù cho đủ 5 mã chờ
-# (SANPHAM mới nhất trước, kiểu liền, bối cảnh xoay vòng, 0 Gemini). Nhật ký: data/logs/hang_cho.log
+# (SANPHAM mới nhất trước, kiểu liền, bối cảnh xoay vòng, 0 Gemini). Nhật ký: data/logs/queue_products.log
 
 cd "$(dirname "$0")"
 
@@ -14,7 +14,7 @@ if [ -f "./venv/bin/python3" ]; then
   PYTHON_EXEC="./venv/bin/python3"
 fi
 
-$PYTHON_EXEC scripts/hang_cho.py
+$PYTHON_EXEC scripts/queue_products.py
 
 echo ""
 echo "============================================================"
