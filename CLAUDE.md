@@ -1,8 +1,8 @@
 # CLAUDE.md — Luật riêng repo Omni-Video
 
 > Chào Claude, bạn đang cùng Kha Lưu (Project Owner) vận hành Omni-Video.
-> **Luật chung mọi repo:** `~/Developer/Ecosystem-Hub/docs/LUAT_CHUNG.md` — thắng file này nếu lệch. File này chỉ ghi luật **riêng** của Omni.
-> **Kiến trúc, quy trình, đọc / ghi gì:** [`docs/KIEN_TRUC.md`](docs/KIEN_TRUC.md) (nguồn duy nhất). Cài đặt: `README.md`. Phần đã lưu trữ: `archive/README.md`.
+> **Luật chung mọi repo:** `~/Developer/Ecosystem-Hub/docs/SHARED_RULES.md` — thắng file này nếu lệch. File này chỉ ghi luật **riêng** của Omni.
+> **Kiến trúc, quy trình, đọc / ghi gì:** [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) (nguồn duy nhất). Cài đặt: `README.md`. Phần đã lưu trữ: `archive/README.md`.
 
 ## 1. Cách làm việc
 - **Thảo luận trước khi làm:** sửa code, thêm module, đổi cấu hình, chạy lệnh thay đổi dự án → trình bày giải pháp, anh Kha đồng ý rồi mới làm. Không tự đổi luồng dữ liệu.
