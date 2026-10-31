@@ -19,12 +19,14 @@ Giữ đúng SO_MA_CHO mã hàng tiệm đang chờ Tạo video trong Product_As
 5. Mỗi mã: kiểu liền, kiểu chuyển động × bối cảnh xoay vòng (hang_tiem.pick_combo), như Tiem.command.
 
 Chạy: launchd vn.giayhainancy.omni.hangcho 13:30 hằng ngày (sau HNC gom video 13:00), hoặc Cho.command.
-Nhật ký: data/logs/hang_cho.log
+Nhật ký: data/logs/hang_cho.log. Lịch chạy với --truc-ca: cuối job ghi 1 dòng sổ trực ca (Ecosystem-Hub ghi_truc_ca.sh,
+mã omni.hangcho, ok / loi + ghi chú ngắn; 31/10 anh Kha "làm", qua Phân tích · Xưởng video). Chạy tay không ghi.
 """
 
 import json
 import os
 import re
+import subprocess
 import sys
 import urllib.error
 import urllib.request
@@ -44,6 +46,8 @@ LOG_PATH = os.path.join(hang_tiem.PROJECT_DIR, "data", "logs", "hang_cho.log")
 
 WEB_SITEMAP = "https://giayhainancy.vn/sitemap.xml"
 USER_AGENT = "OmniVideo/1.0 (Hieu giay Hai Nancy)"
+TRUC_CA = os.path.expanduser("~/Developer/Ecosystem-Hub/commands/ghi_truc_ca.sh")
+MA_TRUC_CA = "omni.hangcho"
 
 
 def fetch_text(url: str) -> str:
@@ -218,5 +222,38 @@ def run(values_fn=hang_tiem.read_sanpham_values, make=hang_tiem.make_item, fetch
     return added
 
 
+def shift_note(msgs: List[str], added: List[str], waiting: int):
+    """(ok|loi, ghi chú ngắn) cho sổ trực ca: dừng giữa chừng (⏸) là lỗi, ghi dòng dừng đầu tiên."""
+    stop = next((m for m in msgs if m.startswith("⏸")), None)
+    if stop:
+        return "loi", stop.lstrip("⏸ ")
+    return "ok", f"thêm {len(added)} mã, chờ {waiting}"
+
+
+def write_shift(kq: str, note: str) -> None:
+    try:  # sổ trực ca lỗi không làm hỏng job
+        subprocess.run(["/bin/bash", TRUC_CA, MA_TRUC_CA, kq, note], timeout=15, check=False)
+    except Exception:
+        pass
+
+
+def main(argv: List[str]) -> None:
+    if "--truc-ca" not in argv:
+        run()
+        return
+    msgs: List[str] = []
+
+    def log_fn(msg: str) -> None:
+        msgs.append(msg)
+        log(msg)
+
+    try:
+        added = run(log_fn=log_fn)
+    except Exception as e:
+        write_shift("loi", f"{e.__class__.__name__}: {e}")
+        raise
+    write_shift(*shift_note(msgs, added, len(pending_codes(ASSETS_DIR))))
+
+
 if __name__ == "__main__":
-    run()
+    main(sys.argv[1:])

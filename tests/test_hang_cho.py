@@ -170,3 +170,20 @@ def test_queue_after_existing_video_reaches_a2(tmp_path):
                          fetch=fake_fetch(), assets_dir=str(d["assets"]), downloads_dir=str(d["dl"]),
                          media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"), log_fn=lambda m: None)
     assert added == ["A1", "A2"]  # mã chưa có video trước, mã đã có video sau
+
+
+def test_shift_note_ok_and_stop():
+    assert hang_cho.shift_note(["📦 Thêm 2 mã"], ["A", "B"], 5) == ("ok", "thêm 2 mã, chờ 5")
+    assert hang_cho.shift_note(["⏸ Lỗi đọc tab SANPHAM (X) — không làm gì.", "⏸ khác"], [], 3) == \
+        ("loi", "Lỗi đọc tab SANPHAM (X) — không làm gì.")
+
+
+def test_main_writes_shift_only_with_flag(monkeypatch):
+    shifts = []
+    monkeypatch.setattr(hang_cho, "run", lambda log_fn=None: (log_fn("⏸ Không thấy ổ Media") if log_fn else None) or [])
+    monkeypatch.setattr(hang_cho, "log", lambda msg: None)
+    monkeypatch.setattr(hang_cho, "write_shift", lambda kq, note: shifts.append((kq, note)))
+    hang_cho.main([])
+    assert shifts == []
+    hang_cho.main(["--truc-ca"])
+    assert shifts == [("loi", "Không thấy ổ Media")]
