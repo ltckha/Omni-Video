@@ -191,7 +191,10 @@
   async function downloadNew(itemId, output, oldKeys) {
     let keys = oldKeys ? newVideos(oldKeys).map((c) => c.key) : [];
     if (!oldKeys) {
-      const open = byLabel("Mở video trong trình chỉnh sửa").pop();
+      // chỉ nhận video của lượt cuối: nút mở video phải nằm SAU nút "Phê duyệt" cuối cùng trong khung chat.
+      // Lượt cuối chưa có video (Flow còn xếp hàng) → báo chưa có, không lấy video cũ (31/10: suýt lưu nhầm video cũ).
+      const lastApprove = [...document.querySelectorAll("[role=radio]")].filter((r) => r.textContent.trim().endsWith("Phê duyệt") && !r.textContent.includes("Luôn")).pop();
+      const open = lastApprove && byLabel("Mở video trong trình chỉnh sửa").filter((b) => after(b, lastApprove)).pop();
       const media = open && open.querySelector("video, img");
       if (media) keys = [mediaKey(media)];
       else if (open) {  // ô không có ảnh: mở ra, nhận thẻ <video> vừa hiện
@@ -209,7 +212,8 @@
       card.el.click();
       url = await step("mở video", () => videoUrl(key), 20000).catch(() => null);
     }
-    if (!url) throw new Error(`không tìm thấy video mới để tải — anh bấm mở video của mã ${itemId} rồi bấm "⬇ Tải lại video" trong khung Omni`);
+    if (!url) throw new Error(keys.length ? `không lấy được địa chỉ video mới của mã ${itemId} — báo em kèm 📋`
+      : `chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
     const r = await new Promise((res) => chrome.runtime.sendMessage({ action: "FLOW_DOWNLOAD", url, output, itemId }, res));
     if (!r || r.status !== "success") throw new Error(`Chrome không tải được video: ${r ? r.message : "không gọi được extension"}`);
     showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
