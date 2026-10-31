@@ -233,7 +233,7 @@
     "Natural walking steps with normal heel-to-toe movement are fine; the only thing to avoid is pivoting or twisting a foot in place, or deliberately turning a foot up to show the sole."
   ],
   "lien": {
-    "_ghi_chu": "Kiểu liền (MẶC ĐỊNH từ 30/10; Tiem gõ 4 / --4-canh = kiểu 4 cảnh): 1 cảnh 10 giây không cắt; dán tối đa 6 ảnh giày đủ góc (nhìn thẳng → chéo 3/4 → góc khác → đế, anh Kha 30/10 muốn đủ góc) rồi ảnh người mẫu chuẩn theo kiểu (lien.anh_chuan, 31/10). Theo Ecosystem-Hub/docs/nghien_cuu/2026-10-30_prompt_omni_giu_giay.md: chỉ tả cái đang có, không liệt kê đồ vật trong câu phủ định. Gọi ảnh theo thứ tự dán (extension chưa gõ được @tên của Flow).",
+    "_ghi_chu": "Kiểu liền (MẶC ĐỊNH từ 30/10; Tiem gõ 4 / --4-canh = kiểu 4 cảnh): 1 cảnh 10 giây không cắt; dán tối đa 6 ảnh giày đủ góc (nhìn thẳng → chéo 3/4 → góc khác → đế, anh Kha 30/10 muốn đủ góc) rồi ảnh người mẫu chuẩn theo kiểu (lien.anh_chuan, 31/10). Theo Ecosystem-Hub/docs/research/2026-10-30_prompt_omni_giu_giay.md: chỉ tả cái đang có, không liệt kê đồ vật trong câu phủ định. Gọi ảnh theo thứ tự dán (extension chưa gõ được @tên của Flow).",
     "cat_nguoi_mau": 0.5,
     "anh_chuan": {
       "_ban_chuan": "ẢNH CHUẨN — không đổi khi anh chưa duyệt (anh Kha 31/10: video nào chạy tốt thì giữ lại hình ảnh và prompt của nó). Ảnh cố định trong characters/chuan/<tên>_<loại>.jpg, dán nguyên file, không cắt lại.",

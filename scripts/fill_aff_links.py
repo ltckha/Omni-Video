@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 Omni Video - Tự điền link tiếp thị liên kết (s.shopee.vn) cho tab src_omni từ bảng chung `aff_links` (AVF giữ).
-Anh Kha chốt 15/10/2026 (kế hoạch Ecosystem-Hub/docs/ke_hoach/omni-video/2026-10-15_link_yenyen_tu_aff_links.md).
+Anh Kha chốt 15/10/2026 (kế hoạch Ecosystem-Hub/docs/plans/omni-video/2026-10-15_link_yenyen_tu_aff_links.md).
 
 - Ghép chính xác: aff_links.aff_id == src_omni.job_id (đều là item_id Shopee), active = yes, link là s.shopee.vn.
 - Chỉ ghi ô shopee_link đang trống hoặc chưa phải link s.shopee.vn. Không đè link s.shopee.vn đã có, không xoá gì.

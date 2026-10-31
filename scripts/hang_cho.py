@@ -19,7 +19,7 @@ Giữ đúng SO_MA_CHO mã hàng tiệm đang chờ Tạo video trong Product_As
 5. Mỗi mã: kiểu liền, kiểu chuyển động × bối cảnh xoay vòng (hang_tiem.pick_combo), như Tiem.command.
 
 Chạy: launchd vn.giayhainancy.omni.hangcho 13:30 hằng ngày (sau HNC gom video 13:00), hoặc Cho.command.
-Nhật ký: data/logs/hang_cho.log. Lịch chạy với --truc-ca: cuối job ghi 1 dòng sổ trực ca (Ecosystem-Hub ghi_truc_ca.sh,
+Nhật ký: data/logs/hang_cho.log. Lịch chạy với --truc-ca: cuối job ghi 1 dòng sổ trực ca (Ecosystem-Hub log_health.sh,
 mã omni.hangcho, ok / loi + ghi chú ngắn; 31/10 anh Kha "làm", qua Phân tích · Xưởng video). Chạy tay không ghi.
 """
 
@@ -46,7 +46,7 @@ LOG_PATH = os.path.join(hang_tiem.PROJECT_DIR, "data", "logs", "hang_cho.log")
 
 WEB_SITEMAP = "https://giayhainancy.vn/sitemap.xml"
 USER_AGENT = "OmniVideo/1.0 (Hieu giay Hai Nancy)"
-TRUC_CA = os.path.expanduser("~/Developer/Ecosystem-Hub/commands/ghi_truc_ca.sh")
+TRUC_CA = os.path.expanduser("~/Developer/Ecosystem-Hub/commands/log_health.sh")
 MA_TRUC_CA = "omni.hangcho"
 
 
