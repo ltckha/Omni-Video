@@ -43,17 +43,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       await chrome.storage.local.set({ flowActiveItem: { itemId: last.itemId, output: last.output, since: Date.now() } });
       sendResponse({ status: "success", itemId: last.itemId, output: last.output });
     });
-  } else if (message.action === "FLOW_DOWNLOAD" && message.url) {  // flow_page.js: tải thẳng video mới (…/asb/<id>)
-    // tên file do onDeterminingFilename đặt theo flowActiveItem (→ FLOW_COLLECT); filename ở đây chỉ để dự phòng
-    flowPendingNames[message.url] = { output: message.output, itemId: message.itemId };
-    chrome.downloads.download({ url: message.url, filename: message.output, saveAs: false, conflictAction: "uniquify" }, (id) => {
-      const err = chrome.runtime.lastError;
-      if (!err && id && message.itemId) {  // ghi luôn để FLOW_COLLECT chạy khi tải xong (không phụ thuộc onDeterminingFilename)
-        flowDownloads[id] = message.itemId;
-        chrome.storage.local.remove("flowActiveItem");
-      }
-      sendResponse(err || !id ? { status: "error", message: err ? err.message : "không có mã tải" } : { status: "success", downloadId: id });
-    });
   } else if (message.action === "FLOW_CLEAR") {
     chrome.storage.local.remove("flowActiveItem", () => sendResponse({ status: "success" }));
   }
@@ -146,19 +135,7 @@ function isFlowVideoDownload(item) {
   return isVideo && fromFlow;
 }
 
-// Tải thẳng từ flow_page.js (FLOW_DOWNLOAD): tên đầu ra theo địa chỉ video. 31/10: chỉ đưa filename vào download()
-// không đủ — listener dưới đây gọi suggest() rỗng thì Chrome lấy tên máy chủ "videoplayback".
-const flowPendingNames = {};  // url -> { output, itemId }
-
 chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
-  const pending = flowPendingNames[item.url] || flowPendingNames[item.finalUrl];
-  if (pending) {
-    delete flowPendingNames[item.url];
-    delete flowPendingNames[item.finalUrl];
-    flowDownloads[item.id] = pending.itemId;
-    suggest({ filename: pending.output, conflictAction: "uniquify" });
-    return;
-  }
   chrome.storage.local.get(["flowActiveItem"], (stored) => {
     const active = stored.flowActiveItem;
     if (active && Date.now() - active.since < FLOW_ACTIVE_MAX_AGE_MS && isFlowVideoDownload(item)) {

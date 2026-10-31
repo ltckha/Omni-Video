@@ -158,9 +158,12 @@
     }
     return out;
   };
-  const videoKeys = () => new Set(videoCards().map((c) => c.key));
-  const newVideos = (oldKeys) => videoCards().filter((c) => c.key && !oldKeys.has(c.key));
-  const videoUrl = (key) => (videoCards().find((c) => c.key === key && c.url) || {}).url;
+  // 31/10 (chạy thật MT2187N): lưới "Tất cả nội dung" là danh sách ảo, trang không có thẻ <video> nào. Video của lượt này
+  // = nút "Mở video trong trình chỉnh sửa" nằm SAU nút "Phê duyệt" cuối cùng trong khung chat.
+  const latestTurnVideo = () => {
+    const lastApprove = approveRadios().pop();
+    return lastApprove && byLabel("Mở video trong trình chỉnh sửa").filter((b) => after(b, lastApprove)).pop();
+  };
   const QUEUED_TEXT = /hàng chờ xử lý|lượng yêu cầu cao|đang chờ xử lý/i;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -183,40 +186,22 @@
   const isNew = (el, oldSet) => !oldSet.has(el);
   const after = (el, ref) => !ref || (ref.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-  let lastRun = null;  // { itemId, oldKeys } của lần tự chạy gần nhất trên tab này (cho nút Tải lại)
-
-    // Tải video mới: lấy thẳng địa chỉ thẻ <video> (…/asb/<id>, bản 720p) → background tải về Downloads/<output>
-  // (cùng đường đặt tên + chuyển vào thư mục mã như khi bấm Tải xuống). Chỉ có ảnh nhỏ → bấm mở ô đó chờ thẻ <video>.
-  // oldKeys null (nút "Tải lại" sau khi tải lại trang) → video mới nhất = nút "Mở video trong trình chỉnh sửa" cuối khung chat.
-  async function downloadNew(itemId, output, oldKeys) {
-    let keys = oldKeys ? newVideos(oldKeys).map((c) => c.key) : [];
-    if (!oldKeys) {
-      // chỉ nhận video của lượt cuối: nút mở video phải nằm SAU nút "Phê duyệt" cuối cùng trong khung chat.
-      // Lượt cuối chưa có video (Flow còn xếp hàng) → báo chưa có, không lấy video cũ (31/10: suýt lưu nhầm video cũ).
-      const lastApprove = [...document.querySelectorAll("[role=radio]")].filter((r) => r.textContent.trim().endsWith("Phê duyệt") && !r.textContent.includes("Luôn")).pop();
-      const open = lastApprove && byLabel("Mở video trong trình chỉnh sửa").filter((b) => after(b, lastApprove)).pop();
-      const media = open && open.querySelector("video, img");
-      if (media) keys = [mediaKey(media)];
-      else if (open) {  // ô không có ảnh: mở ra, nhận thẻ <video> vừa hiện
-        const before = videoKeys();
-        open.click();
-        const fresh = await step("mở video", () => newVideos(before).find((c) => c.url), 20000).catch(() => null);
-        if (fresh) keys = [fresh.key];
-      }
-    }
-    let url = keys.map(videoUrl).find(Boolean);
-    for (const key of keys) {
-      if (url) break;
-      const card = videoCards().find((c) => c.key === key);
-      if (!card) continue;
-      card.el.click();
-      url = await step("mở video", () => videoUrl(key), 20000).catch(() => null);
-    }
-    if (!url) throw new Error(keys.length ? `không lấy được địa chỉ video mới của mã ${itemId} — báo em kèm 📋`
-      : `chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
-    const r = await new Promise((res) => chrome.runtime.sendMessage({ action: "FLOW_DOWNLOAD", url, output, itemId }, res));
-    if (!r || r.status !== "success") throw new Error(`Chrome không tải được video: ${r ? r.message : "không gọi được extension"}`);
+    // Tải video của lượt cuối: mở trình chỉnh sửa (/edit/…) → "Tải nội dung nghe nhìn xuống" → 720p (nếu có menu) →
+  // background đặt tên <output> (onDeterminingFilename theo flowActiveItem) → "Xong" quay về dự án.
+  // Lượt cuối chưa có video (Flow còn tạo / xếp hàng) → báo chưa có, không lấy video cũ.
+  async function downloadNew(itemId, output) {
+    const open = latestTurnVideo();
+    if (!open) throw new Error(`chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
+    open.click();
+    const dl = await step("mở Tải xuống", () => byLabel("Tải nội dung nghe nhìn xuống")[0], 30000);
+    await sleep(1000);
+    dl.click();
+    const item720 = await step("chọn 720p", () => [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.includes("720p")), 8000).catch(() => null);
+    if (item720) item720.click();
     showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
+    await sleep(5000);
+    const done = byLabel("Đã chỉnh sửa xong cảnh")[0];
+    if (done) done.click();
   }
 
   async function autoRun(itemId, output, nImages) {
@@ -227,8 +212,6 @@
       const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled && b.getAttribute("aria-disabled") !== "true").pop(), 60000);
       await sleep(3000);
       const oldRadios = new Set(approveRadios());
-      const oldKeys = videoKeys();
-      lastRun = { itemId, oldKeys };
       submit.click();
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: true, message: `⏳ Mã ${itemId}: đã bấm Tạo trên Flow.` });
       showToast(`⏳ Mã ${itemId}: đã bấm Tạo, chờ Flow hỏi phê duyệt…`);
@@ -251,21 +234,19 @@
         if (waited - lastBeat >= 30000) {
           lastBeat = waited;
           chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: true,
-            message: `⏳ Mã ${itemId}: chờ video ${Math.round(waited / 60000)} phút${queued ? " (Flow đang xếp hàng)" : ""} · thấy ${newVideos(oldKeys).length} video mới / ${videoCards().length} ô video` });
+            message: `⏳ Mã ${itemId}: chờ video ${Math.round(waited / 60000)} phút${queued ? " (Flow đang xếp hàng)" : ""}` });
         }
         if (!snapped && waited > 5 * 60000) { snapped = true; saveSnapshot(`cho_${itemId}`); }
         if (!queued && QUEUED_TEXT.test(document.body.innerText.slice(-6000))) {
           queued = true;
           showToast(`⏳ Mã ${itemId}: Flow đang xếp hàng (nhiều yêu cầu) — em chờ tới 30 phút, để tab này mở…`);
         }
-        // chờ tới khi video mới đã có thẻ <video> (địa chỉ tải được); hết giờ mà chỉ có ảnh nhỏ thì vẫn thử mở ra tải
-        if (waited > 60000 && newVideos(oldKeys).some((c) => c.url)) break;
-        if (waited > (queued ? 30 : 15) * 60000 && newVideos(oldKeys).length) break;
+        if (waited > 30000 && latestTurnVideo()) break;
         if (waited > (queued ? 30 : 15) * 60000) throw new Error(`quá hạn ở bước "chờ video xong" — video xong thì anh bấm "⬇ Tải lại video" trong khung Omni`);
         await sleep(2000);
       }
       await sleep(3000);
-      await downloadNew(itemId, output, oldKeys);
+      await downloadNew(itemId, output);
     } catch (e) {
       showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${itemId}: ${e.message}` });
@@ -287,7 +268,7 @@
       roles: pick("[role=radio],[role=dialog],[role=alertdialog],[role=menuitem],[role=option],[role=checkbox],[role=switch],[role=tab],[role=status],[role=alert],[role=log]")
         .map((el) => ({ role: el.getAttribute("role"), aria: el.getAttribute("aria-label"), checked: el.getAttribute("aria-checked"), text: short(el.textContent, 120) })),
       textboxes: pick("[contenteditable=true],textarea").map((el) => ({ aria: el.getAttribute("aria-label"), len: (el.innerText || el.value || "").length })),
-      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), oldKeys: lastRun ? [...lastRun.oldKeys].map((k) => k.slice(-60)) : [],
+      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), turnVideo: !!latestTurnVideo(),
       media: pick("video,img", 60).map((m) => ({ tag: m.tagName, src: (m.currentSrc || m.src || "").slice(0, 90), w: m.naturalWidth || m.videoWidth || 0 })),
       tail: short(document.body.innerText.slice(-4000), 4000),
     };
@@ -337,7 +318,7 @@
     }
     status.textContent = `⏳ Đang tải lại video mã ${item.itemId} (${item.output})…`;
     try {
-      await downloadNew(item.itemId, item.output, lastRun && lastRun.itemId === item.itemId ? lastRun.oldKeys : null);
+      await downloadNew(item.itemId, item.output);
     } catch (e) {
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${item.itemId}: ${e.message}` });
       showToast(`⚠️ Mã ${item.itemId}: ${e.message}`, true);
