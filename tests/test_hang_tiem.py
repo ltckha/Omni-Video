@@ -225,7 +225,7 @@ def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
     hang_tiem.write_info(str(item), dict(build_info("JH8918N", ROW), kieu="lien"))
     hang_tiem.write_script("JH8918N", str(item), characters_dir=str(chars))
     info = read_info(str(item))
-    assert len(info["anh_lien"]) == 6 and info["nguoi_mau_lien"] == "Nam-25t_chan_dung.jpg"
+    assert len(info["anh_lien"]) == 6 and info["nguoi_mau_lien"] == "Nam-25t_cat_chan.jpg"
     assert "Tạo video người mẫu nam mang đôi giày trong ảnh" in (item / "JH8918N.txt").read_text(encoding="utf-8")
     assert not (item / "Nam-25t.png").exists()  # không chép ảnh toàn thân (lộ giày người mẫu)
     slots = [f["slot"] for f in encode_flow_files("JH8918N", assets_dir=str(tmp_path))[0]["files"]]
@@ -418,14 +418,14 @@ def test_ngoi_dung_prompt_uses_seat_of_scene():
     assert hang_tiem.popup_label(info, cfg) == "ngồi → đứng · hồ Xuân Hương"
 
 
-def test_crop_model_portrait_head_only(tmp_path):
+def test_crop_model_whole_sheet_without_feet(tmp_path):
     import pytest
     if not os.path.exists(hang_tiem.FFMPEG):
         pytest.skip("không có ffmpeg")
     lien = hang_tiem.load_config()["lien"]
     out = hang_tiem.crop_model(os.path.join(PROJECT_DIR, "characters", "Nam-25t.png"), str(tmp_path), lien)
-    assert out.endswith("Nam-25t_chan_dung.jpg")
-    assert hang_tiem.image_shape(out)[0] < 1.5  # chỉ còn đầu + cổ, không còn tờ 2 hình (rộng 1.8)
+    assert out.endswith("Nam-25t_cat_chan.jpg")
+    assert hang_tiem.image_shape(out)[0] > 1.5  # vẫn nguyên tờ 2 hình (chân dung + toàn thân), chỉ bỏ dải bàn chân
     # ảnh chưa khai vùng → cắt thắt lưng như cũ
     out2 = hang_tiem.crop_model(os.path.join(PROJECT_DIR, "characters", "Nu-23t.png"), str(tmp_path), lien)
     assert out2.endswith("Nu-23t_tren.jpg")
