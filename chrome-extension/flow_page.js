@@ -170,9 +170,19 @@
   // <id> tài nguyên Flow: …/asb/<id>=s512-rw → …/asb/<id>
   const assetKey = (img) => ((img && (img.currentSrc || img.src)) || "").split("?")[0].split("=")[0];
   // Lưới "Tất cả nội dung": ô video = nút có biểu tượng play_circle + ảnh; ô MỚI NHẤT đứng đầu lưới (anh Kha 31/10).
-  const gridVideos = () => [...document.querySelectorAll("button, [role=button]")]
-    .filter((b) => !b.closest("#" + PANEL_ID) && b.getAttribute("aria-label") !== OPEN_VIDEO && /play_circle/.test(b.textContent) && b.querySelector("img"))
-    .map((b) => ({ el: b, key: assetKey(b.querySelector("img")) })).filter((v) => v.key);
+  // Nút play_circle chỉ là chú thích chân ô (class footer-left, file chụp 14:40) — ảnh nằm chỗ khác trong ô: leo lên tới
+  // khung chứa ảnh /asb/ (khung ô = nơi rê chuột và có nút ⋮).
+  const gridVideos = () => {
+    const out = [];
+    for (const b of document.querySelectorAll("button, [role=button]")) {
+      if (b.closest("#" + PANEL_ID) || b.getAttribute("aria-label") === OPEN_VIDEO || !/play_circle/.test(b.textContent)) continue;
+      let box = b;
+      for (let i = 0; i < 6 && box && !box.querySelector('img[src*="/asb/"]'); i++) box = box.parentElement;
+      const img = box && box.querySelector('img[src*="/asb/"]');
+      if (img && !out.some((v) => v.el === box)) out.push({ el: box, caption: b, key: assetKey(img) });
+    }
+    return out;
+  };
   const topVideoKey = () => (gridVideos()[0] || {}).key || "";
   // Video mới của mã đang làm = ô đầu lưới, và: khác ô đầu lúc bấm Tạo (beforeKey), hoặc (không có beforeKey, vd sau
   // khi tải lại trang) trùng ảnh nút mở video của lượt cuối trong khung chat. Không chắc → null (không lấy video cũ).
@@ -251,12 +261,12 @@
   // Đường (A), anh Kha 31/10: ô video đầu lưới → rê chuột → ⋮ "Tuỳ chọn khác" → "Tải xuống ▸" → "720p Kích thước gốc".
   // Trả true khi Chrome thật sự bắt đầu tải.
   async function gridDownload(tile) {
-    let box = tile.el;
-    for (let i = 0; i < 6 && box && !box.querySelector('[aria-label="Tuỳ chọn khác"]'); i++) box = box.parentElement;
+    let box = tile.el;  // khung ô chứa ảnh; nút ⋮ có thể nằm ở khung ngoài hơn
+    for (let i = 0; i < 4 && box && !box.querySelector('[aria-label="Tuỳ chọn khác"]'); i++) box = box.parentElement;
     const more = box && box.querySelector('[aria-label="Tuỳ chọn khác"]');
     if (!more) return false;
     box.scrollIntoView({ block: "center" });
-    hover(box); hover(tile.el);
+    hover(box); hover(tile.el); hover(tile.caption);
     await sleep(600);
     const t0 = Date.now();
     const started = () => downloadStartedSince(t0);
@@ -290,6 +300,7 @@
     let ok = false;
     for (let i = 0; i < 3 && !ok; i++) {
       const item = await clickUntil(dlBtn, async () => menu720() || (await started() && "started"), 1, 5000);
+      if (!item && i === 0) saveSnapshot(`sau_tai_${itemId}`);  // chụp ngay lúc bấm Tải xuống mà chưa thấy menu / tải
       if (item && item !== "started") {
         ok = !!(await clickUntil(() => menu720(), started, 2, 6000));
       } else ok = item === "started" || await started();
@@ -369,7 +380,8 @@
       roles: pick("[role=radio],[role=dialog],[role=alertdialog],[role=menuitem],[role=option],[role=checkbox],[role=switch],[role=tab],[role=status],[role=alert],[role=log]")
         .map((el) => ({ role: el.getAttribute("role"), aria: el.getAttribute("aria-label"), checked: el.getAttribute("aria-checked"), text: short(el.textContent, 120) })),
       textboxes: pick("[contenteditable=true],textarea").map((el) => ({ aria: el.getAttribute("aria-label"), len: (el.innerText || el.value || "").length })),
-      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), turnVideo: !!latestTurnVideo(), gridTop: gridVideos().slice(0, 3).map((v) => v.key.slice(-30)),
+      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), turnVideo: !!latestTurnVideo(), gridTop: gridVideos().slice(0, 3).map((v) => v.key.slice(-30)), version: chrome.runtime.getManifest().version,
+      overlay: short((document.querySelector(".cdk-overlay-container") || {}).innerText, 400),
       media: pick("video,img", 60).map((m) => ({ tag: m.tagName, src: (m.currentSrc || m.src || "").slice(0, 90), w: m.naturalWidth || m.videoWidth || 0 })),
       tail: short(document.body.innerText.slice(-4000), 4000),
     };
@@ -483,7 +495,7 @@
       font:12px -apple-system,sans-serif;box-shadow:0 2px 10px rgba(0,0,0,.5);`;
     const head = document.createElement("div");
     head.style.cssText = "display:flex;justify-content:space-between;align-items:center;font-weight:600;flex:0 0 auto;";
-    head.textContent = "🎬 Omni · hàng chờ";
+    head.textContent = `🎬 Omni · hàng chờ · v${chrome.runtime.getManifest().version}`;
     const tools = document.createElement("span");
     const refresh = document.createElement("button");
     refresh.id = "omni-flow-refresh";

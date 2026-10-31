@@ -136,6 +136,8 @@ function isFlowVideoDownload(item) {
 }
 
 chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
+  // báo "đã bắt đầu tải" ngay ở đây: Chrome bật "Hỏi vị trí lưu" thì onCreated chỉ tới sau khi anh bấm Save
+  if (isFlowVideoDownload(item)) chrome.storage.local.set({ flowDownloadStartedAt: Date.now() });
   chrome.storage.local.get(["flowActiveItem"], (stored) => {
     const active = stored.flowActiveItem;
     if (active && Date.now() - active.since < FLOW_ACTIVE_MAX_AGE_MS && isFlowVideoDownload(item)) {
