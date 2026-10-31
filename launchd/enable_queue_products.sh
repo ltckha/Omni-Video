@@ -1,7 +1,7 @@
 #!/bin/bash
-# Bật lịch hàng chờ hàng tiệm (vn.giayhainancy.omni.hangcho, 13:30 hằng ngày).
+# Bật lịch hàng chờ hàng tiệm (vn.giayhainancy.omni.queue_products, 13:30 hằng ngày).
 set -e
-LABEL=vn.giayhainancy.omni.hangcho
+LABEL=vn.giayhainancy.omni.queue_products
 DST="$HOME/Library/LaunchAgents/$LABEL.plist"
 mkdir -p "$(dirname "$0")/../data/logs"
 cp "$(dirname "$0")/$LABEL.plist" "$DST"
