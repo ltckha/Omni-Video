@@ -161,9 +161,27 @@
   };
   // 31/10 (chạy thật MT2187N): lưới "Tất cả nội dung" là danh sách ảo, trang không có thẻ <video> nào. Video của lượt này
   // = nút "Mở video trong trình chỉnh sửa" nằm SAU nút "Phê duyệt" cuối cùng trong khung chat.
+  // Không lọc "đang hiện": khung chat thu gọn / cuộn đi thì nút vẫn nằm trong trang (31/10 G2506N: báo nhầm "chưa có").
+  const OPEN_VIDEO = "Mở video trong trình chỉnh sửa";
   const latestTurnVideo = () => {
     const lastApprove = approveRadios().pop();
-    return lastApprove && byLabel("Mở video trong trình chỉnh sửa").filter((b) => after(b, lastApprove)).pop();
+    return lastApprove && [...document.querySelectorAll(`[aria-label="${OPEN_VIDEO}"]`)].filter((b) => after(b, lastApprove)).pop();
+  };
+  // <id> tài nguyên Flow: …/asb/<id>=s512-rw → …/asb/<id>
+  const assetKey = (img) => ((img && (img.currentSrc || img.src)) || "").split("?")[0].split("=")[0];
+  // Lưới "Tất cả nội dung": ô video = nút có biểu tượng play_circle + ảnh; ô MỚI NHẤT đứng đầu lưới (anh Kha 31/10).
+  const gridVideos = () => [...document.querySelectorAll("button, [role=button]")]
+    .filter((b) => !b.closest("#" + PANEL_ID) && b.getAttribute("aria-label") !== OPEN_VIDEO && /play_circle/.test(b.textContent) && b.querySelector("img"))
+    .map((b) => ({ el: b, key: assetKey(b.querySelector("img")) })).filter((v) => v.key);
+  const topVideoKey = () => (gridVideos()[0] || {}).key || "";
+  // Video mới của mã đang làm = ô đầu lưới, và: khác ô đầu lúc bấm Tạo (beforeKey), hoặc (không có beforeKey, vd sau
+  // khi tải lại trang) trùng ảnh nút mở video của lượt cuối trong khung chat. Không chắc → null (không lấy video cũ).
+  const newGridVideo = (beforeKey) => {
+    const top = gridVideos()[0];
+    if (!top) return null;
+    if (typeof beforeKey === "string") return top.key !== beforeKey ? top : null;
+    const chat = latestTurnVideo();
+    return chat && assetKey(chat.querySelector("img")) === top.key ? top : null;
   };
   const QUEUED_TEXT = /hàng chờ xử lý|lượng yêu cầu cao|đang chờ xử lý/i;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -221,10 +239,47 @@
   const menu720 = () => [...document.querySelectorAll("[role=menuitem], [role=menuitemradio], [role=option], li, button")]
     .filter(visible).find((m) => /720p/.test(m.textContent) && m.textContent.length < 80);
 
+  function hover(el) {
+    const r = el.getBoundingClientRect();
+    const opt = { bubbles: true, cancelable: true, view: window, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
+    for (const t of ["pointerover", "pointerenter", "mouseover", "mouseenter", "pointermove", "mousemove"])
+      el.dispatchEvent(t.startsWith("pointer") ? new PointerEvent(t, { ...opt, pointerType: "mouse", isPrimary: true }) : new MouseEvent(t, opt));
+  }
+  const menuItem = (re) => [...document.querySelectorAll("[role=menuitem], [role=menuitemradio]")].filter(visible).find((m) => re.test(m.textContent));
+  const closeMenus = () => document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+
+  // Đường (A), anh Kha 31/10: ô video đầu lưới → rê chuột → ⋮ "Tuỳ chọn khác" → "Tải xuống ▸" → "720p Kích thước gốc".
+  // Trả true khi Chrome thật sự bắt đầu tải.
+  async function gridDownload(tile) {
+    let box = tile.el;
+    for (let i = 0; i < 6 && box && !box.querySelector('[aria-label="Tuỳ chọn khác"]'); i++) box = box.parentElement;
+    const more = box && box.querySelector('[aria-label="Tuỳ chọn khác"]');
+    if (!more) return false;
+    box.scrollIntoView({ block: "center" });
+    hover(box); hover(tile.el);
+    await sleep(600);
+    const t0 = Date.now();
+    const started = () => downloadStartedSince(t0);
+    const dlItem = await clickUntil(() => more, () => menuItem(/Tải xuống/), 2, 4000);
+    if (!dlItem) { closeMenus(); return false; }
+    hover(dlItem);
+    realClick(dlItem);
+    const q720 = await step("menu 720p", menu720, 5000).catch(() => null);
+    const ok = q720 && await clickUntil(menu720, started, 2, 6000);
+    if (!ok) closeMenus();
+    return !!ok;
+  }
+
   // Tải video của lượt cuối: mở trình chỉnh sửa (/edit/…) → "Tải nội dung nghe nhìn xuống" → 720p (nếu có menu) →
   // background đặt tên <output> (onDeterminingFilename theo flowActiveItem) → "Xong" quay về dự án. Mỗi bước tự bấm lại
   // tới 3 lần nếu Flow chưa phản hồi. Lượt cuối chưa có video (Flow còn tạo / xếp hàng) → báo chưa có, không lấy video cũ.
-  async function downloadNew(itemId, output) {
+  async function downloadNew(itemId, output, beforeKey) {
+    const tile = newGridVideo(beforeKey);
+    if (tile && await gridDownload(tile)) {
+      showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
+      return;
+    }
+    // Dự phòng (B): mở trình chỉnh sửa từ nút của lượt cuối trong khung chat
     if (!latestTurnVideo()) throw new Error(`chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
     const dlBtn = () => byLabel("Tải nội dung nghe nhìn xuống")[0];
     const dl = dlBtn() || await clickUntil(latestTurnVideo, dlBtn, 3, 10000);
@@ -254,6 +309,10 @@
       const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled && b.getAttribute("aria-disabled") !== "true").pop(), 60000);
       await sleep(3000);
       const oldRadios = new Set(approveRadios());
+      const beforeKey = topVideoKey();  // ô video đầu lưới lúc bấm Tạo; lưu lại cho nút "Tải lại" (kể cả sau khi tải lại trang)
+      chrome.storage.local.get(["flowLastItem"], (st) => {
+        if (st.flowLastItem && st.flowLastItem.itemId === itemId) chrome.storage.local.set({ flowLastItem: { ...st.flowLastItem, beforeKey } });
+      });
       submit.click();
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: true, message: `⏳ Mã ${itemId}: đã bấm Tạo trên Flow.` });
       showToast(`⏳ Mã ${itemId}: đã bấm Tạo, chờ Flow hỏi phê duyệt…`);
@@ -283,12 +342,12 @@
           queued = true;
           showToast(`⏳ Mã ${itemId}: Flow đang xếp hàng (nhiều yêu cầu) — em chờ tới 30 phút, để tab này mở…`);
         }
-        if (waited > 30000 && latestTurnVideo()) break;
+        if (waited > 30000 && (newGridVideo(beforeKey) || latestTurnVideo())) break;
         if (waited > (queued ? 30 : 15) * 60000) throw new Error(`quá hạn ở bước "chờ video xong" — video xong thì anh bấm "⬇ Tải lại video" trong khung Omni`);
         await sleep(2000);
       }
       await sleep(3000);
-      await downloadNew(itemId, output);
+      await downloadNew(itemId, output, beforeKey);
     } catch (e) {
       showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${itemId}: ${e.message}` });
@@ -310,7 +369,7 @@
       roles: pick("[role=radio],[role=dialog],[role=alertdialog],[role=menuitem],[role=option],[role=checkbox],[role=switch],[role=tab],[role=status],[role=alert],[role=log]")
         .map((el) => ({ role: el.getAttribute("role"), aria: el.getAttribute("aria-label"), checked: el.getAttribute("aria-checked"), text: short(el.textContent, 120) })),
       textboxes: pick("[contenteditable=true],textarea").map((el) => ({ aria: el.getAttribute("aria-label"), len: (el.innerText || el.value || "").length })),
-      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), turnVideo: !!latestTurnVideo(),
+      chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), turnVideo: !!latestTurnVideo(), gridTop: gridVideos().slice(0, 3).map((v) => v.key.slice(-30)),
       media: pick("video,img", 60).map((m) => ({ tag: m.tagName, src: (m.currentSrc || m.src || "").slice(0, 90), w: m.naturalWidth || m.videoWidth || 0 })),
       tail: short(document.body.innerText.slice(-4000), 4000),
     };
@@ -360,7 +419,7 @@
     }
     status.textContent = `⏳ Đang tải lại video mã ${item.itemId} (${item.output})…`;
     try {
-      await downloadNew(item.itemId, item.output);
+      await downloadNew(item.itemId, item.output, item.beforeKey);
     } catch (e) {
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${item.itemId}: ${e.message}` });
       showToast(`⚠️ Mã ${item.itemId}: ${e.message}`, true);
