@@ -225,7 +225,7 @@ def test_lien_write_script_crops_model_and_orders_paste(tmp_path):
     hang_tiem.write_info(str(item), dict(build_info("JH8918N", ROW), kieu="lien"))
     hang_tiem.write_script("JH8918N", str(item), characters_dir=str(chars))
     info = read_info(str(item))
-    assert len(info["anh_lien"]) == 6 and info["nguoi_mau_lien"] == "Nam-25t_toan_than.jpg"
+    assert len(info["anh_lien"]) == 6 and info["nguoi_mau_lien"] == "Nam-25t_chan_dung.jpg"
     assert "Tạo video người mẫu nam mang đôi giày trong ảnh" in (item / "JH8918N.txt").read_text(encoding="utf-8")
     assert not (item / "Nam-25t.png").exists()  # không chép ảnh toàn thân (lộ giày người mẫu)
     slots = [f["slot"] for f in encode_flow_files("JH8918N", assets_dir=str(tmp_path))[0]["files"]]
@@ -389,9 +389,9 @@ def test_tu_nhien_short_vietnamese_prompt_is_default():
     scene = scene_named(cfg, "truong_cong_dinh")
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="tu_nhien", boi_canh=scene["ten"])
     text = hang_tiem.build_script(info, cfg)
-    assert text == "Tạo video người mẫu nam mang đôi giày trong ảnh, dạo bước trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n"
+    assert text == "Tạo video người mẫu nam mang đôi giày trong ảnh, dạo bước trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. Đôi giày giữ đúng như ảnh. Trang phục lịch sự hợp bối cảnh, quần dài, giữ nguyên suốt video.\n"
     female = hang_tiem.build_script(dict(info, gioi_tinh="nữ", boi_canh="ca_phe_san_vuon"), cfg)
-    assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n"
+    assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16. Đôi giày giữ đúng như ảnh. Trang phục lịch sự hợp bối cảnh, quần dài, giữ nguyên suốt video.\n"
     assert hang_tiem.pick_mood(cfg, "tu_nhien") is None
     assert hang_tiem.popup_label(info, cfg) == "tự nhiên · đường Trương Công Định"
 
@@ -402,7 +402,7 @@ def test_san_pham_prompt_text():
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="san_pham", boi_canh="truong_cong_dinh")
     assert hang_tiem.build_script(info, cfg) == (
         "Tạo video người mẫu nam mang đôi giày trong ảnh, bước đi trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. "
-        "Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết). Trang phục hợp bối cảnh, giữ nguyên suốt video.\n")
+        "Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết). Đôi giày giữ đúng như ảnh. Trang phục lịch sự hợp bối cảnh, quần dài, giữ nguyên suốt video.\n")
     assert hang_tiem.popup_label(info, cfg) == "sản phẩm · đường Trương Công Định"
 
 
@@ -414,18 +414,18 @@ def test_ngoi_dung_prompt_uses_seat_of_scene():
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="ngoi_dung", boi_canh="ho_xuan_huong")
     assert hang_tiem.build_script(info, cfg) == (
         "Tạo video người mẫu nam mang đôi giày trong ảnh, đang ngồi trên ghế đá bên hồ Xuân Hương, Đà Lạt, máy quay tập trung "
-        "vào đôi giày, rồi người mẫu đứng dậy bước đi, quay cả người. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n")
+        "vào đôi giày, rồi người mẫu đứng dậy bước đi, quay cả người. Video dọc 9:16. Đôi giày giữ đúng như ảnh. Trang phục lịch sự hợp bối cảnh, quần dài, giữ nguyên suốt video.\n")
     assert hang_tiem.popup_label(info, cfg) == "ngồi → đứng · hồ Xuân Hương"
 
 
-def test_crop_model_full_body_above_ankle(tmp_path):
+def test_crop_model_portrait_head_only(tmp_path):
     import pytest
     if not os.path.exists(hang_tiem.FFMPEG):
         pytest.skip("không có ffmpeg")
     lien = hang_tiem.load_config()["lien"]
     out = hang_tiem.crop_model(os.path.join(PROJECT_DIR, "characters", "Nam-25t.png"), str(tmp_path), lien)
-    assert out.endswith("Nam-25t_toan_than.jpg")
-    assert hang_tiem.image_shape(out)[0] < 1  # chỉ còn hình toàn thân (đứng dọc), không còn tờ 2 hình
+    assert out.endswith("Nam-25t_chan_dung.jpg")
+    assert hang_tiem.image_shape(out)[0] < 1.5  # chỉ còn đầu + cổ, không còn tờ 2 hình (rộng 1.8)
     # ảnh chưa khai vùng → cắt thắt lưng như cũ
     out2 = hang_tiem.crop_model(os.path.join(PROJECT_DIR, "characters", "Nu-23t.png"), str(tmp_path), lien)
     assert out2.endswith("Nu-23t_tren.jpg")

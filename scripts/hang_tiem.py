@@ -410,13 +410,14 @@ def pick_lien_images(item_dir: str, shape=image_shape, max_shoes: int = LIEN_MAX
 
 def crop_model(src: str, item_dir: str, lien: Dict) -> str:
     """Ảnh người mẫu dán vào Flow; ảnh gốc giữ nguyên. Ảnh characters/ là tờ 2 hình (chân dung + toàn thân, giày của mẫu).
-    Ảnh có vùng trong lien.toan_than (anh Kha 31/10) → cắt riêng hình toàn thân, ngang ngay trên mắt cá (bỏ giày của
-    người mẫu) → <tên>_toan_than.jpg. Ảnh chưa khai vùng → như cũ: giữ `cat_nguoi_mau` phần trên → <tên>_tren.jpg."""
+    Ảnh có vùng trong lien.chan_dung (anh Kha 31/10 chiều: khoá giày, đồ đổi theo từng video) → cắt riêng đầu + cổ của
+    hình chân dung (không quần áo, không giày) → <tên>_chan_dung.jpg. Ảnh chưa khai vùng → như cũ: giữ `cat_nguoi_mau`
+    phần trên → <tên>_tren.jpg."""
     name = os.path.splitext(os.path.basename(src))[0]
-    box = (lien.get("toan_than") or {}).get(name)
+    box = (lien.get("chan_dung") or {}).get(name)
     if box:
         x, y, w, h = box
-        out = os.path.join(item_dir, name + "_toan_than.jpg")
+        out = os.path.join(item_dir, name + "_chan_dung.jpg")
         vf = f"crop=trunc(iw*{w}/2)*2:trunc(ih*{h}/2)*2:trunc(iw*{x}):trunc(ih*{y})"
     else:
         out = os.path.join(item_dir, name + "_tren.jpg")
@@ -515,7 +516,7 @@ def write_script(code: str, item_dir: str, cfg: Optional[Dict] = None, character
             info["nguoi_mau_lien"] = os.path.basename(crop_model(chars[-1], item_dir, cfg["lien"]))
             write_info(item_dir, info)
         return path
-    have = [f for f in os.listdir(item_dir) if f.lower().startswith(("nu-", "nam-")) and not re.search(r"_(tren|toan_than)\.", f.lower())]
+    have = [f for f in os.listdir(item_dir) if f.lower().startswith(("nu-", "nam-")) and not re.search(r"_(tren|toan_than|chan_dung)\.", f.lower())]
     if chars and not have:  # Nu-25t / Nam-25t (bản 25 tuổi đứng sau khi sắp xếp), giống kịch bản Omni
         shutil.copy2(chars[-1], os.path.join(item_dir, os.path.basename(chars[-1])))
     return path
