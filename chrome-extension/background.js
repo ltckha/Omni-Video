@@ -36,6 +36,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_SNAPSHOT", label: message.label, snapshot: message.snapshot }, (resp) => {
       sendResponse(chrome.runtime.lastError ? { status: "error", message: chrome.runtime.lastError.message } : resp);
     });
+  } else if (message.action === "FLOW_REARM") {  // nút "Tải lại video": đặt lại tên file cho mã vừa làm rồi tải bù
+    chrome.storage.local.get(["flowLastItem", "flowActiveItem"], async (st) => {
+      const last = st.flowLastItem || st.flowActiveItem;  // mã đang dở từ bản extension cũ chỉ có flowActiveItem
+      if (!last || !last.itemId) return sendResponse({ status: "error", message: "Chưa có mã nào vừa làm." });
+      await chrome.storage.local.set({ flowActiveItem: { itemId: last.itemId, output: last.output, since: Date.now() } });
+      sendResponse({ status: "success", itemId: last.itemId, output: last.output });
+    });
   } else if (message.action === "FLOW_CLEAR") {
     chrome.storage.local.remove("flowActiveItem", () => sendResponse({ status: "success" }));
   }
@@ -104,7 +111,9 @@ async function fillFlowToolInner(itemId, tabId) {
   let resp;
   try {
     // Đặt trước tên file tải về: <itemId>.mp4, hàng tiệm <MÃ>_2.mp4… theo native host (content script tự chạy tới bước Tải)
-    await chrome.storage.local.set({ flowActiveItem: { itemId: itemId, output: loaded.output || `${itemId}.mp4`, since: Date.now() } });
+    const output = loaded.output || `${itemId}.mp4`;
+    // flowLastItem giữ lại cả khi lỗi (flowActiveItem bị xoá) → nút "Tải lại video" trên khung nổi
+    await chrome.storage.local.set({ flowActiveItem: { itemId: itemId, output: output, since: Date.now() }, flowLastItem: { itemId: itemId, output: output } });
     resp = await chrome.tabs.sendMessage(projectTab.id, { action: "FLOW_FILL", itemId: itemId, output: loaded.output, files: loaded.files, autoRun: true });
   } catch (e) {
     resp = { status: "error", message: "Trang Flow chưa nạp extension — anh tải lại trang Flow (Cmd+R) rồi bấm lại." };
@@ -149,6 +158,7 @@ chrome.downloads.onChanged.addListener((delta) => {
     const detail = chrome.runtime.lastError ? chrome.runtime.lastError.message : (resp && resp.message) || "";
     const message = ok ? `✅ Đã lưu video: ${resp.movedTo || itemId + ".mp4"}` : `⚠️ Chưa chuyển được video ${itemId}: ${detail}`;
     setFlowResult(ok, message);
+    if (ok) chrome.storage.local.remove("flowLastItem");  // đã lưu → ẩn nút "Tải lại video" (tránh tải trùng)
   });
 });
 

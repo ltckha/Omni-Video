@@ -141,10 +141,27 @@
   const visible = (el) => el && el.offsetParent !== null;
   const byLabel = (label) => [...document.querySelectorAll(`button[aria-label="${label}"]`)].filter(visible);
   const approveRadios = () => [...document.querySelectorAll("[role=radio]")].filter((r) => r.textContent.trim().endsWith("Phê duyệt") && !r.textContent.includes("Luôn"));
-  const videoCards = () => [...document.querySelectorAll("div.video-container.clickable")].filter((d) => {
-    const img = d.querySelector("img");
-    return img && /flow-content\.google/.test(img.src || "");
-  });
+  // 31/10: giao diện tác nhân — video mới hiện ở lưới "Tất cả nội dung" VÀ khung chat, không chắc còn
+  // div.video-container.clickable. Nhận mọi ảnh / video của Flow (flow-content) nằm trong 1 ô bấm được; phân biệt
+  // video mới bằng địa chỉ ảnh (src), không bằng phần tử (Flow vẽ lại phần tử cũ).
+  const MEDIA_SRC = /flow-content\.google|usercontent\.goog|googleusercontent\.com|storage\.googleapis\.com/;
+  const mediaKey = (m) => (m.currentSrc || m.src || m.poster || "").split("?")[0];
+  const videoCards = () => {
+    const out = [];
+    for (const m of document.querySelectorAll("video, img")) {
+      if (!visible(m) || m.closest("#" + PANEL_ID) || !MEDIA_SRC.test(m.currentSrc || m.src || m.poster || "")) continue;
+      const box = m.closest("div.video-container, [role=button], button, a, .clickable");
+      if (!box) continue;
+      // ảnh tĩnh (ảnh giày vừa dán) không phải video: chỉ nhận thẻ <video>, ô video-container, hoặc ô có biểu tượng ▶
+      const isVideo = m.tagName === "VIDEO" || box.matches("div.video-container") || box.querySelector("video") ||
+        /play_arrow|play_circle|▶/.test(box.textContent);
+      if (isVideo) out.push({ key: mediaKey(m), el: box });
+    }
+    return out;
+  };
+  const videoKeys = () => new Set(videoCards().map((c) => c.key));
+  const newVideos = (oldKeys) => videoCards().filter((c) => c.key && !oldKeys.has(c.key));
+  const QUEUED_TEXT = /hàng chờ xử lý|lượng yêu cầu cao|đang chờ xử lý/i;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   async function step(name, check, timeoutMs) {
@@ -166,6 +183,35 @@
   const isNew = (el, oldSet) => !oldSet.has(el);
   const after = (el, ref) => !ref || (ref.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING);
 
+  let lastRun = null;  // { itemId, oldKeys } của lần tự chạy gần nhất trên tab này (cho nút Tải lại)
+
+  const downloadButton = () => byLabel("Tải nội dung nghe nhìn xuống")[0];
+
+  // Mở video mới (thử từng ô: lưới rồi khung chat) tới khi thấy nút Tải xuống, rồi chọn 720p.
+  // Anh đã tự mở video (nút Tải xuống đang hiện) thì bấm luôn.
+  async function downloadNew(itemId, output, oldKeys) {
+    let dl = downloadButton();
+    if (!dl) {
+      const cands = oldKeys ? newVideos(oldKeys) : [];
+      for (const c of cands) {
+        c.el.click();
+        dl = await step("mở Tải xuống", downloadButton, 15000).catch(() => null);
+        if (dl) break;
+        document.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+        await sleep(1000);
+      }
+    }
+    if (!dl) throw new Error(`không mở được video mới để tải — anh bấm mở video của mã ${itemId} rồi bấm "⬇ Tải lại video" trong khung Omni`);
+    await sleep(1000);
+    dl.click();
+    const item720 = await step("chọn 720p", () => [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.includes("720p")), 10000);
+    item720.click();
+    showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
+    await sleep(5000);
+    const done = byLabel("Đã chỉnh sửa xong cảnh")[0];
+    if (done) done.click();
+  }
+
   async function autoRun(itemId, output, nImages) {
     try {
       // kiểm lại ngay trước khi bấm Tạo: ảnh vẫn tải xong + ổn định, nút Tạo không bị khoá
@@ -174,7 +220,8 @@
       const submit = await step("bấm Tạo", () => byLabel("Bắt đầu tạo").filter((b) => !b.disabled && b.getAttribute("aria-disabled") !== "true").pop(), 60000);
       await sleep(3000);
       const oldRadios = new Set(approveRadios());
-      const oldCards = new Set(videoCards());
+      const oldKeys = videoKeys();
+      lastRun = { itemId, oldKeys };
       submit.click();
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: true, message: `⏳ Mã ${itemId}: đã bấm Tạo trên Flow.` });
       showToast(`⏳ Mã ${itemId}: đã bấm Tạo, chờ Flow hỏi phê duyệt…`);
@@ -187,22 +234,21 @@
       const approvedAt = Date.now();
       showToast(`⏳ Mã ${itemId}: đã Phê duyệt 15 credit, đang tạo video (vài phút) — để tab này mở…`);
 
-      // Video mới: không có trong danh sách cũ, nằm sau nút Phê duyệt vừa bấm, và ít nhất 60 giây sau khi phê duyệt
-      const card = await step("chờ video xong", () => Date.now() - approvedAt > 60000 &&
-        videoCards().filter((c) => isNew(c, oldCards) && after(c, radio)).pop(), 15 * 60000);
+      // Video mới: địa chỉ ảnh / video chưa có trước khi bấm Tạo, ít nhất 60 giây sau khi phê duyệt.
+      // Chờ 15 phút; Flow báo "hàng chờ xử lý" (nhiều người dùng) thì chờ tới 30 phút (31/10).
+      let queued = false;
+      while (true) {
+        const waited = Date.now() - approvedAt;
+        if (!queued && QUEUED_TEXT.test(document.body.innerText.slice(-6000))) {
+          queued = true;
+          showToast(`⏳ Mã ${itemId}: Flow đang xếp hàng (nhiều yêu cầu) — em chờ tới 30 phút, để tab này mở…`);
+        }
+        if (waited > 60000 && newVideos(oldKeys).length) break;
+        if (waited > (queued ? 30 : 15) * 60000) throw new Error(`quá hạn ở bước "chờ video xong" — video xong thì anh bấm "⬇ Tải lại video" trong khung Omni`);
+        await sleep(2000);
+      }
       await sleep(3000);
-      card.click();
-
-      const dl = await step("mở Tải xuống", () => byLabel("Tải nội dung nghe nhìn xuống")[0], 30000);
-      await sleep(1000);
-      dl.click();
-      const item720 = await step("chọn 720p", () => [...document.querySelectorAll("[role=menuitem]")].find((m) => m.textContent.includes("720p")), 10000);
-      item720.click();
-      showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
-
-      await sleep(5000);
-      const done = byLabel("Đã chỉnh sửa xong cảnh")[0];
-      if (done) done.click();
+      await downloadNew(itemId, output, oldKeys);
     } catch (e) {
       showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
       chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${itemId}: ${e.message}` });
@@ -254,6 +300,31 @@
       el.textContent = lines.join("\n") || "Chọn mã cần làm video.";
       el.style.color = st.flowLastResult && st.flowLastResult.ok === false ? "#ff8a80" : "#e0e0e0";
     });
+    chrome.storage.local.get(["flowLastItem", "flowActiveItem"], (st) => {
+      const btn = document.getElementById("omni-flow-redownload");
+      if (!btn) return;
+      const last = st.flowLastItem || st.flowActiveItem;
+      btn.style.display = last && last.itemId ? "inline-block" : "none";
+      if (last) btn.textContent = `⬇ Tải lại video ${last.itemId}`;
+    });
+  }
+
+  // 31/10: video đã xong trên Flow mà extension lỡ không tải (Flow xếp hàng lâu, đổi giao diện) → tải bù cho mã vừa làm.
+  // Anh mở sẵn video thì bấm Tải xuống luôn; không thì tìm video mới so với lúc bấm Tạo (nếu tab chưa tải lại).
+  async function redownload() {
+    const status = document.getElementById("omni-flow-status");
+    const item = await new Promise((r) => chrome.runtime.sendMessage({ action: "FLOW_REARM" }, r));
+    if (!item || item.status !== "success") {
+      status.textContent = `⚠️ ${item ? item.message : "Không gọi được extension"}`;
+      return;
+    }
+    status.textContent = `⏳ Đang tải lại video mã ${item.itemId} (${item.output})…`;
+    try {
+      await downloadNew(item.itemId, item.output, lastRun && lastRun.itemId === item.itemId ? lastRun.oldKeys : null);
+    } catch (e) {
+      chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${item.itemId}: ${e.message}` });
+      showToast(`⚠️ Mã ${item.itemId}: ${e.message}`, true);
+    }
   }
 
   function panelList() {
@@ -340,9 +411,15 @@
     const status = document.createElement("div");
     status.id = "omni-flow-status";
     status.style.cssText = "white-space:pre-line;margin:6px 0;";
+    const redl = document.createElement("button");
+    redl.id = "omni-flow-redownload";
+    redl.title = "Video đã xong trên Flow mà chưa về Downloads → tải bù (đặt đúng tên file)";
+    redl.style.cssText = "display:none;background:#188038;color:#fff;border:0;border-radius:4px;padding:3px 8px;margin:0 0 6px;cursor:pointer;font:12px sans-serif;";
+    redl.addEventListener("click", async () => { redl.disabled = true; await redownload(); redl.disabled = false; });
     const list = document.createElement("div");
     list.id = "omni-flow-list";
     body.appendChild(status);
+    body.appendChild(redl);
     body.appendChild(list);
     panel.appendChild(head);
     panel.appendChild(body);
@@ -363,7 +440,7 @@
   }
 
   chrome.storage.onChanged.addListener((changes) => {
-    if (changes.flowLastResult || changes.flowActiveItem) panelStatus();
+    if (changes.flowLastResult || changes.flowActiveItem || changes.flowLastItem) panelStatus();
     if (changes.flowLastResult && changes.flowLastResult.newValue && /Đã lưu video/.test(changes.flowLastResult.newValue.message || "")) panelList();
   });
   ensurePanel();
