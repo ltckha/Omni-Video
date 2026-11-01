@@ -1,40 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "Omni Video - Shopee Image Curator",
-  "version": "1.9.0",
-  "description": "Lựa chọn ảnh sản phẩm Shopee HD, tải về máy và tự động ghi nhận vào Google Sheet.",
+  "name": "Omni Video - Tạo video hàng tiệm",
+  "version": "2.0.0",
+  "description": "Tạo video hàng tiệm Hiệu giày Hải Nancy trên Google Flow: dán ảnh + kịch bản, tự tải video đúng tên.",
   "permissions": [
     "downloads",
-    "contextMenus",
     "storage",
     "activeTab",
     "scripting",
     "nativeMessaging"
   ],
   "host_permissions": [
-    "*://shopee.vn/*",
-    "*://*.shopee.vn/*",
-    "https://*.susercontent.com/*",
     "https://flow.google.com/*"
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Shopee Image Curator"
+    "default_title": "Omni · Tạo video hàng tiệm"
   },
   "background": {
     "service_worker": "background.js"
   },
   "content_scripts": [
-    {
-      "matches": [
-        "*://shopee.vn/*",
-        "*://*.shopee.vn/*"
-      ],
-      "js": [
-        "content.js"
-      ],
-      "run_at": "document_end"
-    },
     {
       "matches": [
         "https://flow.google.com/*"
@@ -44,14 +30,5 @@
       ],
       "run_at": "document_idle"
     }
-  ],
-  "commands": {
-    "save-shopee-image": {
-      "suggested_key": {
-        "default": "Alt+S",
-        "mac": "Alt+S"
-      },
-      "description": "Lưu ảnh sản phẩm Shopee đang chọn"
-    }
-  }
+  ]
 }

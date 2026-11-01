@@ -1,27 +1,10 @@
-// Omni Video - Background Service Worker (Native Messaging -> Google Sheets API v4)
+// Omni Video - Background Service Worker: "Tạo video" hàng tiệm trên Google Flow (Native Messaging).
+// Phần lưu ảnh Shopee (Alt+S, menu chuột phải) đã cất 1/11/2026: archive/chrome-extension/content.js, archive/README.md.
 
 const NATIVE_HOST_NAME = "com.omni.video.curator";
 
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "save-shopee-image-context",
-    title: "📸 Lưu ảnh SP cho Omni UGC (Alt+S)",
-    contexts: ["image", "page", "link"]
-  });
-});
-
-chrome.contextMenus.onClicked.addListener((info, tab) => {
-  if (info.menuItemId === "save-shopee-image-context" && tab && tab.id) {
-    chrome.tabs.sendMessage(tab.id, { action: "GET_SELECTED_IMAGE" });
-  }
-});
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "TRIGGER_SAVE_IMAGE" && message.payload) {
-    let tabId = sender.tab ? sender.tab.id : null;
-    processSaveWorkflow(message.payload, tabId);
-    sendResponse({ status: "processing" });
-  } else if (message.action === "FLOW_LIST") {
+  if (message.action === "FLOW_LIST") {
     chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_LIST" }, (resp) => {
       sendResponse(chrome.runtime.lastError ? { status: "error", message: chrome.runtime.lastError.message } : resp);
     });
@@ -166,73 +149,3 @@ chrome.downloads.onChanged.addListener((delta) => {
     if (ok) chrome.storage.local.remove("flowLastItem");  // đã lưu → ẩn nút "Tải lại video" (tránh tải trùng)
   });
 });
-
-async function processSaveWorkflow(payloadData, tabId) {
-  let itemId = payloadData.itemId || ("SP_" + Date.now());
-  let cdnUrl = payloadData.cdnUrl;
-
-  if (!cdnUrl) {
-    sendToastToTab(tabId, "⚠️ Lỗi: Không tìm thấy URL ảnh CDN!", true);
-    return;
-  }
-
-  let ext = ".jpg";
-  let lowerUrl = cdnUrl.toLowerCase();
-  if (lowerUrl.includes(".webp")) {
-    ext = ".webp";
-  } else if (lowerUrl.includes(".png")) {
-    ext = ".png";
-  } else if (lowerUrl.includes(".jpeg")) {
-    ext = ".jpeg";
-  } else if (lowerUrl.includes(".jpg")) {
-    ext = ".jpg";
-  } else if (lowerUrl.includes("susercontent.com")) {
-    ext = ".webp";
-  }
-
-  let filename = `${itemId}_${Date.now()}${ext}`;
-
-  // 1. Tải ảnh từ Chrome Downloads
-  chrome.downloads.download({
-    url: cdnUrl,
-    filename: filename,
-    conflictAction: "uniquify",
-    saveAs: false
-  }, (downloadId) => {
-    if (chrome.runtime.lastError) {
-      let dlErr = chrome.runtime.lastError.message;
-      console.error("Lỗi chrome.downloads:", dlErr);
-      sendToastToTab(tabId, `⚠️ Lỗi Tải Ảnh: ${dlErr}`, true);
-      return;
-    }
-
-    console.log("✅ Đã tải ảnh ID:", downloadId, "Tên file:", filename);
-
-    // 2. Kích hoạt Native Host chuyển ảnh + lưu thông tin info.json
-    chrome.runtime.sendNativeMessage(
-      NATIVE_HOST_NAME,
-      { itemId: itemId, filename: filename, info: payloadData },
-      (nativeResp) => {
-        if (chrome.runtime.lastError) {
-          let hostErr = chrome.runtime.lastError.message;
-          let currentExtId = chrome.runtime.id;
-          console.error("Lỗi Native Host:", hostErr, "ID hiện tại:", currentExtId);
-          sendToastToTab(tabId, `⚠️ Lỗi Native Host: ${hostErr}`, true);
-        } else if (nativeResp && nativeResp.status === "success") {
-          console.log("✅ Native Host di chuyển thành công:", nativeResp);
-          sendToastToTab(tabId, `✅ Đã lưu ảnh vào /Product_Assets/${itemId}/`);
-        } else {
-          let errDetail = nativeResp ? nativeResp.message : "Không tìm thấy file tải về";
-          sendToastToTab(tabId, `⚠️ Native Host: ${errDetail}`, true);
-        }
-      }
-    );
-  });
-}
-
-function sendToastToTab(tabId, msg, isError = false) {
-  if (tabId) {
-    chrome.tabs.sendMessage(tabId, { action: "SHOW_TOAST", msg: msg, isError: isError }).catch(() => {});
-  }
-}
-
