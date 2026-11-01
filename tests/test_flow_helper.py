@@ -11,7 +11,7 @@ if SCRIPTS_DIR not in sys.path:
 from flow_helper import list_pending_items, collect_flow_video, get_flow_assets
 
 
-def _make_item(assets, item_id, prompt=True, video=False, character=True, title="Nồi cơm mini"):
+def _make_item(assets, item_id, prompt=True, da_tai=False, character=True, title="Nồi cơm mini"):
     d = assets / item_id
     d.mkdir(parents=True)
     (d / f"{item_id}_1.webp").write_bytes(b"img")
@@ -19,18 +19,17 @@ def _make_item(assets, item_id, prompt=True, video=False, character=True, title=
         (d / "Nu-25t.png").write_bytes(b"char")
     if prompt:
         (d / f"{item_id}.txt").write_text("[ASSETS]\n[PROMPT]\n[CONSTRAINTS]", encoding="utf-8")
-    if video:
-        (d / f"{item_id}.mp4").write_bytes(b"mp4")
-    (d / "info.json").write_text(json.dumps({"productName": title}), encoding="utf-8")
+    info = {"productName": title, "hang_tiem": True, **({"da_tai": "2026-11-01 10:00"} if da_tai else {})}
+    (d / "info.json").write_text(json.dumps(info), encoding="utf-8")
     return d
 
 
 def test_list_pending_items_only_prompt_without_video(tmp_path):
     assets = tmp_path / "Product_Assets"
     _make_item(assets, "111")
-    _make_item(assets, "222", video=True)
+    _make_item(assets, "222", da_tai=True)
     _make_item(assets, "333", prompt=False)
-    assert list_pending_items(str(assets)) == [{"itemId": "111", "title": "Nồi cơm mini"}]
+    assert [i["itemId"] for i in list_pending_items(str(assets))] == ["111"]
 
 
 def test_flow_assets_reports_missing_files(tmp_path):
@@ -40,33 +39,11 @@ def test_flow_assets_reports_missing_files(tmp_path):
         get_flow_assets("111", str(assets))
 
 
-def test_collect_moves_video_into_item_folder(tmp_path):
-    assets = tmp_path / "Product_Assets"
-    _make_item(assets, "111")
-    downloads = tmp_path / "Downloads"
-    downloads.mkdir()
-    (downloads / "111.mp4").write_bytes(b"mp4")
-    moved = collect_flow_video("111", str(assets), str(downloads))
-    assert moved == str(assets / "111" / "111.mp4")
-    assert not (downloads / "111.mp4").exists()
-
-
 def test_collect_returns_none_when_not_downloaded_yet(tmp_path):
     assets = tmp_path / "Product_Assets"
     _make_item(assets, "111")
     (tmp_path / "Downloads").mkdir()
     assert collect_flow_video("111", str(assets), str(tmp_path / "Downloads")) is None
-
-
-def test_collect_never_overwrites_existing_video(tmp_path):
-    assets = tmp_path / "Product_Assets"
-    _make_item(assets, "111", video=True)
-    downloads = tmp_path / "Downloads"
-    downloads.mkdir()
-    (downloads / "111.mp4").write_bytes(b"new")
-    with pytest.raises(FileExistsError):
-        collect_flow_video("111", str(assets), str(downloads))
-    assert (assets / "111" / "111.mp4").read_bytes() == b"mp4"
 
 
 def test_best_product_image_is_largest_non_character(tmp_path):

@@ -1,19 +1,17 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Omni Video - Google Flow helper (bán tự động, anh Kha tự bấm Tạo / Tải trên Flow).
-1. list_pending_items(): sản phẩm đã có prompt <itemId>.txt nhưng chưa có <itemId>.mp4.
-2. encode_flow_files(): 3 file (ảnh SP, ảnh người mẫu, kịch bản .txt) gửi cho extension dán vào Flow.
-3. collect_flow_video(): video tải về ~/Downloads/<itemId>.mp4 -> Product_Assets/<itemId>/<itemId>.mp4
-   (hàng tiệm: để nguyên ở ~/Downloads cho luồng gom HNC, chỉ đánh dấu đã tải).
-Không gọi API, không đụng Google Sheet (Move_To_NAS.command cập nhật Sheet như cũ).
+Omni Video - Google Flow helper cho hàng tiệm (extension "Tạo video", anh Kha tự bấm trên Flow).
+1. list_pending_items(): mã trong Product_Assets đã có kịch bản <mã>.txt, chưa tải video (info.json chưa có da_tai).
+2. encode_flow_files(): ảnh giày + ảnh người mẫu + kịch bản gửi cho extension dán vào Flow.
+3. collect_flow_video(): video tải về ~/Downloads/<tên đặt sẵn>.mp4 để nguyên cho HNC gom; ghi da_tai + chép kịch bản.
+Không gọi API, không đụng Google Sheet.
 """
 
 import os
 import json
 import glob
 import base64
-import shutil
 import subprocess
 import tempfile
 from typing import Optional, List, Dict
@@ -61,10 +59,8 @@ def _product_title(item_dir: str) -> str:
         with open(info_path, "r", encoding="utf-8") as f:
             info = json.load(f)
         title = str(info.get("productName") or info.get("title") or "").strip()
-        if info.get("hang_tiem"):  # anh biết đang tạo bản nào: "· tien_vao · sảnh khách sạn · <tên>"
-            from shop_products import popup_label
-            title = f"· {popup_label(info)} · {title}"
-        return title
+        from shop_products import popup_label  # anh biết đang tạo bản nào: "· tien_vao · sảnh khách sạn · <tên>"
+        return f"· {popup_label(info)} · {title}"
     except Exception:
         return ""
 
@@ -87,7 +83,7 @@ def find_best_product_image(item_dir: str) -> Optional[str]:
 
 
 def get_flow_assets(item_id: str, assets_dir: str = ASSETS_DIR) -> Dict[str, str]:
-    """Đường dẫn 3 file cho Omni-Studio Pro: character / product / script. Thiếu file nào thì báo lỗi."""
+    """Đường dẫn 3 file dán vào Flow (kiểu 4 cảnh): character / product / script. Thiếu file nào thì báo lỗi."""
     item_dir = os.path.join(assets_dir, item_id)
     if not os.path.isdir(item_dir):
         raise FileNotFoundError(f"Không có thư mục Product_Assets/{item_id}")
@@ -164,7 +160,7 @@ def _encode(item_id: str, ordered: List, chunk_size: int) -> List[Dict]:
 
 
 def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
-    """Sản phẩm có prompt nhưng chưa có video, mới nhất trước."""
+    """Mã có kịch bản nhưng chưa tải video, mới nhất trước."""
     items = []
     if not os.path.isdir(assets_dir):
         return items
@@ -174,9 +170,7 @@ def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
             continue
         if not find_prompt_file(item_dir, item_id):
             continue
-        if glob.glob(os.path.join(item_dir, "*.mp4")) or glob.glob(os.path.join(item_dir, "*.MP4")):
-            continue
-        if read_info(item_dir).get("da_tai"):  # hàng tiệm đã tải video, chờ HNC gom
+        if read_info(item_dir).get("da_tai"):  # đã tải video, chờ HNC gom
             continue
         items.append({"itemId": item_id, "title": _product_title(item_dir), "mtime": os.path.getmtime(item_dir)})
     items.sort(key=lambda x: x["mtime"], reverse=True)
@@ -184,19 +178,14 @@ def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
 
 
 def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) -> Optional[str]:
-    """Chuyển ~/Downloads/<itemId>.mp4 vào Product_Assets/<itemId>/<itemId>.mp4.
-    Hàng tiệm: tên tải về là info.json "ten_video" (<MÃ>.mp4 / <MÃ>_2.mp4…); không chuyển — để nguyên cho luồng gom HNC,
-    ghi da_tai vào info.json, trả đường dẫn ở Downloads."""
+    """Video tải về ~/Downloads với tên info.json "ten_video" (<MÃ>_1.mp4, <MÃ>_2.mp4…): để nguyên cho HNC gom,
+    chép kịch bản vào data/made_scripts, ghi da_tai vào info.json, trả đường dẫn ở Downloads."""
     item_dir = os.path.join(assets_dir, item_id)
-    src = os.path.join(downloads_dir, output_name(read_info(item_dir), item_id) if os.path.isdir(item_dir) else f"{item_id}.mp4")
-    if not os.path.isfile(src) or not os.path.isdir(item_dir):
+    if not os.path.isdir(item_dir):
         return None
-    if read_info(item_dir).get("hang_tiem"):
-        save_made_script(item_dir)
-        mark_downloaded(item_dir)
-        return src
-    dst = os.path.join(item_dir, f"{item_id}.mp4")
-    if os.path.exists(dst):
-        raise FileExistsError(f"Product_Assets/{item_id}/{item_id}.mp4 đã có — không ghi đè")
-    shutil.move(src, dst)
-    return dst
+    src = os.path.join(downloads_dir, output_name(read_info(item_dir), item_id))
+    if not os.path.isfile(src):
+        return None
+    save_made_script(item_dir)
+    mark_downloaded(item_dir)
+    return src
