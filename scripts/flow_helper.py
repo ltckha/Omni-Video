@@ -33,11 +33,10 @@ def get_image_mime_type(filepath: str) -> str:
 
 
 def find_prompt_file(item_dir: str, item_id: str) -> Optional[str]:
-    """<itemId>.txt, hoặc master_prompt.txt (cũ), hoặc file .txt bất kỳ (trừ prompt_backups)."""
-    for name in (f"{item_id}.txt", "master_prompt.txt"):
-        path = os.path.join(item_dir, name)
-        if os.path.exists(path):
-            return path
+    """<itemId>.txt, hoặc file .txt bất kỳ (trừ prompt_backups)."""
+    path = os.path.join(item_dir, f"{item_id}.txt")
+    if os.path.exists(path):
+        return path
     txts = [f for f in glob.glob(os.path.join(item_dir, "*.txt")) if "prompt_backups" not in f]
     return txts[0] if txts else None
 

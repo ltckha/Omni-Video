@@ -1,29 +1,18 @@
 #!/Users/khan/Developer/Omni-Video/venv/bin/python3
 """
-Omni Video - Chrome Native Messaging Host (Super Robust File Sorter, Info Saver & Direct Google Sheets Syncer)
-Tự động tìm mọi file ảnh bắt đầu bằng <itemId> trong ~/Downloads,
-di chuyển vào <project_dir>/Product_Assets/<itemId>/, lưu file info.json,
-đồng bộ trực tiếp lên Google Sheets API v4 (Service Account) rồi TẮT HOÀN TOÀN.
+Omni Video - Chrome Native Messaging Host cho extension "Tạo video" hàng tiệm trên Google Flow.
+Chỉ nhận lệnh FLOW_* (danh sách mã chờ, gửi file dán vào Flow, thu video đã tải, lưu ảnh chụp trang để dò lỗi).
+Đường lưu ảnh Shopee (Alt+S) đã cất 1/11/2026 cùng đường Shopee tiếp thị liên kết (archive/README.md).
 """
 
 import sys
 import os
 import json
 import struct
-import shutil
-import glob
 import time
 
-DOWNLOADS_DIR = os.path.expanduser("~/Downloads")
 PROJECT_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-PROJECT_ASSETS_DIR = os.path.join(PROJECT_DIR, "Product_Assets")
-
-# Import direct Google Sheets synchronizer
-try:
-    sys.path.append(os.path.join(PROJECT_DIR, "scripts"))
-    from sheet_sync import sync_product_to_sheet
-except Exception:
-    sync_product_to_sheet = None
+sys.path.append(os.path.join(PROJECT_DIR, "scripts"))
 
 def read_message():
     try:
@@ -53,14 +42,7 @@ def handle_flow_action(msg):
     item_id = str(msg.get("itemId", "")).strip()
     try:
         if action == "FLOW_LIST":
-            reminders = []
-            try:  # P4: nhắc mùa đang diễn ra / sắp tới (config/seasons.json), không đọc Sheet
-                from datetime import date
-                import season
-                reminders = season.reminders(season.load_config(), date.today())
-            except Exception:
-                pass
-            send_message({"status": "success", "items": flow_helper.list_pending_items(), "seasons": reminders})
+            send_message({"status": "success", "items": flow_helper.list_pending_items()})
         elif action == "FLOW_FILES":
             # Dùng qua chrome.runtime.connectNative: gửi nhiều tin (meta + các mảnh base64 < 1 MB)
             for part in flow_helper.encode_flow_files(item_id):
@@ -100,51 +82,7 @@ def main():
         handle_flow_action(msg)
         sys.exit(0)
 
-    item_id = str(msg.get("itemId", "")).strip()
-    filename = str(msg.get("filename", "")).strip()
-    info_data = msg.get("info", {})
-
-    if item_id:
-        target_dir = os.path.join(PROJECT_ASSETS_DIR, item_id)
-        os.makedirs(target_dir, exist_ok=True)
-        
-        if info_data:
-            info_file = os.path.join(target_dir, "info.json")
-            try:
-                with open(info_file, "w", encoding="utf-8") as f:
-                    json.dump(info_data, f, ensure_ascii=False, indent=2)
-            except Exception:
-                pass
-
-            # Direct Google Sheets API v4 sync (Zero Apps Script)
-            if sync_product_to_sheet:
-                try:
-                    sync_product_to_sheet(info_data, item_id)
-                except Exception:
-                    pass
-
-        for attempt in range(40):
-            matching_files = [
-                f for f in glob.glob(os.path.join(DOWNLOADS_DIR, f"{item_id}*"))
-                if not f.endswith(".crdownload") and not f.endswith(".tmp")
-            ]
-            
-            if matching_files:
-                for src_path in matching_files:
-                    f_name = os.path.basename(src_path)
-                    target_path = os.path.join(target_dir, f_name)
-                    try:
-                        time.sleep(0.1)
-                        shutil.move(src_path, target_path)
-                        send_message({"status": "success", "movedTo": target_path})
-                        sys.exit(0)
-                    except Exception as e:
-                        send_message({"status": "error", "message": str(e)})
-                        sys.exit(0)
-            
-            time.sleep(0.25)
-
-    send_message({"status": "error", "message": f"Không tìm thấy file của mã {item_id} trong Downloads"})
+    send_message({"status": "error", "message": f"Lệnh không hỗ trợ: {msg.get('action')}"})
     sys.exit(0)
 
 if __name__ == "__main__":
