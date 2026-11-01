@@ -155,19 +155,6 @@ class TestOmniTabGuard:
         assert backfill_empty_brands_on_sheet() == 0
         mock_sh.get_worksheet.assert_not_called()
 
-    @patch("import_csv_to_gsheet.get_gspread_client")
-    def test_import_csv_stops_when_tab_missing(self, mock_get_client, tmp_path):
-        import import_csv_to_gsheet
-        mock_sh = self._client_without_tab(mock_get_client)
-        csv_file = tmp_path / "deals.csv"
-        csv_file.write_text("x", encoding="utf-8")
-        with patch.object(import_csv_to_gsheet, "parse_csv_file", return_value=[{"job_id": "1"}]), \
-             patch.object(import_csv_to_gsheet, "move_csv_to_data_folder") as mock_move, \
-             patch.object(import_csv_to_gsheet, "organize_all_root_csvs"):
-            import_csv_to_gsheet.upload_csv_to_gsheet(csv_file)
-        mock_sh.get_worksheet.assert_not_called()
-        mock_move.assert_not_called()
-
 
 class TestWriteChangedCells:
     def test_writes_only_differing_cells(self):

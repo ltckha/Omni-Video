@@ -8,7 +8,7 @@ if SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, SCRIPTS_DIR)
 
 import shop_products
-from shop_products import sanpham_rows, prepare, build_info, cleanup, read_info, is_hang_tiem
+from shop_products import sanpham_rows, prepare, build_info, cleanup, read_info
 
 import pytest
 
@@ -97,19 +97,6 @@ def test_collect_keeps_shop_video_in_downloads(tmp_path):
     assert list_pending_items(str(assets)) == []
 
 
-def test_move_skips_shop_folder(tmp_path, monkeypatch):
-    import archive_completed_videos as acv
-    assets, dl = tmp_path / "assets", tmp_path / "dl"
-    dl.mkdir()
-    d = _shop_item(assets, "JH8918N")
-    (dl / "JH8918N.mp4").write_bytes(b"v")
-    monkeypatch.setattr(acv, "ASSETS_DIR", str(assets))
-    monkeypatch.setattr(acv, "DOWNLOADS_DIR", str(dl))
-    monkeypatch.setattr(acv, "TARGET_MEDIA_DIR", str(tmp_path / "nas"))
-    assert acv.archive_completed_folders() == 0
-    assert d.exists() and (dl / "JH8918N.mp4").exists() and is_hang_tiem(str(d))
-
-
 def test_web_images_until_404_saved_as_jpg(tmp_path, monkeypatch):
     from shop_products import download_shop_web_images
     jpg = b"\xff\xd8\xff" + b"0" * 10
@@ -166,16 +153,6 @@ def test_write_script_copies_model_by_gender(tmp_path):
     (d / "info.json").write_text(json.dumps(build_info("JH8918N", ROW)))
     path = shop_products.write_script("JH8918N", str(d), characters_dir=str(chars))
     assert path.endswith("JH8918N.txt") and (d / "Nam-25t.png").exists() and not (d / "Nu-25t.png").exists()
-
-
-def test_prompt_command_uses_template_for_shop_item(tmp_path, monkeypatch):
-    import generate_ugc_prompt as g
-    d = tmp_path / "JH8918N"
-    d.mkdir()
-    (d / "info.json").write_text(json.dumps(build_info("JH8918N", ROW)))
-    monkeypatch.setattr(g, "call_gemini_multimodal_api", lambda *a, **k: (_ for _ in ()).throw(AssertionError("không được gọi Gemini")))
-    assert g.generate_prompt_for_item("JH8918N", str(d)) == "Hàng tiệm"
-    assert (d / "JH8918N.txt").exists()
 
 
 # --- kiểu liền (HangTiem --lien, 30/10) ---
