@@ -13,8 +13,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     fillFlowTool(message.itemId, sender.tab ? sender.tab.id : null).then(sendResponse);
   } else if (message.action === "FLOW_RESULT") {  // flow_page.js báo kết quả / lỗi các bước tự chạy
     setFlowResult(message.ok, message.message);
-    if (!message.ok) chrome.storage.local.remove("flowActiveItem");
-    sendResponse({ status: "success" });
+    if (message.ok) return sendResponse({ status: "success" });
+    // chỉ xoá tên đặt sẵn của đúng mã báo lỗi (5/11: lỗi của mã cũ từng xoá mất tên của mã đang làm)
+    chrome.storage.local.get(["flowActiveItem"], (st) => {
+      const active = st.flowActiveItem;
+      if (active && (!message.itemId || active.itemId === message.itemId)) chrome.storage.local.remove("flowActiveItem");
+      sendResponse({ status: "success" });
+    });
   } else if (message.action === "FLOW_SNAPSHOT") {
     chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_SNAPSHOT", label: message.label, snapshot: message.snapshot }, (resp) => {
       sendResponse(chrome.runtime.lastError ? { status: "error", message: chrome.runtime.lastError.message } : resp);

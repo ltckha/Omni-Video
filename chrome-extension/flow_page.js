@@ -325,6 +325,14 @@
     if (done) realClick(done);
   }
 
+  // Mã này còn là mã đang làm? Bấm Tạo mã khác (flowActiveItem + flowLastItem đổi) hoặc video mã này đã tải và ghi sổ
+  // (cả 2 bị xoá) → vòng chờ cũ dừng lặng lẽ: không báo lỗi, không tải. 5/11: vòng chờ cũ quá hạn báo lỗi đã xoá
+  // flowActiveItem của mã đang làm → video MT2187D tải về không được đổi tên.
+  function stillMine(itemId) {
+    return new Promise((resolve) => chrome.storage.local.get(["flowActiveItem", "flowLastItem"], (st) =>
+      resolve([st.flowActiveItem, st.flowLastItem].some((x) => x && x.itemId === itemId))));
+  }
+
   async function autoRun(itemId, output, nImages) {
     try {
       // kiểm lại ngay trước khi bấm Tạo: ảnh vẫn tải xong + ổn định, nút Tạo không bị khoá
@@ -366,15 +374,18 @@
           queued = true;
           showToast(`⏳ Mã ${itemId}: Flow đang xếp hàng (nhiều yêu cầu) — em chờ tới 30 phút, để tab này mở…`);
         }
+        if (lastBeat === waited && !(await stillMine(itemId))) return;  // 30 giây kiểm 1 lần
         if (waited > 60000 && turnVideo(before)) break;
         if (waited > (queued ? 30 : 15) * 60000) throw new Error(`quá hạn ở bước "chờ video xong" — video xong thì anh bấm "⬇ Tải lại video" trong khung Omni`);
         await sleep(2000);
       }
       await sleep(3000);
+      if (!(await stillMine(itemId))) return;
       await downloadNew(itemId, output, before);
     } catch (e) {
+      if (!(await stillMine(itemId))) return;  // lỗi của mã đã xong / đã thay bằng mã khác: không báo, không đụng mã đang làm
       showToast(`⚠️ Mã ${itemId}: ${e.message}`, true);
-      chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${itemId}: ${e.message}` });
+      chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, itemId, message: `⚠️ Mã ${itemId}: ${e.message}` });
       saveSnapshot(`loi_${itemId}`);
     }
   }
@@ -446,7 +457,7 @@
     try {
       await downloadNew(item.itemId, item.output, typeof item.beforeChatKey === "string" ? { chatKey: item.beforeChatKey } : null);
     } catch (e) {
-      chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, message: `⚠️ Mã ${item.itemId}: ${e.message}` });
+      chrome.runtime.sendMessage({ action: "FLOW_RESULT", ok: false, itemId: item.itemId, message: `⚠️ Mã ${item.itemId}: ${e.message}` });
       showToast(`⚠️ Mã ${item.itemId}: ${e.message}`, true);
     }
   }
