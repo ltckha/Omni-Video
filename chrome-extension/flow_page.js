@@ -184,21 +184,23 @@
     return out;
   };
   const openButtons = () => [...document.querySelectorAll(`[aria-label="${OPEN_VIDEO}"]`)];
-  const chatKey = (btn) => (btn ? assetKey(btn.querySelector('img[src*="/asb/"]')) : "");
+  // 9/11 (Omni 1.2): ảnh nhỏ trong khung chat nay là storage.googleapis.com/ai-sandbox-videofx/image/<uuid>, không còn
+  // cùng <id> /asb/ với ô lưới → lấy ảnh bất kỳ của nút làm khoá (không có thì "").
+  const chatKey = (btn) => (btn ? assetKey(btn.querySelector("img.video-thumbnail, img")) : "");
   const turnSnapshot = () => ({ chatKey: chatKey(openButtons().pop()), openCount: openButtons().length });
   // Video của lượt này — CHỐNG NHẦM (31/10: v1.8.0 tải nhầm video G2506N thành CT2637D_1). Phải đủ:
   //  1. nút "Mở video trong trình chỉnh sửa" nằm sau "Phê duyệt" cuối khung chat, <id> ảnh khác nút cuối lúc bấm Tạo
   //     (before.chatKey) và số nút tăng so với lúc bấm Tạo (before.openCount, khi còn biết);
-  //  2. trong lưới có ô video cùng <id> đó (tải đúng ô đó).
-  // (3. ≥ 60 giây sau Phê duyệt: vòng chờ trong autoRun.) Thiếu 1 điều → null, không tải.
+  //  2. ≥ 60 giây sau Phê duyệt (vòng chờ trong autoRun). Thiếu 1 điều → null, không tải.
+  // Ô lưới cùng <id> (tile) chỉ còn là đường tải nhanh khi tìm được; 9/11 Omni 1.2: ảnh chat khác <id> ô lưới → tile null,
+  // tải bằng chính nút chat của lượt này (đường B), nên vẫn đúng video.
   const turnVideo = (before) => {
     if (!before || typeof before.chatKey !== "string") return null;
     const chat = latestTurnVideo();
     const key = chatKey(chat);
     if (!key || key === before.chatKey) return null;
     if (typeof before.openCount === "number" && openButtons().length <= before.openCount) return null;
-    const tile = gridVideos().find((v) => v.key === key);
-    return tile ? { chat, key, tile } : null;
+    return { chat, key, tile: gridVideos().find((v) => v.key === key) || null };
   };
   const QUEUED_TEXT = /hàng chờ xử lý|lượng yêu cầu cao|đang chờ xử lý/i;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -299,7 +301,7 @@
       throw new Error(`không chắc video nào là của mã ${itemId} (thiếu mốc lúc bấm Tạo) — anh tải tay, em ghi đã tải`);
     const turn = turnVideo(before);
     if (!turn) throw new Error(`chưa có video mới của mã ${itemId} (Flow còn đang tạo / xếp hàng) — video hiện ra thì bấm lại "⬇ Tải lại video"`);
-    if (await gridDownload(turn.tile)) {
+    if (turn.tile && await gridDownload(turn.tile)) {
       showToast(`✅ Mã ${itemId}: đang tải video về Downloads/${output} (Chrome hỏi Save thì anh bấm Save).`);
       return;
     }
