@@ -115,7 +115,9 @@ async function fillFlowToolInner(itemId, tabId) {
 // ===== Google Flow (bán tự động): video tải từ Flow -> <itemId>.mp4 -> Product_Assets/<itemId>/ =====
 const FLOW_ACTIVE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 const FLOW_SOURCE_PATTERN = /flow\.google\.com|labs\.google|usercontent\.goog|googleusercontent\.com|storage\.googleapis\.com/;
-const flowDownloads = {};  // downloadId -> itemId
+// downloadId -> itemId, lưu trong storage: service worker MV3 bị tắt khi Chrome hỏi chỗ lưu → biến trong bộ nhớ mất,
+// tải xong không ghi sổ (9/11: omni12_JH8918N_15s.mp4 tải đúng tên nhưng không có da_tai)
+const flowDlKey = (id) => `flowDl_${id}`;
 
 function isFlowVideoDownload(item) {
   const isVideo = (item.mime || "").startsWith("video/") || /\.mp4$/i.test(item.filename || "");
@@ -129,7 +131,7 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
   chrome.storage.local.get(["flowActiveItem"], (stored) => {
     const active = stored.flowActiveItem;
     if (active && Date.now() - active.since < FLOW_ACTIVE_MAX_AGE_MS && isFlowVideoDownload(item)) {
-      flowDownloads[item.id] = active.itemId;
+      chrome.storage.local.set({ [flowDlKey(item.id)]: active.itemId });
       chrome.storage.local.remove("flowActiveItem");
       suggest({ filename: active.output || `${active.itemId}.mp4`, conflictAction: "uniquify" });
     } else {
@@ -142,10 +144,13 @@ chrome.downloads.onDeterminingFilename.addListener((item, suggest) => {
 // flow_page.js biết lượt bấm Tải xuống đã ăn (không bấm thêm, tránh tải trùng)
 chrome.downloads.onCreated.addListener(() => chrome.storage.local.set({ flowDownloadStartedAt: Date.now() }));
 
-chrome.downloads.onChanged.addListener((delta) => {
-  const itemId = flowDownloads[delta.id];
-  if (!itemId || !delta.state || delta.state.current !== "complete") return;
-  delete flowDownloads[delta.id];
+chrome.downloads.onChanged.addListener(async (delta) => {
+  if (!delta.state || !["complete", "interrupted"].includes(delta.state.current)) return;
+  const key = flowDlKey(delta.id);
+  const itemId = (await chrome.storage.local.get([key]))[key];
+  if (!itemId) return;
+  await chrome.storage.local.remove(key);
+  if (delta.state.current !== "complete") return;
   chrome.runtime.sendNativeMessage(NATIVE_HOST_NAME, { action: "FLOW_COLLECT", itemId: itemId }, (resp) => {
     const ok = !chrome.runtime.lastError && resp && resp.status === "success";
     const detail = chrome.runtime.lastError ? chrome.runtime.lastError.message : (resp && resp.message) || "";

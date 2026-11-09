@@ -1,6 +1,6 @@
 // Omni Video - 1 cú bấm / 1 video trên dự án Google Flow (anh Kha chọn 15/10/2026):
 // dán 1 lần mọi ảnh trong thư mục SP (1 = ảnh SP chính, 2 = người mẫu, 3.. = ảnh SP còn lại, tối đa 7) -> kịch bản .txt
-// -> bấm Tạo -> Phê duyệt 15 credit -> chờ video xong -> Tải 720p (background đặt tên <itemId>.mp4) -> Xong.
+// -> bấm Tạo -> Phê duyệt (Omni 1.2: 30 credit / 10 giây, 60 credit / 15 giây) -> chờ video xong -> Tải 720p (background đặt tên <itemId>.mp4) -> Xong.
 // Mỗi lần chỉ 1 sản phẩm do anh Kha chọn; không chạy lô. Bước nào quá hạn thì dừng, báo để anh làm tay.
 
 (function () {
@@ -357,7 +357,7 @@
       await sleep(1000);
       radio.click();
       const approvedAt = Date.now();
-      showToast(`⏳ Mã ${itemId}: đã Phê duyệt 15 credit, đang tạo video (vài phút) — để tab này mở…`);
+      showToast(`⏳ Mã ${itemId}: đã Phê duyệt, đang tạo video (vài phút) — để tab này mở…`);
 
       // Video mới: địa chỉ ảnh / video chưa có trước khi bấm Tạo, ít nhất 60 giây sau khi phê duyệt.
       // Chờ 15 phút; Flow báo "hàng chờ xử lý" (nhiều người dùng) thì chờ tới 30 phút (31/10).

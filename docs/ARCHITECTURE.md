@@ -18,7 +18,7 @@ flowchart LR
   HNCNAS[(NAS /Volumes/Media/HNC_Master/&lt;mã&gt;/<br/>ảnh giày tiệm)]
   WEB[giayhainancy.vn<br/>ảnh · sitemap còn hàng]
   SANPHAM[(Sheet HNC_Control_Center<br/>tab SANPHAM)]
-  FLOW[Google Flow<br/>Omni 1.1 Flash · 9:16 · 15 credit]
+  FLOW[Google Flow<br/>Omni 1.2 Flash · 9:16 · 30 credit / 10 giây]
   HNC[Kho hàng gom video<br/>→ SANPHAM → Video-Post]
   LOG[(Sổ trực ca Ecosystem-Hub)]
 
