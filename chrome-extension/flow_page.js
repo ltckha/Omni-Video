@@ -406,6 +406,11 @@
       roles: pick("[role=radio],[role=dialog],[role=alertdialog],[role=menuitem],[role=option],[role=checkbox],[role=switch],[role=tab],[role=status],[role=alert],[role=log]")
         .map((el) => ({ role: el.getAttribute("role"), aria: el.getAttribute("aria-label"), checked: el.getAttribute("aria-checked"), text: short(el.textContent, 120) })),
       textboxes: pick("[contenteditable=true],textarea").map((el) => ({ aria: el.getAttribute("aria-label"), len: (el.innerText || el.value || "").length })),
+      // 9/11: lượt 15 giây đứng ở bước dán ảnh — ghi trạng thái từng ô ảnh + khung ô câu lệnh để biết Flow nhận ảnh tới đâu
+      chipState: (() => { try { return uploadState(0); } catch (e) { return String(e); } })(),
+      chipHtml: chips().slice(0, 8).map((c) => short(c.outerHTML, 300)),
+      promptArea: (() => { const b = promptBox(); let e = b; for (let i = 0; i < 3 && e && e.parentElement; i++) e = e.parentElement; return e ? short(e.outerHTML, 1500) : null; })(),
+      focus: document.hasFocus(), hidden: document.hidden,
       chips: chipCount(), videoCards: videoCards().map((c) => c.key.slice(-60)), turnVideo: !!latestTurnVideo(), gridTop: gridVideos().slice(0, 3).map((v) => v.key.slice(-30)), chatLast: chatKey(openButtons().pop()).slice(-30), openCount: openButtons().length, version: chrome.runtime.getManifest().version,
       overlay: short((document.querySelector(".cdk-overlay-container") || {}).innerText, 400),
       media: pick("video,img", 60).map((m) => ({ tag: m.tagName, src: (m.currentSrc || m.src || "").slice(0, 90), w: m.naturalWidth || m.videoWidth || 0 })),
@@ -586,6 +591,7 @@
   chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     if (message.action !== "FLOW_FILL") return false;
     fill(message).then((resp) => {
+      if (resp.status !== "success") saveSnapshot(`dan_${message.itemId}`);  // dán ảnh / kịch bản hỏng → chụp trang để sửa
       showToast(resp.status === "success"
         ? `✅ Đã điền mã ${message.itemId}: ${message.files.length - 1} ảnh + kịch bản. Đang tự bấm Tạo…`
         : `⚠️ ${resp.message}`, resp.status !== "success");

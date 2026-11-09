@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Omni Video - Tạo video hàng tiệm",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Tạo video hàng tiệm Hiệu giày Hải Nancy trên Google Flow: dán ảnh + kịch bản, tự tải video đúng tên.",
   "permissions": [
     "downloads",
