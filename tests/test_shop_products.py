@@ -366,9 +366,9 @@ def test_tu_nhien_short_vietnamese_prompt_is_default():
     scene = scene_named(cfg, "truong_cong_dinh")
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="tu_nhien", boi_canh=scene["ten"])
     text = shop_products.build_script(info, cfg)
-    assert text == "Tạo video người mẫu nam mang đôi giày trong ảnh, dạo bước trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n"
+    assert text == "Tạo video người mẫu nam mang đôi giày trong ảnh, dạo bước trên đường Trương Công Định, Đà Lạt. Video dọc 9:16, dài 10 giây. Trang phục hợp bối cảnh, giữ nguyên suốt video. Đôi giày giống hệt ảnh (màu, dáng, đế, chi tiết). Máy quay mở đầu cận đôi giày, rồi lùi ra từ từ tới khi thấy cả người từ đầu tới chân đang bước đi.\n"
     female = shop_products.build_script(dict(info, gioi_tinh="nữ", boi_canh="ca_phe_san_vuon"), cfg)
-    assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n"
+    assert female == "Tạo video người mẫu nữ mang đôi giày trong ảnh, dạo bước trong quán cà phê sân vườn. Video dọc 9:16, dài 10 giây. Trang phục hợp bối cảnh, giữ nguyên suốt video. Đôi giày giống hệt ảnh (màu, dáng, đế, chi tiết). Máy quay mở đầu cận đôi giày, rồi lùi ra từ từ tới khi thấy cả người từ đầu tới chân đang bước đi.\n"
     assert shop_products.pick_mood(cfg, "tu_nhien") is None
     assert shop_products.popup_label(info, cfg) == "tự nhiên · đường Trương Công Định"
 
@@ -378,7 +378,7 @@ def test_san_pham_prompt_text():
     cfg = shop_products.load_config()
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="san_pham", boi_canh="truong_cong_dinh")
     assert shop_products.build_script(info, cfg) == (
-        "Tạo video người mẫu nam mang đôi giày trong ảnh, bước đi trên đường Trương Công Định, Đà Lạt. Video dọc 9:16. "
+        "Tạo video người mẫu nam mang đôi giày trong ảnh, bước đi trên đường Trương Công Định, Đà Lạt. Video dọc 9:16, dài 10 giây. "
         "Đôi giày là nhân vật chính: luôn rõ trong khung, giống hệt ảnh (màu, dáng, đế, chi tiết).\n")
     assert shop_products.popup_label(info, cfg) == "sản phẩm · đường Trương Công Định"
 
@@ -391,7 +391,7 @@ def test_ngoi_dung_prompt_uses_seat_of_scene():
     info = dict(build_info("A", ROW), kieu="lien", chuyen_dong="ngoi_dung", boi_canh="ho_xuan_huong")
     assert shop_products.build_script(info, cfg) == (
         "Tạo video người mẫu nam mang đôi giày trong ảnh, đang ngồi trên ghế đá bên hồ Xuân Hương, Đà Lạt, máy quay tập trung "
-        "vào đôi giày, rồi người mẫu đứng dậy bước đi, quay cả người. Video dọc 9:16. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n")
+        "vào đôi giày, rồi người mẫu đứng dậy bước đi, quay cả người. Video dọc 9:16, dài 10 giây. Trang phục hợp bối cảnh, giữ nguyên suốt video.\n")
     assert shop_products.popup_label(info, cfg) == "ngồi → đứng · hồ Xuân Hương"
 
 
@@ -404,7 +404,7 @@ def test_model_image_uses_standard_file_per_motion(tmp_path):
     item.mkdir()
     lien = shop_products.load_config()["lien"]
     src = str(chars / "Nam-25t.png")
-    assert os.path.basename(shop_products.model_image(src, str(item), lien, "tu_nhien")) == "Nam-25t_toan_than.jpg"
-    assert (item / "Nam-25t_toan_than.jpg").read_bytes() == b"TT"  # chép nguyên file chuẩn, không cắt lại
+    assert os.path.basename(shop_products.model_image(src, str(item), lien, "tu_nhien")) == "Nam-25t_tren.jpg"  # 9/11 bản keora
+    assert (item / "Nam-25t_tren.jpg").read_bytes() == b"TR"  # chép nguyên file chuẩn, không cắt lại
     assert os.path.basename(shop_products.model_image(src, str(item), lien, "san_pham")) == "Nam-25t_tren.jpg"
     assert os.path.basename(shop_products.model_image(src, str(item), lien, "ngoi_dung")) == "Nam-25t_tren.jpg"
