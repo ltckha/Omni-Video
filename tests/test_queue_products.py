@@ -11,7 +11,7 @@ import shop_products
 HEAD = [["nhóm"] * 6, ["product_code", "product_name", "product_color", "content_files", "web_in_stock", "gioi_tinh"]]
 
 
-def fake_fetch(out_of_stock=(), not_on_web=()):
+def fake_fetch(out_of_stock=(), not_on_web=(), sizes=None):
     """Web giả: sitemap có mọi mã A*/B*/Q*/Z* trừ not_on_web; trang SP ghi InStock / OutOfStock."""
     codes = [f"{p}{i}" for p in "ABQZ" for i in range(10)]
     def fetch(url):
@@ -20,7 +20,10 @@ def fake_fetch(out_of_stock=(), not_on_web=()):
                            for n, c in enumerate(codes) if c not in not_on_web)
         code = url.rsplit("-", 2)[-2].upper()
         state = "OutOfStock" if code in out_of_stock else "InStock"
-        return f'<script type="application/ld+json">{{"offers":{{"availability":"https://schema.org/{state}"}}}}</script>'
+        n = (sizes or {}).get(code, 3)  # số size còn hàng; nút hết size chỉ có data-wait
+        btns = "".join(f'<button data-size="{38 + i}">{38 + i}</button>' for i in range(n)) + '<button class="no" data-wait="50">50</button>'
+        return (f'<script type="application/ld+json">{{"offers":{{"availability":"https://schema.org/{state}"}}}}</script>'
+                f'<div class="sizes">{btns}</div>')
     return fetch
 
 
@@ -201,3 +204,19 @@ def test_many_newer_codes_without_web_page_do_not_use_up_the_cap(tmp_path):
                                log_fn=logs.append)
     assert len(added) == 5 and all(c.startswith("A") for c in added)
     assert sum("chưa có trang SP" in l for l in logs) == 1  # 1 dòng gộp, không 70 dòng
+
+
+def test_more_in_stock_sizes_first_among_same_video_count(tmp_path):
+    d = setup(tmp_path)
+    calls = []
+    sz = {"A1": 2, "A2": 7, "A3": 5, "A4": 1, "A5": 6, "A6": 4, "A7": 3}
+    added = queue_products.run(values_fn=lambda: HEAD + [row(f"A{i}") for i in range(1, 8)], make=fake_make(calls),
+                               fetch=fake_fetch(sizes=sz), assets_dir=str(d["assets"]), downloads_dir=str(d["dl"]),
+                               media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"), log_fn=lambda m: None)
+    assert added == ["A2", "A5", "A3", "A6", "A7"]  # 7, 6, 5, 4, 3 size; A1 (2) và A4 (1) ở lại
+
+
+def test_web_sizes_counts_only_in_stock_buttons():
+    page = '<div class="sizes"><button data-size="38">38</button><button class="no" data-wait="39">39</button><button data-size="40">40</button></div>'
+    assert queue_products.web_sizes(page) == 2
+    assert queue_products.web_sizes("<p>không có size</p>") == 0

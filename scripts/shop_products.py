@@ -302,14 +302,19 @@ def pick_combo(info: Dict, cfg: Dict, used=(), state_path: Optional[str] = None)
     state = _load_state(state_path)
     mi, si = int(state.get("chuyen_dong", 0)), int(state.get(group, 0))
     used = {tuple(u) for u in used}
-    for dm in range(len(motions)):
-        for ds in range(len(scenes)):
-            combo = (motions[(mi + dm) % len(motions)], scenes[(si + ds) % len(scenes)])
-            if combo not in used:
-                state["chuyen_dong"] = (mi + dm + 1) % len(motions)
-                state[group] = (si + ds + 1) % len(scenes)
-                _save_state(state, state_path)
-                return combo
+    used_motions = {m for m, _ in used}
+    # video thứ 2, 3 của 1 mã (anh Kha 16/11): ưu tiên kiểu quay CHƯA dùng cho mã này (góc máy khác), rồi mới tới cùng kiểu khác cảnh
+    for fresh_motion_only in ((True, False) if used_motions else (False,)):
+        for dm in range(len(motions)):
+            if fresh_motion_only and motions[(mi + dm) % len(motions)] in used_motions:
+                continue
+            for ds in range(len(scenes)):
+                combo = (motions[(mi + dm) % len(motions)], scenes[(si + ds) % len(scenes)])
+                if combo not in used:
+                    state["chuyen_dong"] = (mi + dm + 1) % len(motions)
+                    state[group] = (si + ds + 1) % len(scenes)
+                    _save_state(state, state_path)
+                    return combo
     return None
 
 

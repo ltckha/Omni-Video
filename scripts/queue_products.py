@@ -39,6 +39,7 @@ from shop_products import ASSETS_DIR, DOWNLOADS_DIR, HNC_MEDIA_DIR, SANPHAM_HEAD
 
 SO_MA_CHO = 5
 TRAN_VIDEO = 3  # tối đa 3 video / mã (Phân tích tạm đặt 30/10, chờ anh Kha duyệt)
+SO_MA_XET = 15  # số mã đủ điều kiện gom lại để xếp theo số size còn (mỗi mã tải 1 trang SP)
 SO_MA_THU_TOI_DA = 40  # mỗi lần chạy thử tối đa bấy nhiêu mã (tránh tải web quá nhiều khi nhiều mã thiếu ảnh)
 LEDGER = os.path.join(shop_products.PROJECT_DIR, "data", ".queue_products_ledger.json")
 LOG_PATH = os.path.join(shop_products.PROJECT_DIR, "data", "logs", "queue_products.log")
@@ -69,17 +70,30 @@ def web_product_urls(sitemap: str) -> Dict[str, str]:
 
 def web_stock(code: str, urls: Dict[str, str], fetch=fetch_text) -> Optional[str]:
     """None = còn hàng; chuỗi = lý do bỏ qua."""
+    return web_check(code, urls, fetch)[0]
+
+
+def web_sizes(page: str) -> int:
+    """Số size CÒN HÀNG trên trang SP: nút size còn hàng có data-size, nút hết size (class "no") chỉ có data-wait."""
+    return len(re.findall(r'<button[^>]*\bdata-size="[^"]+"', page))
+
+
+def web_check(code: str, urls: Dict[str, str], fetch=fetch_text):
+    """(lý do bỏ qua | None, số size còn hàng): 1 lần tải trang SP cho cả tình trạng hàng lẫn số size."""
     url = urls.get(code)
     if not url:
-        return "không có trang SP trên web (đã gỡ / chưa đăng)"
+        return "không có trang SP trên web (đã gỡ / chưa đăng)", 0
     try:
         page = fetch(url)
     except (urllib.error.URLError, OSError) as e:
-        return f"lỗi mở trang SP ({e.__class__.__name__})"
+        return f"lỗi mở trang SP ({e.__class__.__name__})", 0
     m = re.search(r'"availability"\s*:\s*"(?:https?://schema\.org/)?(\w+)"', page)
     if not m:
-        return "trang SP không ghi tình trạng hàng"
-    return None if m.group(1) == "InStock" else f"web ghi {m.group(1)}"
+        return "trang SP không ghi tình trạng hàng", 0
+    if m.group(1) != "InStock":
+        return f"web ghi {m.group(1)}", 0
+    n = web_sizes(page)
+    return (None, n) if n else ("trang SP không còn size nào", 0)
 
 
 def log(msg: str, path: Optional[str] = None) -> None:
@@ -187,9 +201,11 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
         return []
     done = load_ledger(ledger_path)
     cfg = shop_products.load_config()
-    added, tried, no_page = [], 0, []
+    added, tried, no_page, pool = [], 0, [], []
+    # Gom tối đa SO_MA_XET mã đủ điều kiện (còn hàng + còn size trên web), mới nhất trước; rồi xếp: chưa có video trước,
+    # cùng số video thì nhiều size còn hàng trước (anh Kha 16/11); sort ổn định → bằng nhau thì mới nhất trước.
     for row in ordered(candidates(values), done):
-        if len(added) >= need or tried >= SO_MA_THU_TOI_DA:
+        if len(pool) >= SO_MA_XET or tried >= SO_MA_THU_TOI_DA:
             break
         code = row["product_code"]
         if os.path.exists(os.path.join(assets_dir, code)):  # mỗi mã 1 mục chờ; video trùng mã → tên _2, _3 (ten_video)
@@ -204,10 +220,15 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
             no_page.append(code)  # (12/11–16/11: mã mới nhất đều chưa lên web, 40 lượt thử hết trước khi tới mã cũ hơn)
             continue
         tried += 1
-        stock = web_stock(code, web_urls, fetch)
+        stock, n_sizes = web_check(code, web_urls, fetch)
         if stock:
             log_fn(f"⏭ {code}: {stock} — bỏ qua.")
             continue
+        pool.append((video_count(row, done), -n_sizes, len(pool), row, used, n_sizes))
+    for _, _, _, row, used, n_sizes in sorted(pool, key=lambda t: t[:3]):
+        if len(added) >= need:
+            break
+        code = row["product_code"]
         item_dir = make(code, row, True, {"hang_cho": True}, used=used, assets_dir=assets_dir, media_dir=media_dir,
                         downloads_dir=downloads_dir)
         if item_dir:
@@ -216,8 +237,9 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
             done.append({"ma": code, "chuyen_dong": got.get("chuyen_dong"), "boi_canh": got.get("boi_canh"),
                          "ngay": datetime.now().strftime("%Y-%m-%d")})
             save_ledger(done, ledger_path)
-            log_fn(f"➕ {code} · {got.get('chuyen_dong')} · {got.get('boi_canh')} (video thứ {len(used) + 1}): "
-                   f"{row.get('product_name', '').strip()}")
+            before = f", trước: {'; '.join(f'{m} · {b}' for m, b in used)}" if used else ""
+            log_fn(f"➕ {code} · {got.get('chuyen_dong')} · {got.get('boi_canh')} (video thứ {len(used) + 1}{before}), "
+                   f"{n_sizes} size còn: {row.get('product_name', '').strip()}")
         else:
             log_fn(f"⏭ {code}: không có ảnh (NAS / web / image_01…) — bỏ qua.")
     if no_page:

@@ -408,3 +408,19 @@ def test_model_image_uses_standard_file_per_motion(tmp_path):
     assert (item / "Nam-25t_tren.jpg").read_bytes() == b"TR"  # chép nguyên file chuẩn, không cắt lại
     assert os.path.basename(shop_products.model_image(src, str(item), lien, "san_pham")) == "Nam-25t_tren.jpg"
     assert os.path.basename(shop_products.model_image(src, str(item), lien, "ngoi_dung")) == "Nam-25t_tren.jpg"
+
+
+def test_repeat_video_prefers_a_motion_not_used_before(tmp_path):
+    cfg = shop_products.load_config()
+    info = dict(build_info("A", ROW), kieu="lien")
+    motions = shop_products.motions_for(info, cfg)
+    scenes = [sc["ten"] for sc in cfg["boi_canh"]["nhom"][shop_products.scene_group(info, cfg)]]
+    state = str(tmp_path / "s.json")
+    used = [(motions[0], scenes[0])]
+    for _ in range(len(motions) - 1):
+        got = shop_products.pick_combo(info, cfg, used=used, state_path=state)
+        assert got[0] not in {m for m, _ in used}  # góc máy khác video trước
+        used.append(got)
+    # hết kiểu mới: vẫn cho tổ hợp chưa dùng (cùng kiểu, khác cảnh)
+    got = shop_products.pick_combo(info, cfg, used=used, state_path=state)
+    assert got is not None and tuple(got) not in {tuple(u) for u in used}
