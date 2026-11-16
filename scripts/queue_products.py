@@ -187,7 +187,7 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
         return []
     done = load_ledger(ledger_path)
     cfg = shop_products.load_config()
-    added, tried = [], 0
+    added, tried, no_page = [], 0, []
     for row in ordered(candidates(values), done):
         if len(added) >= need or tried >= SO_MA_THU_TOI_DA:
             break
@@ -200,6 +200,9 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
         info = shop_products.build_info(code, row)
         if not [c for c in shop_products.combos_for(info, cfg) if c not in used]:
             continue  # đã dùng hết kiểu × bối cảnh cho mã này
+        if code not in web_urls:  # chưa có trang trên web: tra từ điển sitemap, không tải gì → không tính vào SO_MA_THU_TOI_DA
+            no_page.append(code)  # (12/11–16/11: mã mới nhất đều chưa lên web, 40 lượt thử hết trước khi tới mã cũ hơn)
+            continue
         tried += 1
         stock = web_stock(code, web_urls, fetch)
         if stock:
@@ -217,6 +220,8 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
                    f"{row.get('product_name', '').strip()}")
         else:
             log_fn(f"⏭ {code}: không có ảnh (NAS / web / image_01…) — bỏ qua.")
+    if no_page:
+        log_fn(f"⏭ {len(no_page)} mã chưa có trang SP trên web (đã gỡ / chưa đăng), vd {', '.join(no_page[:5])} — bỏ qua, lấy mã cũ hơn.")
     waiting = pending_codes(assets_dir)
     log_fn(f"📦 Thêm {len(added)} mã. Đang chờ {len(waiting)}/{SO_MA_CHO}: {', '.join(waiting)}")
     return added

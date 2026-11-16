@@ -118,7 +118,7 @@ def test_skips_out_of_stock_or_not_on_web(tmp_path):
                          downloads_dir=str(d["dl"]), media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"),
                          log_fn=logs.append)
     assert added == ["A1"] and [c for c, _ in calls] == ["A1"]
-    assert any("A3" in l and "OutOfStock" in l for l in logs) and any("A2" in l and "không có trang SP" in l for l in logs)
+    assert any("A3" in l and "OutOfStock" in l for l in logs) and any("A2" in l and "chưa có trang SP" in l for l in logs)
 
 
 def test_sitemap_error_does_nothing(tmp_path):
@@ -187,3 +187,17 @@ def test_main_writes_shift_only_with_flag(monkeypatch):
     assert shifts == []
     queue_products.main(["--log-health"])
     assert shifts == [("loi", "Không thấy ổ Media")]
+
+
+def test_many_newer_codes_without_web_page_do_not_use_up_the_cap(tmp_path):
+    """16/11: mã mới nhất đều chưa lên web; > 40 mã như vậy không được chặn việc quét lùi tới mã cũ hơn còn hàng."""
+    d = setup(tmp_path)
+    newer = [row(f"N{i:03d}") for i in range(queue_products.SO_MA_THU_TOI_DA + 30)]
+    older = [row(f"A{i}") for i in range(1, 7)]  # có trong sitemap giả
+    calls, logs = [], []
+    added = queue_products.run(values_fn=lambda: HEAD + older + newer, make=fake_make(calls),
+                               fetch=fake_fetch(), assets_dir=str(d["assets"]),  # mã N… không có trong sitemap giả
+                               downloads_dir=str(d["dl"]), media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"),
+                               log_fn=logs.append)
+    assert len(added) == 5 and all(c.startswith("A") for c in added)
+    assert sum("chưa có trang SP" in l for l in logs) == 1  # 1 dòng gộp, không 70 dòng
