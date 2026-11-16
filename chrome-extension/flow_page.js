@@ -11,8 +11,16 @@
     return boxes[boxes.length - 1] || null;
   }
 
+  // Khung soạn lệnh = tổ tiên gần nhất của ô câu lệnh có nút "Bắt đầu tạo". 16/11: Flow hiện lại ảnh tham chiếu của các lần tạo
+  // trước (ô "Thành phần" ở lưới / thông tin video) → đếm cả trang thấy 14 ô, báo "Ô câu lệnh đang có nội dung" dù ô trống.
+  function composer() {
+    let e = promptBox();
+    for (let i = 0; i < 10 && e; i++, e = e.parentElement) if (e.querySelector('[aria-label="Bắt đầu tạo"]')) return e;
+    return null;
+  }
+
   function chips() {
-    return [...document.querySelectorAll("button")].filter(
+    return [...(composer() || document).querySelectorAll("button")].filter(
       (b) => b.getAttribute("aria-label") === CHIP_LABEL || b.textContent.trim().startsWith(CHIP_LABEL)
     );
   }
