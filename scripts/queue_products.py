@@ -42,6 +42,8 @@ TRAN_VIDEO = 3  # tối đa 3 video / mã (Phân tích tạm đặt 30/10, chờ
 SO_MA_XET = 15  # số mã đủ điều kiện gom lại để xếp theo số size còn (mỗi mã tải 1 trang SP)
 SO_MA_THU_TOI_DA = 40  # mỗi lần chạy thử tối đa bấy nhiêu mã (tránh tải web quá nhiều khi nhiều mã thiếu ảnh)
 LEDGER = os.path.join(shop_products.PROJECT_DIR, "data", ".queue_products_ledger.json")
+SIZES = os.path.join(shop_products.PROJECT_DIR, "data", ".queue_products_sizes.json")  # size còn hàng mỗi mã ở lần xét trước
+BU_SIZE_NGAY = 14  # mã "mới bù size" được ưu tiên trong bấy nhiêu ngày
 LOG_PATH = os.path.join(shop_products.PROJECT_DIR, "data", "logs", "queue_products.log")
 
 
@@ -73,27 +75,66 @@ def web_stock(code: str, urls: Dict[str, str], fetch=fetch_text) -> Optional[str
     return web_check(code, urls, fetch)[0]
 
 
-def web_sizes(page: str) -> int:
-    """Số size CÒN HÀNG trên trang SP: nút size còn hàng có data-size, nút hết size (class "no") chỉ có data-wait."""
-    return len(re.findall(r'<button[^>]*\bdata-size="[^"]+"', page))
+def web_sizes(page: str) -> set:
+    """Các size CÒN HÀNG trên trang SP: nút size còn hàng có data-size, nút hết size (class "no") chỉ có data-wait."""
+    return set(re.findall(r'<button[^>]*\bdata-size="([^"]+)"', page))
 
 
 def web_check(code: str, urls: Dict[str, str], fetch=fetch_text):
-    """(lý do bỏ qua | None, số size còn hàng): 1 lần tải trang SP cho cả tình trạng hàng lẫn số size."""
+    """(lý do bỏ qua | None, tập size còn hàng): 1 lần tải trang SP cho cả tình trạng hàng lẫn size.
+    Tải được trang thì luôn trả tập size (có thể rỗng) để lưu lại; không tải được thì None."""
     url = urls.get(code)
     if not url:
-        return "không có trang SP trên web (đã gỡ / chưa đăng)", 0
+        return "không có trang SP trên web (đã gỡ / chưa đăng)", None
     try:
         page = fetch(url)
     except (urllib.error.URLError, OSError) as e:
-        return f"lỗi mở trang SP ({e.__class__.__name__})", 0
+        return f"lỗi mở trang SP ({e.__class__.__name__})", None
+    sizes = web_sizes(page)
     m = re.search(r'"availability"\s*:\s*"(?:https?://schema\.org/)?(\w+)"', page)
     if not m:
-        return "trang SP không ghi tình trạng hàng", 0
+        return "trang SP không ghi tình trạng hàng", sizes
     if m.group(1) != "InStock":
-        return f"web ghi {m.group(1)}", 0
-    n = web_sizes(page)
-    return (None, n) if n else ("trang SP không còn size nào", 0)
+        return f"web ghi {m.group(1)}", sizes
+    return (None, sizes) if sizes else ("trang SP không còn size nào", sizes)
+
+
+def load_sizes(path: Optional[str] = None) -> Dict[str, Dict]:
+    """Sổ size: {mã: {sizes: [...], at: ngày xét, restock: ngày bù size gần nhất, added: [size mới còn]}}."""
+    try:
+        with open(path or SIZES, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def save_sizes(data: Dict[str, Dict], path: Optional[str] = None) -> None:
+    path = path or SIZES
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=1, sort_keys=True)
+
+
+def note_sizes(book: Dict[str, Dict], code: str, sizes: set, today: str) -> None:
+    """Ghi size còn hàng lần này. Size lần trước hết / không có mà nay còn = "mới bù size" (ghi ngày + các size mới)."""
+    old = book.get(code)
+    entry = {"sizes": sorted(sizes), "at": today}
+    if old:
+        added = sorted(sizes - set(old.get("sizes", [])))
+        if added:
+            entry.update(restock=today, added=added)
+        elif old.get("restock"):
+            entry.update(restock=old["restock"], added=old.get("added", []))
+    book[code] = entry
+
+
+def restock_age(book: Dict[str, Dict], code: str, today: str) -> Optional[int]:
+    """Số ngày từ lần bù size gần nhất; None = chưa bù size hoặc quá BU_SIZE_NGAY."""
+    day = (book.get(code) or {}).get("restock")
+    if not day:
+        return None
+    age = (datetime.strptime(today, "%Y-%m-%d") - datetime.strptime(day, "%Y-%m-%d")).days
+    return age if 0 <= age <= BU_SIZE_NGAY else None
 
 
 def log(msg: str, path: Optional[str] = None) -> None:
@@ -173,7 +214,7 @@ def candidates(values: List[List[str]]) -> List[Dict[str, str]]:
 
 def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_item, fetch=fetch_text, assets_dir: str = ASSETS_DIR,
         downloads_dir: str = DOWNLOADS_DIR, media_dir: str = HNC_MEDIA_DIR, ledger_path: Optional[str] = None,
-        log_fn=log) -> List[str]:
+        log_fn=log, sizes_path: Optional[str] = None) -> List[str]:
     if not os.path.isdir(media_dir):
         log_fn(f"⏸ Không thấy {media_dir} (ổ Media chưa cắm?) — không làm gì.")
         return []
@@ -202,9 +243,14 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
     done = load_ledger(ledger_path)
     cfg = shop_products.load_config()
     added, tried, no_page, pool = [], 0, [], []
-    # Gom tối đa SO_MA_XET mã đủ điều kiện (còn hàng + còn size trên web), mới nhất trước; rồi xếp: chưa có video trước,
-    # cùng số video thì nhiều size còn hàng trước (anh Kha 16/11); sort ổn định → bằng nhau thì mới nhất trước.
-    for row in ordered(candidates(values), done):
+    book, today = load_sizes(sizes_path), datetime.now().strftime("%Y-%m-%d")
+    # Gom tối đa SO_MA_XET mã đủ điều kiện (còn hàng + còn size trên web); xếp: chưa có video trước; rồi mã mới bù size
+    # (gần nhất trước, anh Kha 16/11 "máy tự ghi lại"); rồi mã khác theo số video; trong mỗi nhóm nhiều size còn hàng trước,
+    # bằng nhau thì mới nhất trước. Mã bù size đã biết từ lần trước được quét sớm hơn mã có video khác.
+    def scan_key(r):
+        n = video_count(r, done)
+        return n if n == 0 else (1 if restock_age(book, r["product_code"], today) is not None else 1 + n)
+    for row in sorted(ordered(candidates(values), done), key=scan_key):
         if len(pool) >= SO_MA_XET or tried >= SO_MA_THU_TOI_DA:
             break
         code = row["product_code"]
@@ -220,12 +266,17 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
             no_page.append(code)  # (12/11–16/11: mã mới nhất đều chưa lên web, 40 lượt thử hết trước khi tới mã cũ hơn)
             continue
         tried += 1
-        stock, n_sizes = web_check(code, web_urls, fetch)
+        stock, sizes = web_check(code, web_urls, fetch)
+        if sizes is not None:
+            note_sizes(book, code, sizes, today)
         if stock:
             log_fn(f"⏭ {code}: {stock} — bỏ qua.")
             continue
-        pool.append((video_count(row, done), -n_sizes, len(pool), row, used, n_sizes))
-    for _, _, _, row, used, n_sizes in sorted(pool, key=lambda t: t[:3]):
+        vc, age = video_count(row, done), restock_age(book, code, today)
+        tier = 0 if vc == 0 else (1 if age is not None else 1 + vc)
+        pool.append((tier, age if (tier == 1 and age is not None) else 0, -len(sizes), len(pool), row, used, len(sizes), age))
+    save_sizes(book, sizes_path)
+    for _, _, _, _, row, used, n_sizes, age in sorted(pool, key=lambda t: t[:4]):
         if len(added) >= need:
             break
         code = row["product_code"]
@@ -239,7 +290,8 @@ def run(values_fn=shop_products.read_sanpham_values, make=shop_products.make_ite
             save_ledger(done, ledger_path)
             before = f", trước: {'; '.join(f'{m} · {b}' for m, b in used)}" if used else ""
             log_fn(f"➕ {code} · {got.get('chuyen_dong')} · {got.get('boi_canh')} (video thứ {len(used) + 1}{before}), "
-                   f"{n_sizes} size còn: {row.get('product_name', '').strip()}")
+                   f"{n_sizes} size còn{' · mới bù size ' + str(age) + ' ngày trước' if age is not None else ''}: "
+                   f"{row.get('product_name', '').strip()}")
         else:
             log_fn(f"⏭ {code}: không có ảnh (NAS / web / image_01…) — bỏ qua.")
     if no_page:

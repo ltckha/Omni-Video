@@ -24,6 +24,7 @@ data/*.csv
 data/.imported_csv.json
 data/.shop_products_scene_state.json
 data/.queue_products_ledger.json
+data/.queue_products_sizes.json
 data/logs/
 data/made_scripts/
 *service*.json

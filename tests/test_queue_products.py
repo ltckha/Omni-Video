@@ -8,6 +8,15 @@ sys.path.insert(0, os.path.join(PROJECT_DIR, "scripts"))
 import queue_products
 import shop_products
 
+import pytest
+from datetime import datetime
+
+
+@pytest.fixture(autouse=True)
+def _sizes_file_in_tmp(tmp_path, monkeypatch):
+    monkeypatch.setattr(queue_products, "SIZES", str(tmp_path / "sizes.json"))  # không ghi vào data/ thật
+
+
 HEAD = [["nhóm"] * 6, ["product_code", "product_name", "product_color", "content_files", "web_in_stock", "gioi_tinh"]]
 
 
@@ -218,5 +227,43 @@ def test_more_in_stock_sizes_first_among_same_video_count(tmp_path):
 
 def test_web_sizes_counts_only_in_stock_buttons():
     page = '<div class="sizes"><button data-size="38">38</button><button class="no" data-wait="39">39</button><button data-size="40">40</button></div>'
-    assert queue_products.web_sizes(page) == 2
-    assert queue_products.web_sizes("<p>không có size</p>") == 0
+    assert queue_products.web_sizes(page) == {"38", "40"}
+    assert queue_products.web_sizes("<p>không có size</p>") == set()
+
+
+def run_args(d, tmp_path, values, calls, fetch):
+    return dict(values_fn=lambda: values, make=fake_make(calls), fetch=fetch, assets_dir=str(d["assets"]),
+                downloads_dir=str(d["dl"]), media_dir=str(d["media"]), ledger_path=str(tmp_path / "l.json"),
+                log_fn=lambda m: None)
+
+
+def test_restock_is_detected_from_previous_run_and_saved(tmp_path):
+    import json
+    d = setup(tmp_path)
+    rows = HEAD + [row("A1", files="VIDEO")]
+    queue_products.run(**run_args(d, tmp_path, rows, [], fake_fetch(sizes={"A1": 2})))   # lần 1: size 38, 39
+    book = json.load(open(queue_products.SIZES))
+    assert book["A1"]["sizes"] == ["38", "39"] and "restock" not in book["A1"]
+    import shutil
+    shutil.rmtree(d["assets"] / "A1")  # mỗi mã 1 mục chờ: bỏ mục lần 1 để lần 2 xét lại mã này
+    queue_products.run(**run_args(d, tmp_path, rows, [], fake_fetch(sizes={"A1": 4})))   # lần 2: thêm 40, 41
+    book = json.load(open(queue_products.SIZES))
+    assert book["A1"]["added"] == ["40", "41"] and book["A1"]["restock"] == datetime.now().strftime("%Y-%m-%d")
+
+
+def test_restocked_code_goes_right_after_codes_without_video(tmp_path, monkeypatch):
+    import json
+    from datetime import timedelta
+    d = setup(tmp_path)
+    monkeypatch.setattr(queue_products, "SO_MA_CHO", 4)
+    today = datetime.now()
+    ago = lambda n: (today - timedelta(days=n)).strftime("%Y-%m-%d")
+    json.dump({"A6": {"sizes": ["38"], "at": ago(1), "restock": ago(1), "added": ["38"]},
+               "A5": {"sizes": [str(38 + i) for i in range(6)], "at": ago(20), "restock": ago(20), "added": ["38"]}},  # quá 14 ngày: không ưu tiên
+              open(queue_products.SIZES, "w"))
+    vid = {f"A{i}" for i in (4, 5, 6, 7)}
+    rows = HEAD + [row(f"A{i}", files="VIDEO" if f"A{i}" in vid else "IMG") for i in range(1, 8)]
+    calls = []
+    added = queue_products.run(**run_args(d, tmp_path, rows, calls, fake_fetch(sizes={"A4": 6, "A5": 6, "A6": 1, "A7": 6})))
+    assert added[:3] == ["A1", "A2", "A3"] or sorted(added[:3]) == ["A1", "A2", "A3"]
+    assert added[3] == "A6"  # có video, ít size, nhưng mới bù size → trước A4 / A5 / A7
