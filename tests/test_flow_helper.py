@@ -102,3 +102,46 @@ def test_all_product_images_ordered_and_capped(tmp_path):
     assert len(slots) - 1 == 7  # Flow max 7 images
     assert names[0] == "111_9.jpeg" and names[1] == "Nu-25t.png"
     assert names[2:7] == ["111_8.jpeg", "111_7.jpeg", "111_6.jpeg", "111_5.jpeg", "111_4.jpeg"]
+
+
+def _stray_setup(tmp_path, monkeypatch):
+    import flow_helper
+    monkeypatch.setattr(flow_helper, "FLOW_LOG", str(tmp_path / "flow_collect.log"))
+    assets, dl = tmp_path / "assets", tmp_path / "dl"
+    dl.mkdir()
+    d = assets / "HB05K"
+    d.mkdir(parents=True)
+    (d / "HB05K.txt").write_text("kịch bản")
+    (d / "info.json").write_text(json.dumps({"hang_tiem": True, "ten_video": "HB05K_1.mp4"}))
+    return assets, dl, d
+
+
+def test_collect_renames_single_recent_stray_video(tmp_path, monkeypatch):
+    assets, dl, d = _stray_setup(tmp_path, monkeypatch)
+    (dl / "Woman_walking_in_tea_hills_bdd652e9.mp4").write_bytes(b"v")
+    (dl / "OTHER_1.mp4").write_bytes(b"v")  # đã đúng tên của mã khác → không đụng
+    assert collect_flow_video("HB05K", str(assets), str(dl)) == str(dl / "HB05K_1.mp4")
+    assert (dl / "HB05K_1.mp4").exists() and (dl / "OTHER_1.mp4").exists()
+    assert not (dl / "Woman_walking_in_tea_hills_bdd652e9.mp4").exists()
+    assert json.loads((d / "info.json").read_text()).get("da_tai")
+
+
+def test_collect_leaves_stray_videos_alone_when_not_sure(tmp_path, monkeypatch):
+    assets, dl, d = _stray_setup(tmp_path, monkeypatch)
+    (dl / "a.mp4").write_bytes(b"v")
+    (dl / "b.mp4").write_bytes(b"v")  # 2 file lạ → không chắc file nào
+    assert collect_flow_video("HB05K", str(assets), str(dl)) is None
+    assert (dl / "a.mp4").exists() and (dl / "b.mp4").exists()
+    assert "không thấy HB05K_1.mp4" in (tmp_path / "flow_collect.log").read_text(encoding="utf-8")
+    assert not json.loads((d / "info.json").read_text()).get("da_tai")
+
+
+def test_collect_ignores_old_stray_video(tmp_path, monkeypatch):
+    import time
+    assets, dl, d = _stray_setup(tmp_path, monkeypatch)
+    old = dl / "old_clip.mp4"
+    old.write_bytes(b"v")
+    t = time.time() - 3600
+    os.utime(old, (t, t))
+    assert collect_flow_video("HB05K", str(assets), str(dl)) is None
+    assert old.exists()

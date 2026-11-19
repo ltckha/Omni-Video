@@ -11,6 +11,8 @@ Không gọi API, không đụng Google Sheet.
 import os
 import json
 import glob
+import re
+import time
 import base64
 import subprocess
 import tempfile
@@ -177,6 +179,46 @@ def list_pending_items(assets_dir: str = ASSETS_DIR) -> List[Dict[str, str]]:
     return [{"itemId": i["itemId"], "title": i["title"]} for i in items]
 
 
+STRAY_WINDOW_SECONDS = 600  # chỉ nhận video tải trong 10 phút gần nhất
+NAMED_VIDEO = re.compile(r"^[A-Za-z0-9]+(_\d+)?\.mp4$")  # <MÃ>_n.mp4 (hoặc <MÃ>.mp4 cũ) = đã mang tên mã
+FLOW_LOG = os.path.join(PROJECT_DIR, "data", "logs", "flow_collect.log")
+
+
+def _log(line: str, log_path: Optional[str] = None) -> None:
+    log_path = log_path or FLOW_LOG
+    try:
+        os.makedirs(os.path.dirname(log_path), exist_ok=True)
+        with open(log_path, "a", encoding="utf-8") as f:
+            f.write(time.strftime("%Y-%m-%d %H:%M:%S ") + line + "\n")
+    except OSError:
+        pass
+
+
+def rename_stray_download(expected: str, item_id: str, downloads_dir: str, now: Optional[float] = None,
+                          log_path: Optional[str] = None) -> Optional[str]:
+    """Chrome lưu video Flow với tên khác tên đã gán (vd Woman_walking_….mp4): nhận đúng 1 file .mp4 tải trong
+    10 phút gần nhất, chưa mang tên <MÃ>_n.mp4, rồi đổi thành `expected`. 0 hoặc ≥ 2 file → để nguyên, ghi log."""
+    now = time.time() if now is None else now
+    found = []
+    for path in glob.glob(os.path.join(downloads_dir, "*.mp4")):
+        name = os.path.basename(path)
+        if NAMED_VIDEO.match(name) or not os.path.isfile(path):
+            continue
+        try:
+            age = now - os.path.getmtime(path)
+            if 0 < os.path.getsize(path) and -60 <= age <= STRAY_WINDOW_SECONDS:
+                found.append(path)
+        except OSError:
+            continue
+    if len(found) != 1:
+        _log(f"{item_id}: không thấy {os.path.basename(expected)}; file lạ gần đây: {len(found)} "
+             f"({', '.join(os.path.basename(f) for f in found) or '-'}) → để nguyên", log_path)
+        return None
+    os.rename(found[0], expected)
+    _log(f"{item_id}: đổi {os.path.basename(found[0])} → {os.path.basename(expected)}", log_path)
+    return expected
+
+
 def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir: str = DOWNLOADS_DIR) -> Optional[str]:
     """Video tải về ~/Downloads với tên info.json "ten_video" (<MÃ>_1.mp4, <MÃ>_2.mp4…): để nguyên cho HNC gom,
     chép kịch bản vào data/made_scripts, ghi da_tai vào info.json, trả đường dẫn ở Downloads."""
@@ -185,7 +227,9 @@ def collect_flow_video(item_id: str, assets_dir: str = ASSETS_DIR, downloads_dir
         return None
     src = os.path.join(downloads_dir, output_name(read_info(item_dir), item_id))
     if not os.path.isfile(src):
-        return None
+        src = rename_stray_download(src, item_id, downloads_dir)
+        if not src:
+            return None
     save_made_script(item_dir)
     mark_downloaded(item_dir)
     return src
